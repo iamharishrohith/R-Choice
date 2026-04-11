@@ -75,6 +75,20 @@ export default async function ApplicationsPage() {
                   </a>
                 </div>
               )}
+
+              {/* Progress Tracker */}
+              <div className={`tracker-container status-${app.status || 'draft'}`}>
+                <div className="progress-bg-line"></div>
+                <div className="progress-fill-line"></div>
+                
+                <div className="progress-step node-1"><div className="step-dot"></div><span className="step-label">Applied</span></div>
+                <div className="progress-step node-2"><div className="step-dot"></div><span className="step-label">Tutor</span></div>
+                <div className="progress-step node-3"><div className="step-dot"></div><span className="step-label">Coordinator</span></div>
+                <div className="progress-step node-4"><div className="step-dot"></div><span className="step-label">HOD</span></div>
+                <div className="progress-step node-5"><div className="step-dot"></div><span className="step-label">Dean</span></div>
+                <div className="progress-step node-6"><div className="step-dot"></div><span className="step-label">Pl. Head</span></div>
+                <div className="progress-step node-7"><div className="step-dot"></div><span className="step-label">Principal</span></div>
+              </div>
             </div>
           ))}
         </div>
@@ -93,6 +107,45 @@ export default async function ApplicationsPage() {
         .badge-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
         .badge-warning { background: rgba(234, 179, 8, 0.15); color: #eab308; }
         .badge-pending { background: rgba(14, 165, 233, 0.15); color: #0ea5e9; }
+        
+        .tracker-container { display: flex; justify-content: space-between; position: relative; margin-top: var(--space-6); padding: var(--space-4) 0 8px 0; border-top: 1px solid var(--border-color); background: transparent; }
+        .progress-bg-line { position: absolute; top: calc(var(--space-4) + 6px); left: 30px; right: 30px; height: 3px; background: #e5e7eb; z-index: 1; border-radius: 2px; }
+        .progress-fill-line { position: absolute; top: calc(var(--space-4) + 6px); left: 30px; height: 3px; z-index: 2; border-radius: 2px; transition: all 0.5s ease; }
+        
+        .progress-step { display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 3; width: 65px; flex-shrink: 0; }
+        .step-dot { width: 14px; height: 14px; border-radius: 50%; background: #e5e7eb; transition: all 0.3s ease; }
+        .step-label { font-size: 0.6rem; color: var(--text-muted); text-align: center; font-weight: 600; white-space: normal; line-height: 1.1; }
+
+        /* Draft */
+        .status-draft .progress-fill-line { width: 0; }
+        .status-draft .node-1 .step-dot { background: #8DC63F; box-shadow: 0 0 0 3px rgba(141,198,63,0.2); }
+        .status-draft .node-1 .step-label { color: var(--text-primary); }
+
+        /* Pending */
+        .status-pending_review .progress-fill-line { width: 17%; background: linear-gradient(90deg, #8DC63F 0%, #eab308 100%); }
+        .status-pending_review .node-1 .step-dot { background: #8DC63F; }
+        .status-pending_review .node-2 .step-dot { background: #eab308; box-shadow: 0 0 0 3px rgba(234,179,8,0.2); }
+        .status-pending_review .node-1 .step-label, .status-pending_review .node-2 .step-label { color: var(--text-primary); }
+
+        /* Approved */
+        .status-approved .progress-fill-line { width: calc(100% - 60px); background: linear-gradient(90deg, #8DC63F 0%, #22c55e 100%); }
+        .status-approved .progress-step .step-dot { background: #22c55e; }
+        .status-approved .node-7 .step-dot { box-shadow: 0 0 0 3px rgba(34,197,94,0.2); }
+        .status-approved .progress-step .step-label { color: var(--text-primary); }
+
+        /* Rejected */
+        .status-rejected .progress-fill-line { width: 33%; background: linear-gradient(90deg, #8DC63F 0%, #22c55e 60%, #ef4444 100%); }
+        .status-rejected .node-1 .step-dot, .status-rejected .node-2 .step-dot { background: #22c55e; }
+        .status-rejected .node-3 .step-dot { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.25); }
+        .status-rejected .node-1 .step-label, .status-rejected .node-2 .step-label { color: var(--text-primary); }
+        .status-rejected .node-3 .step-label { color: #ef4444; font-weight: 700; }
+
+        /* Returned */
+        .status-returned .progress-fill-line { width: 33%; background: linear-gradient(90deg, #8DC63F 0%, #22c55e 60%, #eab308 100%); }
+        .status-returned .node-1 .step-dot, .status-returned .node-2 .step-dot { background: #22c55e; }
+        .status-returned .node-3 .step-dot { background: #eab308; box-shadow: 0 0 0 3px rgba(234,179,8,0.25); }
+        .status-returned .node-1 .step-label, .status-returned .node-2 .step-label { color: var(--text-primary); }
+        .status-returned .node-3 .step-label { color: #eab308; font-weight: 700; }
       `}</style>
     </div>
   );

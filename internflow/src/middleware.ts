@@ -20,7 +20,7 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
 
   // Allow public routes
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+  if (publicRoutes.some((route) => route === "/" ? pathname === "/" : pathname.startsWith(route))) {
     return NextResponse.next();
   }
 

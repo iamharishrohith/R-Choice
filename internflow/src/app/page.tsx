@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { loginAction } from "@/app/actions/auth";
+import { Shimmer } from "shimmer-from-structure";
 import {
   GraduationCap,
   BookOpen,
@@ -169,7 +170,8 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className={styles.loginCard}>
+        <Shimmer loading={isLoading}>
+          <div className={styles.loginCard}>
           {/* Step Indicator */}
           <div className={styles.loginStepIndicator}>
             <div className={`${styles.stepDot} ${step >= 1 ? styles.active : ""}`} />
@@ -373,17 +375,10 @@ export default function LoginPage() {
               </p>
             </div>
           )}
-        </div>
+          </div>
+        </Shimmer>
       </div>
 
-      <style>{`
-        .animate-spin {
-          animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

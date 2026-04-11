@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   LayoutDashboard,
   User,
@@ -230,7 +231,7 @@ export function DashboardShell({
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <div className={styles.sidebarLogo}>R</div>
-          <div className={styles.sidebarBrand}>
+          <div className={styles.sidebarBrand} style={{ color: "var(--color-secondary)" }}>
             R-<span>Choice</span>
           </div>
         </div>
@@ -287,6 +288,7 @@ export function DashboardShell({
             </h1>
           </div>
           <div className={styles.topBarRight}>
+            <ThemeToggle />
             <button className={styles.notifButton} type="button" aria-label="Notifications">
               <Bell size={20} />
               <span className={styles.notifDot} />
@@ -301,11 +303,12 @@ export function DashboardShell({
         <header className={styles.mobileHeader}>
           <div className={styles.mobileHeaderLogo}>
             <div className={styles.mobileHeaderLogoIcon}>R</div>
-            <span className={styles.mobileHeaderBrand}>
+            <span className={styles.mobileHeaderBrand} style={{ color: "var(--color-secondary)" }}>
               R-<span>Choice</span>
             </span>
           </div>
-          <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+            <ThemeToggle />
             <button className={styles.notifButton} type="button" aria-label="Notifications">
               <Bell size={20} />
               <span className={styles.notifDot} />

@@ -1,18 +1,28 @@
-export default function ProfileLinksPage() {
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { studentProfiles, studentLinks } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import LinksClient from "./LinksClient";
+
+export default async function ProfileLinksPage() {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/");
+
+  const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
+  let links: any[] = [];
+  
+  if (profile) {
+    links = await db.select().from(studentLinks).where(eq(studentLinks.studentId, profile.id)).orderBy(studentLinks.displayOrder);
+  }
+
   return (
     <div className="animate-fade-in">
       <div className="page-header">
-        <h1>Profile Links</h1>
-        <p>This section is currently under development.</p>
+        <h1>My Links & Portals</h1>
+        <p>Add your LeetCode, GitHub, HackerRank, and other external profiles.</p>
       </div>
-      <div className="card" style={{ textAlign: "center", padding: "var(--space-8)" }}>
-        <div style={{ fontSize: "3rem", marginBottom: "var(--space-4)" }}>🚧</div>
-        <h2 style={{ marginBottom: "var(--space-2)" }}>Coming Soon</h2>
-        <p style={{ color: "var(--text-secondary)", maxWidth: "500px", margin: "0 auto" }}>
-          We're actively building out the R-Choice platform functionalities. 
-          Check back later to see the completed Profile Links module!
-        </p>
-      </div>
+      <LinksClient initialLinks={links} />
     </div>
   );
 }

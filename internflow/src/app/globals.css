@@ -4,36 +4,34 @@
    Theme: Light-First | Brand: Rathinam Prestige
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-
 /* ── Root Variables (Light Theme – Default) ── */
 :root {
   /* Rathinam Brand Colors */
-  --rathinam-navy: #122B40;
-  --rathinam-purple: #A1278B;
-  --rathinam-teal: #00BCD4;
-  --rathinam-gold: #FAB915;
-  --rathinam-red: #E1261C;
-  --rathinam-blue: #0067B1;
-  --rathinam-green: #00A651;
+  --rathinam-navy: #1E9BD7;
+  --rathinam-purple: #9B2E87;
+  --rathinam-teal: #1E9BD7;
+  --rathinam-gold: #F47A2A;
+  --rathinam-red: #F47A2A;
+  --rathinam-blue: #1E9BD7;
+  --rathinam-green: #8DC63F;
 
   /* Semantic Colors */
-  --color-primary: #A1278B;
-  --color-primary-light: #C74DB5;
-  --color-primary-dark: #7A1D6A;
-  --color-secondary: #122B40;
-  --color-accent: #00BCD4;
-  --color-success: #00A651;
-  --color-warning: #FAB915;
-  --color-danger: #E1261C;
-  --color-info: #0067B1;
+  --color-primary: #F47A2A;
+  --color-primary-light: rgba(244, 122, 42, 0.6);
+  --color-primary-dark: #D45A0A;
+  --color-secondary: #9B2E87;
+  --color-accent: #1E9BD7;
+  --color-success: #8DC63F;
+  --color-warning: #F47A2A;
+  --color-danger: #F47A2A;
+  --color-info: #1E9BD7;
 
   /* Backgrounds */
-  --bg-primary: #F4F7FA;
+  --bg-primary: #FFFFFF;
   --bg-secondary: #FFFFFF;
   --bg-card: #FFFFFF;
-  --bg-elevated: #F0F4F8;
-  --bg-sidebar: #122B40;
+  --bg-elevated: #FFFFFF;
+  --bg-sidebar: #FFFFFF;
   --bg-sidebar-active: rgba(161, 39, 139, 0.15);
   --bg-hover: rgba(161, 39, 139, 0.06);
 
@@ -42,7 +40,7 @@
   --text-secondary: #4A5568;
   --text-muted: #8896A6;
   --text-inverse: #FFFFFF;
-  --text-link: #A1278B;
+  --text-link: #1E9BD7;
 
   /* Borders */
   --border-color: rgba(18, 43, 64, 0.10);
@@ -66,12 +64,12 @@
   --glass-border: rgba(18, 43, 64, 0.08);
   --glass-blur: 20px;
 
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #A1278B, #122B40);
-  --gradient-accent: linear-gradient(135deg, #FAB915, #E1261C);
-  --gradient-cool: linear-gradient(135deg, #122B40, #00BCD4);
-  --gradient-success: linear-gradient(135deg, #00A651, #00BCD4);
-  --gradient-hero: linear-gradient(160deg, #F4F7FA 0%, #E8EDF5 50%, #F0E6F5 100%);
+  /* Solid Fill Overrides (Previously Gradients) */
+  --gradient-primary: var(--color-primary);
+  --gradient-accent: var(--color-accent);
+  --gradient-cool: var(--color-secondary);
+  --gradient-success: var(--color-success);
+  --gradient-hero: var(--bg-primary);
 
   /* Typography */
   --font-heading: 'Outfit', sans-serif;
@@ -117,15 +115,15 @@
 
 /* ── Dark Theme ── */
 [data-theme="dark"] {
-  --color-primary: #C03DA8;
-  --color-primary-light: #D65EC2;
-  --color-primary-dark: #8B2A78;
-  --color-secondary: #E2E8F0;
-  --color-accent: #26C6DA;
-  --color-success: #4CAF50;
-  --color-warning: #FFC940;
-  --color-danger: #FF5252;
-  --color-info: #42A5F5;
+  --color-primary: #F47A2A;
+  --color-primary-light: rgba(244, 122, 42, 0.6);
+  --color-primary-dark: #D45A0A;
+  --color-secondary: #9B2E87;
+  --color-accent: #1E9BD7;
+  --color-success: #8DC63F;
+  --color-warning: #F47A2A;
+  --color-danger: #F47A2A;
+  --color-info: #1E9BD7;
 
   --bg-primary: #0D1117;
   --bg-secondary: #161B22;
@@ -139,7 +137,7 @@
   --text-secondary: #A0AEC0;
   --text-muted: #6B7A8D;
   --text-inverse: #0D1117;
-  --text-link: #C03DA8;
+  --text-link: #1E9BD7;
 
   --border-color: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.16);
@@ -151,10 +149,10 @@
   --glass-bg: rgba(26, 29, 35, 0.72);
   --glass-border: rgba(255, 255, 255, 0.06);
 
-  --gradient-hero: linear-gradient(160deg, #0D1117 0%, #151A24 50%, #1A1228 100%);
+  --gradient-hero: var(--bg-primary);
 
-  --skeleton-base: rgba(161, 39, 139, 0.06);
-  --skeleton-shine: rgba(0, 188, 212, 0.12);
+  --skeleton-base: rgba(244, 122, 42, 0.06);
+  --skeleton-shine: rgba(244, 122, 42, 0.12);
 }
 
 /* ── Reset & Base ── */
@@ -230,7 +228,7 @@ input, select, textarea {
 }
 .card:hover {
   box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+  transform: translateY(-4px);
 }
 
 .card-glass {
@@ -453,6 +451,12 @@ input, select, textarea {
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -488,4 +492,12 @@ input, select, textarea {
   height: 1px;
   clip: rect(0,0,0,0);
   overflow: hidden;
+}
+
+/* ── Loader ── */
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
