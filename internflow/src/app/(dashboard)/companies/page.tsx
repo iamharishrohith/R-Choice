@@ -4,17 +4,40 @@ import { Building, Globe, Mail } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { format } from "date-fns";
 
-export default async function CompaniesPage() {
-  const companies = await db
+export default async function CompaniesPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
+  const searchParams = await props.searchParams;
+  const queryParam = (searchParams.q || "").toLowerCase();
+
+  let companies = await db
     .select()
     .from(users)
     .where(eq(users.role, "company"));
 
+  if (queryParam) {
+    companies = companies.filter(c => 
+      c.firstName.toLowerCase().includes(queryParam) || 
+      c.lastName.toLowerCase().includes(queryParam) ||
+      (c.email && c.email.toLowerCase().includes(queryParam))
+    );
+  }
+
   return (
     <div className="animate-fade-in">
-      <div className="page-header">
-        <h1>Company Directory</h1>
-        <p>List of all corporate partners registered on R-Choice for hiring.</p>
+      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-4)" }}>
+        <div>
+          <h1>Company Directory</h1>
+          <p>List of all corporate partners registered on R-Choice for hiring.</p>
+        </div>
+        <form method="GET" style={{ display: "flex", gap: "var(--space-2)" }}>
+          <input 
+            type="search" 
+            name="q" 
+            placeholder="Search companies..." 
+            defaultValue={queryParam}
+            style={{ padding: "8px 12px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", background: "var(--bg-primary)" }}
+          />
+          <button type="submit" className="button">Search</button>
+        </form>
       </div>
 
       <div className="card">

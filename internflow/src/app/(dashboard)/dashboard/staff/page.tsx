@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function StaffDashboard() {
   return (
     <div>
@@ -8,19 +10,29 @@ export default function StaffDashboard() {
 
       <div className="grid grid-3" style={{ marginBottom: "var(--space-6)" }}>
         {[
-          { label: "Pending Approvals", value: "5", color: "var(--rathinam-gold)" },
-          { label: "Total Students", value: "120", color: "var(--rathinam-teal)" },
+          { label: "Pending Approvals", value: "5", color: "var(--rathinam-gold)", href: "/approvals" },
+          { label: "Total Students", value: "120", color: "var(--rathinam-teal)", href: "/students" },
           { label: "Active Internships", value: "34", color: "var(--rathinam-green)" },
-        ].map((kpi) => (
-          <div className="card" key={kpi.label}>
-            <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginBottom: "var(--space-2)" }}>
-              {kpi.label}
-            </p>
-            <p style={{ fontFamily: "var(--font-heading)", fontSize: "2rem", fontWeight: 700, color: kpi.color }}>
-              {kpi.value}
-            </p>
-          </div>
-        ))}
+        ].map((kpi) => {
+          const content = (
+            <div className="card" style={{ height: "100%", cursor: kpi.href ? "pointer" : "default" }}>
+              <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginBottom: "var(--space-2)" }}>
+                {kpi.label}
+              </p>
+              <p style={{ fontFamily: "var(--font-heading)", fontSize: "2rem", fontWeight: 700, color: kpi.color }}>
+                {kpi.value}
+              </p>
+            </div>
+          );
+
+          return kpi.href ? (
+             <Link href={kpi.href} key={kpi.label} style={{ textDecoration: "none", color: "inherit" }}>
+               {content}
+             </Link>
+          ) : (
+             <div key={kpi.label}>{content}</div>
+          );
+        })}
       </div>
 
       <h2 style={{ marginBottom: "var(--space-4)" }}>Recent Approval Requests</h2>

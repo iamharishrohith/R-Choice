@@ -3,8 +3,11 @@ import { users, studentProfiles } from "@/lib/db/schema";
 import { GraduationCap, Award, BookOpen } from "lucide-react";
 import { eq } from "drizzle-orm";
 
-export default async function StudentsPage() {
-  const students = await db
+export default async function StudentsPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
+  const searchParams = await props.searchParams;
+  const queryParam = (searchParams.q || "").toLowerCase();
+
+  let students = await db
     .select({
       id: studentProfiles.id,
       firstName: users.firstName,
@@ -18,11 +21,31 @@ export default async function StudentsPage() {
     .from(studentProfiles)
     .innerJoin(users, eq(users.id, studentProfiles.userId));
 
+  if (queryParam) {
+    students = students.filter(s => 
+      s.firstName.toLowerCase().includes(queryParam) || 
+      s.lastName.toLowerCase().includes(queryParam) ||
+      (s.email && s.email.toLowerCase().includes(queryParam))
+    );
+  }
+
   return (
     <div className="animate-fade-in">
-      <div className="page-header">
-        <h1>Student Directory</h1>
-        <p>Comprehensive list of all registered students and their academic profiles.</p>
+      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-4)" }}>
+        <div>
+          <h1>Student Directory</h1>
+          <p>Comprehensive list of all registered students and their academic profiles.</p>
+        </div>
+        <form method="GET" style={{ display: "flex", gap: "var(--space-2)" }}>
+          <input 
+            type="search" 
+            name="q" 
+            placeholder="Search students..." 
+            defaultValue={queryParam}
+            style={{ padding: "8px 12px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", background: "var(--bg-primary)" }}
+          />
+          <button type="submit" className="button">Search</button>
+        </form>
       </div>
 
       <div className="card">

@@ -103,7 +103,7 @@ function getNavSections(role: string): NavSection[] {
           label: "Department",
           items: [
             { label: "Students", href: "/students", icon: <GraduationCap size={20} /> },
-            { label: "Work Reports", href: "/reports", icon: <FileText size={20} /> },
+            { label: "All Tutors", href: "/users?role=tutor", icon: <Users size={20} /> },
           ],
         },
         {
@@ -115,9 +115,41 @@ function getNavSections(role: string): NavSection[] {
         },
       ];
 
+    case "principal":
+      return [
+        {
+          label: "Main",
+          items: [
+            { label: "Dashboard", href: "/dashboard/admin", icon: <LayoutDashboard size={20} /> },
+            { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} />, badge: 8 },
+            { label: "Analytics", href: "/analytics", icon: <BarChart3 size={20} /> },
+          ],
+        },
+        {
+          label: "Manage",
+          items: [
+            { label: "All Students", href: "/students", icon: <GraduationCap size={20} /> },
+            { label: "User Accounts", href: "/users", icon: <Users size={20} /> },
+            { label: "Companies", href: "/companies", icon: <Building2 size={20} /> },
+          ],
+        },
+        {
+          label: "My Profile",
+          items: [
+            { label: "View Profile", href: "/profile", icon: <User size={20} /> },
+            { label: "Update Profile", href: "/settings", icon: <Settings size={20} /> },
+          ]
+        },
+        {
+          label: "Opportunities",
+          items: [
+            { label: "Placement Drives", href: "/drives", icon: <CalendarDays size={20} /> },
+          ],
+        },
+      ];
+
     case "dean":
     case "placement_officer":
-    case "principal":
       return [
         {
           label: "Main",
@@ -291,9 +323,11 @@ export function DashboardShell({
               <Bell size={20} />
               <span className={styles.notifDot} />
             </button>
-            <div className={styles.userAvatar} style={{ width: 32, height: 32, fontSize: "0.75rem" }}>
-              {initials}
-            </div>
+            <Link href="/profile" style={{ textDecoration: "none" }}>
+              <div className={styles.userAvatar} style={{ width: 32, height: 32, fontSize: "0.75rem", cursor: "pointer" }}>
+                {initials}
+              </div>
+            </Link>
           </div>
         </header>
 

@@ -63,12 +63,13 @@ export default async function StudentsAppliedPage() {
                     </td>
                     <td style={{ padding: "var(--space-4)" }}>
                       <span className={`badge ${
+                        !app.status ? 'badge-warning' :
                         app.status === 'approved' ? 'badge-success' : 
                         app.status === 'rejected' ? 'badge-error' : 
                         'badge-warning'
                       }`}>
                         <CheckCircle size={14} style={{ marginRight: "4px" }} />
-                        {app.status.replace(/_/g, ' ').toUpperCase()}
+                        {app.status ? app.status.replace(/_/g, ' ').toUpperCase() : 'PENDING'}
                       </span>
                     </td>
                     <td style={{ padding: "var(--space-4)" }}>

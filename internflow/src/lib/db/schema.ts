@@ -92,6 +92,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name", { length: 100 }).notNull(),
   lastName: varchar("last_name", { length: 100 }).notNull(),
   phone: varchar("phone", { length: 15 }),
+  about: text("about"),
   avatarUrl: text("avatar_url"),
   isActive: boolean("is_active").default(true),
   mfaSecret: text("mfa_secret"),
