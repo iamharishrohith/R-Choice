@@ -2,13 +2,17 @@ import { db } from "@/lib/db";
 import { internshipRequests, users, authorityMappings } from "@/lib/db/schema";
 import { eq, or, desc, and } from "drizzle-orm";
 
-export async function getPendingRequestsForStaff(userId: string, role: string) {
+export async function getPendingRequestsForStaff(userId: string, role: string, filter: string = "pending") {
   let targetStatus = "none";
   
-  if (role === "tutor") targetStatus = "pending_tutor";
-  else if (role === "placement_coordinator") targetStatus = "pending_coordinator";
-  else if (role === "hod") targetStatus = "pending_hod";
-  else if (role === "dean" || role === "placement_officer" || role === "principal") targetStatus = "pending_admin";
+  if (filter === "approved") targetStatus = "approved";
+  else if (filter === "rejected") targetStatus = "rejected";
+  else {
+    if (role === "tutor") targetStatus = "pending_tutor";
+    else if (role === "placement_coordinator") targetStatus = "pending_coordinator";
+    else if (role === "hod") targetStatus = "pending_hod";
+    else if (role === "dean" || role === "placement_officer" || role === "principal") targetStatus = "pending_admin";
+  }
 
   if (targetStatus === "none") return [];
 

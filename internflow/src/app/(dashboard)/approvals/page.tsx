@@ -3,8 +3,9 @@ import { getPendingRequestsForStaff } from "@/lib/db/queries/approvals";
 import { redirect } from "next/navigation";
 import { CheckCircle, XCircle } from "lucide-react";
 import ApprovalActions from "./ApprovalActions";
+import Link from "next/link";
 
-export default async function ApprovalsPage() {
+export default async function ApprovalsPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/");
@@ -16,14 +17,26 @@ export default async function ApprovalsPage() {
     redirect("/dashboard/student");
   }
 
-  const requests = await getPendingRequestsForStaff(session.user.id, role);
+  const params = await searchParams;
+  const filter = params.filter;
+  const actualFilter = role === "dean" ? (filter || "pending") : "pending";
+
+  const requests = await getPendingRequestsForStaff(session.user.id, role, actualFilter);
 
   return (
     <div className="animate-fade-in">
       <div className="page-header">
-        <h1>Action Required</h1>
+        <h1>{actualFilter === 'pending' ? 'Action Required' : 'Approval History'}</h1>
         <p>Review and approve internship requests pending at your level.</p>
       </div>
+
+      {role === "dean" && (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-6)' }}>
+          <Link href="?filter=pending" className={`btn ${actualFilter === 'pending' ? 'btn-primary' : 'btn-outline'}`}>Pending Approval</Link>
+          <Link href="?filter=approved" className={`btn ${actualFilter === 'approved' ? 'btn-primary' : 'btn-outline'}`}>Successfully Approved</Link>
+          <Link href="?filter=rejected" className={`btn ${actualFilter === 'rejected' ? 'btn-primary' : 'btn-outline'}`}>Rejected Approval</Link>
+        </div>
+      )}
 
       {requests.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "var(--space-8)" }}>
