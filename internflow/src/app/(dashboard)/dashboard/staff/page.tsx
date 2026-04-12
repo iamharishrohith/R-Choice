@@ -1,6 +1,16 @@
+<<<<<<< HEAD
 import Link from "next/link";
 
 export default function StaffDashboard() {
+=======
+import { auth } from "@/lib/auth";
+import Link from "next/link";
+
+export default async function StaffDashboard() {
+  const session = await auth();
+  const userRole = (session?.user as any)?.role;
+
+>>>>>>> keerthika/main
   return (
     <div>
       <div className="page-header">

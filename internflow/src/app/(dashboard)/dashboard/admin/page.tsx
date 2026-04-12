@@ -1,6 +1,16 @@
+<<<<<<< HEAD
 import Link from "next/link";
 
 export default function AdminDashboard() {
+=======
+import { auth } from "@/lib/auth";
+import Link from "next/link";
+
+export default async function AdminDashboard() {
+  const session = await auth();
+  const userRole = (session?.user as any)?.role;
+
+>>>>>>> keerthika/main
   return (
     <div>
       <div className="page-header">
@@ -25,7 +35,6 @@ export default function AdminDashboard() {
               </p>
             </div>
           );
-          
           return kpi.href ? (
              <Link href={kpi.href} key={kpi.label} style={{ textDecoration: "none", color: "inherit" }}>
                {content}

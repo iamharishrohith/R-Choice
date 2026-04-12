@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { studentProfiles } from "@/lib/db/schema";
+import { studentProfiles, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -73,6 +73,42 @@ export async function saveBasicProfile(formData: {
     console.error("Profile save error:", error);
     if (error.code === '23505') { // unique violation
       return { error: "Register Number is already in use by another student." };
+    }
+    return { error: "Failed to save profile. Please try again." };
+  }
+}
+
+export async function saveDeanProfile(formData: {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.id || (session.user as any).role !== "dean") {
+    return { error: "Not authorized" };
+  }
+
+  const userId = session.user.id;
+
+  try {
+    await db
+      .update(users)
+      .set({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone || null,
+        email: formData.email,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+
+    revalidatePath("/profile");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Dean profile save error:", error);
+    if (error.code === '23505') { 
+      return { error: "Email is already in use by another user." };
     }
     return { error: "Failed to save profile. Please try again." };
   }

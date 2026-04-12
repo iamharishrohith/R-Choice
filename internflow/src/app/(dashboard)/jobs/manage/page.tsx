@@ -34,12 +34,9 @@ export default async function ManageJobsPage() {
         <div className="card" style={{ textAlign: "center", padding: "var(--space-8)" }}>
           <div style={{ fontSize: "3rem", marginBottom: "var(--space-4)" }}>🏢</div>
           <h2 style={{ marginBottom: "var(--space-2)" }}>No Active Postings</h2>
-          <p style={{ color: "var(--text-secondary)", maxWidth: "500px", margin: "0 auto", marginBottom: "var(--space-6)" }}>
+          <p style={{ color: "var(--text-secondary)", maxWidth: "500px", margin: "0 auto" }}>
             You haven't posted any internship opportunities to the talent pool yet. Create one to start receiving applications.
           </p>
-          <Link href="/jobs/create" className="btn btn-primary" style={{ display: "inline-flex" }}>
-            Create First Posting
-          </Link>
         </div>
       ) : (
         <div style={{ display: "grid", gap: "var(--space-4)" }}>
