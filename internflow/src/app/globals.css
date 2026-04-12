@@ -120,48 +120,6 @@
   --status-returned: #0067B1;
 }
 
-/* ── Dark Theme ── */
-[data-theme="dark"] {
-  --color-primary: #F47A2A;
-  --color-primary-light: rgba(244, 122, 42, 0.6);
-  --color-primary-dark: #D45A0A;
-  --color-secondary: #9B2E87;
-  --color-accent: #1E9BD7;
-  --color-success: #8DC63F;
-  --color-warning: #F47A2A;
-  --color-danger: #F47A2A;
-  --color-info: #1E9BD7;
-
-  --bg-primary: #0D1117;
-  --bg-secondary: #161B22;
-  --bg-card: #1A1D23;
-  --bg-elevated: #242830;
-  --bg-sidebar: #0D1117;
-  --bg-sidebar-active: rgba(192, 61, 168, 0.15);
-  --bg-hover: rgba(192, 61, 168, 0.08);
-
-  --text-primary: #F0F4F8;
-  --text-secondary: #A0AEC0;
-  --text-muted: #6B7A8D;
-  --text-inverse: #0D1117;
-  --text-link: #1E9BD7;
-
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.16);
-
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-
-  --glass-bg: rgba(26, 29, 35, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.06);
-
-  --gradient-hero: var(--bg-primary);
-
-  --skeleton-base: rgba(244, 122, 42, 0.06);
-  --skeleton-shine: rgba(244, 122, 42, 0.12);
-}
-
 /* ── Reset & Base ── */
 *,
 *::before,

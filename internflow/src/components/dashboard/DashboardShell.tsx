@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   LayoutDashboard,
   User,
@@ -320,7 +319,6 @@ export function DashboardShell({
             </h1>
           </div>
           <div className={styles.topBarRight}>
-            <ThemeToggle />
             <button className={styles.notifButton} type="button" aria-label="Notifications">
               <Bell size={20} />
               <span className={styles.notifDot} />
@@ -342,7 +340,6 @@ export function DashboardShell({
             </span>
           </div>
           <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
-            <ThemeToggle />
             <button className={styles.notifButton} type="button" aria-label="Notifications">
               <Bell size={20} />
               <span className={styles.notifDot} />
