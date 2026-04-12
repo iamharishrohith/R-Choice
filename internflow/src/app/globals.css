@@ -6,34 +6,36 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* ── Root Variables (Light-Only Theme) ── */
+/* ── Root Variables (Light Theme – Default) ── */
 :root {
-  /* Rathinam Brand Colors — Official */
-  --rathinam-orange: #F47A2A;
+  /* Rathinam Brand Colors */
+  --rathinam-navy: #1E9BD7;
+  --rathinam-purple: #9B2E87;
+  --rathinam-teal: #1E9BD7;
+  --rathinam-gold: #F47A2A;
+  --rathinam-red: #F47A2A;
   --rathinam-blue: #1E9BD7;
   --rathinam-green: #8DC63F;
-  --rathinam-purple: #9B2E87;
 
   /* Semantic Colors */
-  --color-primary: #1E9BD7;
-  --color-primary-light: #4DB8E8;
-  --color-primary-dark: #1578A8;
+  --color-primary: #F47A2A;
+  --color-primary-light: rgba(244, 122, 42, 0.6);
+  --color-primary-dark: #D45A0A;
   --color-secondary: #9B2E87;
-  --color-accent: #F47A2A;
+  --color-accent: #1E9BD7;
   --color-success: #8DC63F;
   --color-warning: #F47A2A;
-  --color-danger: #D93025;
+  --color-danger: #F47A2A;
   --color-info: #1E9BD7;
 
-  /* Backgrounds — Pleasant Warm White */
-  --bg-primary: #F8F9FC;
+  /* Backgrounds */
+  --bg-primary: #FFFFFF;
   --bg-secondary: #FFFFFF;
   --bg-card: #FFFFFF;
-  --bg-elevated: #F1F3F8;
+  --bg-elevated: #FFFFFF;
   --bg-sidebar: #FFFFFF;
-  --bg-sidebar-active: rgba(30, 155, 215, 0.08);
-  --bg-hover: rgba(30, 155, 215, 0.05);
-  --bg-page-tint: linear-gradient(180deg, #F0F4F8 0%, #F8F9FC 100%);
+  --bg-sidebar-active: rgba(161, 39, 139, 0.15);
+  --bg-hover: rgba(161, 39, 139, 0.06);
 
   /* Text */
   --text-primary: #1A2332;
@@ -66,8 +68,8 @@
   --glass-blur: 20px;
 
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #1E9BD7, #1578A8);
-  --gradient-accent: linear-gradient(135deg, #F47A2A, #E06920);
+  --gradient-primary: linear-gradient(135deg, #F47A2A, #D45A0A);
+  --gradient-accent: linear-gradient(135deg, #1E9BD7, #1578A8);
   --gradient-purple: linear-gradient(135deg, #9B2E87, #7A216A);
   --gradient-cool: linear-gradient(135deg, #1E9BD7, #8DC63F);
   --gradient-warm: linear-gradient(135deg, #F47A2A, #9B2E87);
@@ -111,11 +113,53 @@
   --skeleton-shine: rgba(30, 155, 215, 0.10);
 
   /* Status Colors */
-  --status-draft: #8A96A3;
-  --status-pending: #F47A2A;
-  --status-approved: #8DC63F;
-  --status-rejected: #D93025;
-  --status-returned: #1E9BD7;
+  --status-draft: #8896A6;
+  --status-pending: #FAB915;
+  --status-approved: #00A651;
+  --status-rejected: #E1261C;
+  --status-returned: #0067B1;
+}
+
+/* ── Dark Theme ── */
+[data-theme="dark"] {
+  --color-primary: #F47A2A;
+  --color-primary-light: rgba(244, 122, 42, 0.6);
+  --color-primary-dark: #D45A0A;
+  --color-secondary: #9B2E87;
+  --color-accent: #1E9BD7;
+  --color-success: #8DC63F;
+  --color-warning: #F47A2A;
+  --color-danger: #F47A2A;
+  --color-info: #1E9BD7;
+
+  --bg-primary: #0D1117;
+  --bg-secondary: #161B22;
+  --bg-card: #1A1D23;
+  --bg-elevated: #242830;
+  --bg-sidebar: #0D1117;
+  --bg-sidebar-active: rgba(192, 61, 168, 0.15);
+  --bg-hover: rgba(192, 61, 168, 0.08);
+
+  --text-primary: #F0F4F8;
+  --text-secondary: #A0AEC0;
+  --text-muted: #6B7A8D;
+  --text-inverse: #0D1117;
+  --text-link: #1E9BD7;
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+  --glass-bg: rgba(26, 29, 35, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.06);
+
+  --gradient-hero: var(--bg-primary);
+
+  --skeleton-base: rgba(244, 122, 42, 0.06);
+  --skeleton-shine: rgba(244, 122, 42, 0.12);
 }
 
 /* ── Reset & Base ── */
@@ -473,6 +517,12 @@ input, select, textarea {
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -508,4 +558,12 @@ input, select, textarea {
   height: 1px;
   clip: rect(0,0,0,0);
   overflow: hidden;
+}
+
+/* ── Loader ── */
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

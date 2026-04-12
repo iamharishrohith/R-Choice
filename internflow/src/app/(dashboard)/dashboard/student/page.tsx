@@ -21,11 +21,11 @@ export default function StudentDashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-4" style={{ marginBottom: "var(--space-6)" }}>
+      <div className="grid grid-3" style={{ marginBottom: "var(--space-6)" }}>
         {[
           { label: "Applications", value: "0", color: "var(--rathinam-purple)" },
           { label: "Approved", value: "0", color: "var(--rathinam-green)" },
-          { label: "Pending", value: "0", color: "var(--rathinam-orange)" },
+          { label: "Pending", value: "0", color: "var(--rathinam-gold)" },
           { label: "Readiness Score", value: "35", color: "var(--rathinam-blue)" },
         ].map((kpi) => (
           <div className="card" key={kpi.label}>
