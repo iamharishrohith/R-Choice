@@ -44,7 +44,12 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
     } else if (role === "hod" && request.status === "pending_hod") {
       nextStatus = "pending_admin";
       nextTier = 4;
-    } else if ((role === "dean" || role === "principal" || role === "placement_officer") && request.status === "pending_admin") {
+    } else if ((role === "dean" || role === "placement_officer") && request.status === "pending_admin") {
+      // Passes smoothly to Principal
+      nextStatus = "pending_admin";
+      nextTier = 5; 
+    } else if (role === "principal" && request.status === "pending_admin" && request.currentTier === 5) {
+      // Principal provides final approval
       nextStatus = "approved";
       
       // TODO: Here we would automatically generate the Bonafide Record

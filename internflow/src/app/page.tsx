@@ -58,7 +58,6 @@ export default function LoginPage() {
   
   // Carousel Animation States
   const [mounted, setMounted] = useState(false);
-  const [autoSliding, setAutoSliding] = useState(true);
 
   // Filtered staff roles for carousel
   const carouselRoles = useMemo(() => ROLES.filter(r => r.id !== 'student' && r.id !== 'company'), []);
@@ -66,22 +65,7 @@ export default function LoginPage() {
   // Hydration fix & Entry Animation
   useEffect(() => {
     setMounted(true);
-    // Auto-sliding interval for 3D carousel
-    const slideInterval = setInterval(() => {
-      if (!autoSliding) return;
-      
-      setSelectedRole((prev) => {
-        // If not a staff role (i.e. clicked student/company CTA), stop auto-sliding temporarily or entirely
-        const curIndex = carouselRoles.findIndex(r => r.id === prev);
-        if (curIndex === -1) return prev;
-        
-        const nextIndex = (curIndex + 1) % carouselRoles.length;
-        return carouselRoles[nextIndex].id;
-      });
-    }, 2500); // Wait 2.5s between slides
-
-    return () => clearInterval(slideInterval);
-  }, [autoSliding, carouselRoles]);
+  }, []);
 
   const handleRoleSelect = (roleId: string) => {
     if (roleId !== selectedRole) {
@@ -90,7 +74,6 @@ export default function LoginPage() {
       setError("");
     }
     setSelectedRole(roleId);
-    setAutoSliding(false); // Stop automatic sliding once user interacts
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -236,15 +219,7 @@ export default function LoginPage() {
             </div>
 
             {/* 3D Role Carousel */}
-            <div 
-              className={styles.carousel3DContainer}
-              onMouseEnter={() => setAutoSliding(false)}
-              onMouseLeave={() => {
-                if (carouselRoles.some(r => r.id === selectedRole)) {
-                  setAutoSliding(true);
-                }
-              }}
-            >
+            <div className={styles.carousel3DContainer}>
               {carouselRoles.map((role, i, filteredRoles) => {
                 const isStaffRole = filteredRoles.some((r) => r.id === selectedRole);
                 const selectedIndex = isStaffRole ? filteredRoles.findIndex((r) => r.id === selectedRole) : Math.floor(filteredRoles.length / 2);

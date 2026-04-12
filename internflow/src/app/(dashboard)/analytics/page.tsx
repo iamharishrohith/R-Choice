@@ -4,23 +4,22 @@ import { BarChart, Users, FileText, CheckCircle, Clock, XCircle, Briefcase } fro
 import { eq, sql } from "drizzle-orm";
 
 export default async function AnalyticsPage() {
-  // Aggregate stats via Drizzle
-  const totalStudentsRes = await db.select({ count: sql`count(*)` }).from(users).where(eq(users.role, "student"));
-  const totalStudents = Number(totalStudentsRes[0].count);
-
-  const totalCompaniesRes = await db.select({ count: sql`count(*)` }).from(users).where(eq(users.role, "company"));
-  const totalCompanies = Number(totalCompaniesRes[0].count);
-
-  const totalJobsRes = await db.select({ count: sql`count(*)` }).from(jobPostings);
-  const totalJobs = Number(totalJobsRes[0].count);
-
-  const requestsStats = await db
-    .select({
+  // Aggregate stats via Drizzle (Parallelized for performance)
+  const [totalStudentsRes, totalCompaniesRes, totalJobsRes, requestsStats] = await Promise.all([
+    db.select({ count: sql`count(*)` }).from(users).where(eq(users.role, "student")),
+    db.select({ count: sql`count(*)` }).from(users).where(eq(users.role, "company")),
+    db.select({ count: sql`count(*)` }).from(jobPostings),
+    db.select({
       status: internshipRequests.status,
       count: sql`count(*)`
     })
     .from(internshipRequests)
-    .groupBy(internshipRequests.status);
+    .groupBy(internshipRequests.status)
+  ]);
+
+  const totalStudents = Number(totalStudentsRes[0].count);
+  const totalCompanies = Number(totalCompaniesRes[0].count);
+  const totalJobs = Number(totalJobsRes[0].count);
 
   let approved = 0, pending = 0, rejected = 0;
   requestsStats.forEach(stat => {

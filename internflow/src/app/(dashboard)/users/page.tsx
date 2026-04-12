@@ -1,17 +1,69 @@
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { Mail, Shield, Clock } from "lucide-react";
+import { Mail, Shield, Clock, Plus } from "lucide-react";
 import { format } from "date-fns";
+import Link from "next/link";
+import { auth } from "@/lib/auth";
 
-export default async function UsersPage() {
+export default async function UsersPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
+  const session = await auth();
+  const userRole = (session?.user as any)?.role || "";
+  const searchParams = await props.searchParams;
+  const queryParam = (searchParams.q || "").toLowerCase();
+  const roleFilter = searchParams.role || "";
+
   // Fetch all users from the database natively via Drizzle
-  const allUsers = await db.select().from(users).orderBy(users.createdAt);
+  let allUsers = await db.select().from(users).orderBy(users.createdAt);
+
+  if (queryParam || roleFilter) {
+    allUsers = allUsers.filter(u => {
+      const matchRole = roleFilter ? u.role === roleFilter : true;
+      const matchQ = queryParam ? (
+        u.firstName.toLowerCase().includes(queryParam) ||
+        u.lastName.toLowerCase().includes(queryParam) ||
+        (u.email && u.email.toLowerCase().includes(queryParam))
+      ) : true;
+      return matchRole && matchQ;
+    });
+  }
 
   return (
     <div className="animate-fade-in">
-      <div className="page-header">
-        <h1>User Management</h1>
-        <p>Complete directory of all registered accounts on the platform.</p>
+      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-4)" }}>
+        <div>
+          <h1>User Management</h1>
+          <p>Complete directory of all registered accounts on the platform.</p>
+          {userRole === "principal" && (
+            <div style={{ marginTop: "1rem" }}>
+              <Link href="/users/create" style={{ textDecoration: "none" }}>
+                <button className="button" style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
+                  <Plus size={16} /> Add User
+                </button>
+              </Link>
+            </div>
+          )}
+        </div>
+        <form method="GET" style={{ display: "flex", gap: "var(--space-2)" }}>
+          <select name="role" defaultValue={roleFilter} style={{ padding: "8px 12px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", background: "var(--bg-primary)" }}>
+            <option value="">All Roles</option>
+            <option value="student">Student</option>
+            <option value="tutor">Tutor</option>
+            <option value="placement_coordinator">Placement Coordinator</option>
+            <option value="hod">HOD</option>
+            <option value="dean">Dean</option>
+            <option value="placement_officer">Placement Officer</option>
+            <option value="principal">Principal</option>
+            <option value="company">Company</option>
+          </select>
+          <input 
+            type="search" 
+            name="q" 
+            placeholder="Search users..." 
+            defaultValue={queryParam}
+            style={{ padding: "8px 12px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", background: "var(--bg-primary)" }}
+          />
+          <button type="submit" className="button">Filter</button>
+        </form>
       </div>
 
       <div className="card">
