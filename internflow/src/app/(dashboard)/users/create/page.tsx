@@ -63,8 +63,8 @@ export default async function CreateUserPage() {
       <div className="card" style={{ width: "100%", maxWidth: "600px", padding: "var(--space-8)" }}>
         <div style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
           <ShieldAlert size={48} color="var(--primary-color)" style={{ margin: "0 auto", marginBottom: "var(--space-4)" }} />
-          <h1 style={{ fontSize: "1.75rem", fontWeight: 700 }}>Deploy Administrator privileges</h1>
-          <p style={{ color: "var(--text-secondary)", marginTop: "var(--space-2)" }}>Instantiate a secure internal user login for the platform ecosystem.</p>
+          <h1 style={{ fontSize: "1.75rem", fontWeight: 700 }}>Create User Account</h1>
+          <p style={{ color: "var(--text-secondary)", marginTop: "var(--space-2)" }}>Create a new platform user with a specific role and secure credentials.</p>
         </div>
 
         <form action={createUserAction} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
@@ -104,7 +104,7 @@ export default async function CreateUserPage() {
           </div>
 
           <button type="submit" className="button" style={{ marginTop: "var(--space-4)", width: "100%", justifyContent: "center", height: "45px", fontSize: "1rem" }}>
-            Deploy Account Node
+            Create Account
           </button>
         </form>
       </div>

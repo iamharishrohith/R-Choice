@@ -1,31 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { advanceApproval } from "@/app/actions/approvals";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ApprovalActions({ requestId }: { requestId: string }) {
   const [loading, setLoading] = useState<"approve" | "reject" | null>(null);
+  const [done, setDone] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
-  const handleAction = async (action: "approve" | "reject") => {
+  const handleAction = (action: "approve" | "reject") => {
     setLoading(action);
-    try {
-      await advanceApproval(requestId, action);
-      if (action === "approve") {
-        toast.success("Request approved and forwarded!", {
-          description: "The request has been sent to the next approval level.",
-        });
-      } else {
-        toast.error("Request rejected", {
-          description: "The applicant has been notified.",
-        });
+    startTransition(async () => {
+      try {
+        const result = await advanceApproval(requestId, action);
+        if (result?.error) {
+          toast.error(result.error);
+          setLoading(null);
+          return;
+        }
+        if (action === "approve") {
+          toast.success("Request approved and forwarded!", {
+            description: "The request has been sent to the next approval level.",
+          });
+        } else {
+          toast.error("Request rejected", {
+            description: "The applicant has been notified.",
+          });
+        }
+        setDone(true);
+        router.refresh();
+      } catch {
+        toast.error("Action failed. Please try again.");
       }
-    } catch {
-      toast.error("Action failed. Please try again.");
-    }
-    setLoading(null);
+      setLoading(null);
+    });
   };
+
+  if (done) {
+    return <span style={{ color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>Processed</span>;
+  }
 
   return (
     <div style={{ display: "flex", gap: "8px" }}>

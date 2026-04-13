@@ -174,12 +174,13 @@
 
 /* ── Hero Section ── */
 .heroSection {
-  flex: 0 0 50%;
+  flex: 0 0 45%;
   display: flex;
   flex-direction: column;
   position: relative;
   z-index: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: none; /* Hide scrollbar for clean look */
 }
 .heroSection::-webkit-scrollbar {
@@ -352,7 +353,7 @@
 
 /* ── Login Section ── */
 .loginSection {
-  flex: 0 0 50%;
+  flex: 0 0 55%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -362,6 +363,7 @@
   background: transparent;
   height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .loginContainer {
@@ -807,20 +809,24 @@
     height: auto;
   }
   .heroSection {
+    flex: none;
     min-height: auto;
     overflow-y: visible;
+    overflow-x: hidden;
   }
   
   .loginDecor {
     display: none;
   }
   .loginSection {
+    flex: none;
     width: 100%;
     padding: var(--space-12) var(--space-6);
     box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.05); /* shadow on top */
     border-left: none;
     border-top: 1px solid var(--border-color);
     background: white;
+    overflow-x: hidden;
   }
   .loginContainer {
     max-width: 520px;
@@ -845,17 +851,20 @@
   .logoText {
     font-size: 1.25rem;
   }
+  .heroContent {
+    padding: var(--space-6) var(--space-4);
+  }
 }
 
 @media (max-width: 640px) {
   .heroContent {
-    padding: var(--space-6) var(--space-4);
+    padding: var(--space-6) var(--space-3);
   }
   .featuresGrid {
     grid-template-columns: 1fr;
   }
   .loginSection {
-    padding: var(--space-8) var(--space-4);
+    padding: var(--space-8) var(--space-3);
   }
   .loginCard {
     padding: var(--space-5);
@@ -869,5 +878,8 @@
   }
   .roleCard {
     min-height: 52px;
+  }
+  .mainCtas {
+    flex-direction: column;
   }
 }

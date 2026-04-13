@@ -163,6 +163,8 @@ a {
 }
 a:hover { color: var(--color-primary-dark); }
 
+.vcard-link:hover { background: var(--bg-hover) !important; }
+
 img { max-width: 100%; display: block; }
 
 code, pre { font-family: var(--font-mono); }

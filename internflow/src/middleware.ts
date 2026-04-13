@@ -24,12 +24,14 @@ const roleRoutes: Record<string, string[]> = {
     "/students",
     "/approvals",
     "/jobs",
+    "/reports",
   ],
   placement_coordinator: [
     "/dashboard/staff",
     "/students",
     "/approvals",
     "/jobs",
+    "/reports",
   ],
   hod: [
     "/dashboard/staff",
@@ -37,6 +39,7 @@ const roleRoutes: Record<string, string[]> = {
     "/approvals",
     "/jobs",
     "/reports",
+    "/users",
   ],
   dean: [
     "/dashboard/admin",
@@ -47,6 +50,7 @@ const roleRoutes: Record<string, string[]> = {
     "/users",
     "/companies",
     "/drives",
+    "/reports",
   ],
   placement_officer: [
     "/dashboard/admin",
@@ -57,6 +61,7 @@ const roleRoutes: Record<string, string[]> = {
     "/users",
     "/companies",
     "/drives",
+    "/reports",
   ],
   principal: [
     "/dashboard/admin",
@@ -67,6 +72,7 @@ const roleRoutes: Record<string, string[]> = {
     "/users",
     "/companies",
     "/drives",
+    "/reports",
   ],
   company: [
     "/dashboard/company",

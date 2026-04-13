@@ -4,34 +4,48 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Terminal, ShieldAlert, CheckCircle, Database, UserCheck, Key, Shield } from "lucide-react";
 
-const generateMockLogs = () => [
-  { id: 1, action: "System Auth Login", user: "dev@rathinam.edu", time: "Just now", type: "auth", status: "success", ip: "192.168.1.14" },
-  { id: 2, action: "Company Registration Approved", user: "admin@rathinam.edu", time: "2m ago", type: "system", status: "success", target: "TechNova Solutions" },
-  { id: 3, action: "Role Elevated: HOD", user: "sys.admin", time: "15m ago", type: "security", status: "warning", target: "saranya.cse" },
-  { id: 4, action: "Failed MFA Challenge", user: "unknown", time: "1h ago", type: "auth", status: "danger", ip: "45.22.19.11" },
-  { id: 5, action: "Bulk DB Export Triggered", user: "placement.head", time: "3h ago", type: "database", status: "warning", rows: 1240 },
-];
+interface AuditLog {
+  id: string;
+  action: string;
+  entityType: string;
+  ipAddress: string;
+  createdAt: string;
+  userId: string;
+}
 
-export function AuditLogTypewriter() {
-  const [logs, setLogs] = useState(generateMockLogs());
+function getTimeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+export function AuditLogTypewriter({ initialLogs }: { initialLogs: AuditLog[] }) {
+  const logs = initialLogs.length > 0 ? initialLogs : [
+    { id: "empty", action: "No audit events recorded yet", entityType: "system", ipAddress: "—", createdAt: new Date().toISOString(), userId: "system" },
+  ];
   const [visibleIdx, setVisibleIdx] = useState(0);
-  const [hoveredLog, setHoveredLog] = useState<number | null>(null);
+  const [hoveredLog, setHoveredLog] = useState<string | null>(null);
 
   // Typewriter stagger effect sequence
   useEffect(() => {
     if (visibleIdx < logs.length) {
       const timer = setTimeout(() => {
         setVisibleIdx(prev => prev + 1);
-      }, 500);
+      }, 400);
       return () => clearTimeout(timer);
     }
   }, [visibleIdx, logs.length]);
 
-  const getIcon = (type: string, status: string) => {
-    if (type === "auth" && status === "danger") return <ShieldAlert size={14} color="var(--color-danger)" />;
-    if (type === "auth") return <Key size={14} color="var(--text-secondary)" />;
-    if (type === "security") return <Shield size={14} color="var(--color-warning)" />;
-    if (type === "database") return <Database size={14} color="var(--color-primary)" />;
+  const getIcon = (entityType: string) => {
+    if (entityType === "auth" || entityType === "login") return <Key size={14} color="var(--text-secondary)" />;
+    if (entityType === "security" || entityType === "role") return <Shield size={14} color="var(--color-warning)" />;
+    if (entityType === "database" || entityType === "export") return <Database size={14} color="var(--color-primary)" />;
+    if (entityType === "user" || entityType === "student") return <UserCheck size={14} color="var(--color-info)" />;
     return <CheckCircle size={14} color="var(--color-success)" />;
   };
 
@@ -39,10 +53,14 @@ export function AuditLogTypewriter() {
     <div className="card" style={{ padding: "0", overflow: "hidden", background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
       <div style={{ background: "var(--bg-primary)", padding: "12px 16px", borderBottom: "1px solid var(--border-color)", display: "flex", alignItems: "center", gap: "8px" }}>
         <Terminal size={16} />
-        <span style={{ fontSize: "0.875rem", fontWeight: 600, fontFamily: "monospace" }}>Live Audit Stream</span>
-        <div style={{ marginLeft: "auto", display: "flex", gap: "6px" }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--color-success)", animation: "deadlinePulse 2s infinite" }} />
-        </div>
+        <span style={{ fontSize: "0.875rem", fontWeight: 600, fontFamily: "monospace" }}>
+          {initialLogs.length > 0 ? "Live Audit Stream" : "Audit Stream (Empty)"}
+        </span>
+        {initialLogs.length > 0 && (
+          <div style={{ marginLeft: "auto", display: "flex", gap: "6px" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--color-success)", animation: "deadlinePulse 2s infinite" }} />
+          </div>
+        )}
       </div>
       
       <div style={{ padding: "var(--space-2) 0", height: "300px", overflowY: "auto" }}>
@@ -64,22 +82,22 @@ export function AuditLogTypewriter() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
                 <div style={{ display: "flex", gap: "12px" }}>
-                  <div style={{ marginTop: "2px" }}>{getIcon(log.type, log.status)}</div>
+                  <div style={{ marginTop: "2px" }}>{getIcon(log.entityType)}</div>
                   <div>
-                    <div style={{ fontSize: "0.875rem", fontFamily: "monospace", color: log.status === "danger" ? "var(--color-danger)" : "inherit" }}>
+                    <div style={{ fontSize: "0.875rem", fontFamily: "monospace" }}>
                       {log.action}
                     </div>
                     <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                      by <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>{log.user}</span>
+                      by <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>{log.userId.slice(0, 8)}...</span>
                     </div>
                   </div>
                 </div>
                 <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                  {log.time}
+                  {getTimeAgo(log.createdAt)}
                 </div>
               </div>
 
-              {/* Gamified Tooltip Overlay on Hover (#38) */}
+              {/* Detail tooltip on hover */}
               <AnimatePresence>
                 {hoveredLog === log.id && (
                   <motion.div
@@ -104,24 +122,16 @@ export function AuditLogTypewriter() {
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
                         <span style={{ color: "var(--text-secondary)" }}>Type:</span>
-                        <span>{log.type.toUpperCase()}</span>
+                        <span>{log.entityType.toUpperCase()}</span>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ color: "var(--text-secondary)" }}>IP Trace:</span>
-                        <span style={{ fontFamily: "monospace" }}>{log.ip || "10.0.0.x (Internal)"}</span>
+                        <span style={{ color: "var(--text-secondary)" }}>IP:</span>
+                        <span style={{ fontFamily: "monospace" }}>{log.ipAddress}</span>
                       </div>
-                      {log.target && (
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span style={{ color: "var(--text-secondary)" }}>Target:</span>
-                          <span>{log.target}</span>
-                        </div>
-                      )}
-                      {log.rows && (
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span style={{ color: "var(--text-secondary)" }}>Data Vol:</span>
-                          <span>{log.rows} rows</span>
-                        </div>
-                      )}
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ color: "var(--text-secondary)" }}>Time:</span>
+                        <span>{new Date(log.createdAt).toLocaleString()}</span>
+                      </div>
                     </div>
                   </motion.div>
                 )}

@@ -5,9 +5,6 @@ import { CheckCircle, XCircle } from "lucide-react";
 import ApprovalActions from "./ApprovalActions";
 
 export default async function ApprovalsPage(props: { searchParams: Promise<{ status?: string }> }) {
-  const searchParams = await props.searchParams;
-  const filterStatus = searchParams.status || "pending";
-  
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/");
@@ -18,6 +15,9 @@ export default async function ApprovalsPage(props: { searchParams: Promise<{ sta
   if (role === "student" || role === "company" || role === "alumni") {
     redirect("/");
   }
+
+  const searchParams = await props.searchParams;
+  const filterStatus = searchParams.status || "pending";
 
   const requests = await getFilteredRequestsForStaff(session.user.id, role, filterStatus);
 

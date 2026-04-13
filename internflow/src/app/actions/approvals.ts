@@ -39,52 +39,50 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
     const now = new Date();
 
     if (action === "reject") {
-      await db.transaction(async (tx) => {
-        await tx
-          .update(internshipRequests)
-          .set({
-            status: "rejected",
-            lastReviewedBy: approverId,
-            lastReviewedAt: now,
-          })
-          .where(eq(internshipRequests.id, requestId));
+      await db
+        .update(internshipRequests)
+        .set({
+          status: "rejected",
+          lastReviewedBy: approverId,
+          lastReviewedAt: now,
+        })
+        .where(eq(internshipRequests.id, requestId));
 
-        await tx.insert(notifications).values({
-          userId: request.studentId as string,
-          type: "application_update",
-          title: "Application Rejected",
-          message: `Your internship application for ${request.companyName} was rejected.`,
-          linkUrl: `/applications/${request.id}`,
-        });
+      await db.insert(notifications).values({
+        userId: request.studentId as string,
+        type: "application_update",
+        title: "Application Rejected",
+        message: `Your internship application for ${request.companyName} was rejected.`,
+        linkUrl: `/applications/${request.id}`,
       });
 
       revalidatePath("/approvals");
+      revalidatePath("/applications");
       return { success: true };
     }
 
     // ── Advance approval ──
     // Principal final approval (tier 6 → approved)
     if (role === "principal" && request.status === "pending_admin" && request.currentTier === 6) {
-      await db.transaction(async (tx) => {
-        await tx
-          .update(internshipRequests)
-          .set({
-            status: "approved",
-            lastReviewedBy: approverId,
-            lastReviewedAt: now,
-          })
-          .where(eq(internshipRequests.id, requestId));
+      await db
+        .update(internshipRequests)
+        .set({
+          status: "approved",
+          lastReviewedBy: approverId,
+          lastReviewedAt: now,
+        })
+        .where(eq(internshipRequests.id, requestId));
 
-        await tx.insert(notifications).values({
-          userId: request.studentId as string,
-          type: "application_update",
-          title: "Application Approved!",
-          message: `Your internship application for ${request.companyName} has received final approval.`,
-          linkUrl: `/applications/${request.id}`,
-        });
+      await db.insert(notifications).values({
+        userId: request.studentId as string,
+        type: "application_update",
+        title: "Application Approved!",
+        message: `Your internship application for ${request.companyName} has received final approval.`,
+        linkUrl: `/applications/${request.id}`,
       });
 
       revalidatePath("/approvals");
+      revalidatePath("/applications");
       return { success: true };
     }
 
@@ -96,30 +94,29 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
       return { error: "You cannot approve this request at its current stage." };
     }
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(internshipRequests)
-        .set({
-          status: next.nextStatus as typeof request.status,
-          currentTier: next.nextTier,
-          lastReviewedBy: approverId,
-          lastReviewedAt: now,
-        })
-        .where(eq(internshipRequests.id, requestId));
+    await db
+      .update(internshipRequests)
+      .set({
+        status: next.nextStatus as typeof request.status,
+        currentTier: next.nextTier,
+        lastReviewedBy: approverId,
+        lastReviewedAt: now,
+      })
+      .where(eq(internshipRequests.id, requestId));
 
-      await tx.insert(notifications).values({
-        userId: request.studentId as string,
-        type: "application_update",
-        title: "Application Progressed",
-        message: `Your application for ${request.companyName} advanced to tier ${next.nextTier} (${next.nextStatus}).`,
-        linkUrl: `/applications/${request.id}`,
-      });
+    await db.insert(notifications).values({
+      userId: request.studentId as string,
+      type: "application_update",
+      title: "Application Progressed",
+      message: `Your application for ${request.companyName} advanced to tier ${next.nextTier} (${next.nextStatus}).`,
+      linkUrl: `/applications/${request.id}`,
     });
 
     revalidatePath("/approvals");
+    revalidatePath("/applications");
     return { success: true };
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Approval error:", error);
-    return { error: "Failed to process approval" };
+    return { error: `Failed to process approval: ${error?.message || String(error)}` };
   }
 }

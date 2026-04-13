@@ -22,12 +22,18 @@ export default async function ApplicationsPage() {
     .orderBy(desc(internshipRequests.createdAt));
 
   const getStatusBadge = (status: string) => {
-    switch(status) {
-      case "approved": return <span className="badge badge-success">Approved</span>;
-      case "rejected": return <span className="badge badge-danger">Rejected</span>;
-      case "returned": return <span className="badge badge-warning">Needs Revision</span>;
-      default: return <span className="badge badge-pending">Pending Staff</span>;
-    }
+    const statusMap: Record<string, { label: string; cls: string }> = {
+      draft: { label: "Draft", cls: "badge-draft" },
+      pending_tutor: { label: "Pending Tutor", cls: "badge-pending" },
+      pending_coordinator: { label: "Pending Coordinator", cls: "badge-pending" },
+      pending_hod: { label: "Pending HOD", cls: "badge-pending" },
+      pending_admin: { label: "Pending Admin", cls: "badge-pending" },
+      approved: { label: "Approved", cls: "badge-success" },
+      rejected: { label: "Rejected", cls: "badge-danger" },
+      returned: { label: "Needs Revision", cls: "badge-warning" },
+    };
+    const info = statusMap[status] || { label: status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()), cls: "badge-pending" };
+    return <span className={`badge ${info.cls}`}>{info.label}</span>;
   };
 
   return (
@@ -64,13 +70,13 @@ export default async function ApplicationsPage() {
                 {getStatusBadge(app.status || "draft")}
               </div>
               
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: app.status === "approved" ? "var(--space-4)" : 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: String(app.status) === "approved" ? "var(--space-4)" : 0 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><Building2 size={14} /> {app.companyName}</span>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><MapPin size={14} /> {app.workMode}</span>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><Calendar size={14} /> {app.startDate} - {app.endDate}</span>
               </div>
               
-              {app.status === "approved" && (
+              {String(app.status) === "approved" && (
                 <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "var(--space-4)", display: "flex", justifyContent: "flex-end" }}>
                   <a href={`/api/certificates/${app.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "bold" }}>
                     <ExternalLink size={16} /> Print Bonafide
@@ -80,17 +86,60 @@ export default async function ApplicationsPage() {
 
               {/* Progress Tracker */}
               <div className="tracker-scroll-wrapper">
-                <div className={`tracker-container status-${app.status || 'draft'}`}>
+                <div className={`tracker-container`}>
                   <div className="progress-bg-line"></div>
-                  <div className="progress-fill-line"></div>
                   
-                  <div className="progress-step node-1"><div className="step-dot"></div><span className="step-label">Applied</span></div>
-                  <div className="progress-step node-2"><div className="step-dot"></div><span className="step-label">Tutor</span></div>
-                  <div className="progress-step node-3"><div className="step-dot"></div><span className="step-label">Coordinator</span></div>
-                  <div className="progress-step node-4"><div className="step-dot"></div><span className="step-label">HOD</span></div>
-                  <div className="progress-step node-5"><div className="step-dot"></div><span className="step-label">Dean</span></div>
-                  <div className="progress-step node-6"><div className="step-dot"></div><span className="step-label">Pl. Head</span></div>
-                  <div className="progress-step node-7"><div className="step-dot"></div><span className="step-label">Principal</span></div>
+                  {/* Dynamic fill line based on currentTier */}
+                  <div 
+                    className="progress-fill-line" 
+                    style={{ 
+                      width: `${Math.min(100, Math.max(0, ((Math.max(1, app.currentTier || 1) - 1) / 6) * 100))}%`,
+                      background: String(app.status) === "rejected" ? "linear-gradient(90deg, #8DC63F 0%, #22c55e 60%, #ef4444 100%)" :
+                         String(app.status) === "returned" ? "linear-gradient(90deg, #8DC63F 0%, #22c55e 60%, #eab308 100%)" :
+                         String(app.status) === "approved" ? "linear-gradient(90deg, #8DC63F 0%, #22c55e 100%)" :
+                         "linear-gradient(90deg, #8DC63F 0%, #0ea5e9 100%)"
+                    }}
+                  ></div>
+                  
+                  {["Applied", "Tutor", "Coordinator", "HOD", "Dean", "Pl. Head", "Principal"].map((label, index) => {
+                    const tier = index + 1;
+                    const currentTier = app.currentTier || 1;
+                    const statusStr = String(app.status);
+                    
+                    let dotStyle = {};
+                    let labelColor = "var(--text-muted)";
+                    let labelWeight = "600";
+                    
+                    if (tier < currentTier || statusStr === "approved") {
+                      // Passed stages
+                      dotStyle = { background: "#22c55e" };
+                      labelColor = "var(--text-primary)";
+                    } else if (tier === currentTier) {
+                      // Current stage
+                      if (statusStr === "rejected") {
+                         dotStyle = { background: "#ef4444", boxShadow: "0 0 0 3px rgba(239,68,68,0.25)" };
+                         labelColor = "#ef4444";
+                         labelWeight = "700";
+                      } else if (statusStr === "returned") {
+                         dotStyle = { background: "#eab308", boxShadow: "0 0 0 3px rgba(234,179,8,0.25)" };
+                         labelColor = "#eab308";
+                         labelWeight = "700";
+                      } else if (statusStr === "approved") { // Final tier fallback 
+                         dotStyle = { background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,0.25)" };
+                         labelColor = "var(--text-primary)";
+                      } else {
+                         dotStyle = { background: "#0ea5e9", boxShadow: "0 0 0 3px rgba(14,165,233,0.25)" };
+                         labelColor = "var(--text-primary)";
+                      }
+                    }
+
+                    return (
+                      <div key={label} className="progress-step" style={{ flexBasis: "14%" }}>
+                        <div className="step-dot" style={dotStyle}></div>
+                        <span className="step-label" style={{ color: labelColor, fontWeight: labelWeight }}>{label}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -120,40 +169,9 @@ export default async function ApplicationsPage() {
         .progress-bg-line { position: absolute; top: calc(var(--space-4) + 6px); left: 30px; right: 30px; height: 3px; background: #e5e7eb; z-index: 1; border-radius: 2px; }
         .progress-fill-line { position: absolute; top: calc(var(--space-4) + 6px); left: 30px; height: 3px; z-index: 2; border-radius: 2px; transition: all 0.5s ease; }
         
-        .progress-step { display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 3; width: 65px; flex-shrink: 0; }
+        .progress-step { display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 3; flex-shrink: 0; }
         .step-dot { width: 14px; height: 14px; border-radius: 50%; background: #e5e7eb; transition: all 0.3s ease; }
-        .step-label { font-size: 0.6rem; color: var(--text-muted); text-align: center; font-weight: 600; white-space: normal; line-height: 1.1; }
-
-        /* Draft */
-        .status-draft .progress-fill-line { width: 0; }
-        .status-draft .node-1 .step-dot { background: #8DC63F; box-shadow: 0 0 0 3px rgba(141,198,63,0.2); }
-        .status-draft .node-1 .step-label { color: var(--text-primary); }
-
-        /* Pending */
-        .status-pending_review .progress-fill-line { width: 17%; background: linear-gradient(90deg, #8DC63F 0%, #eab308 100%); }
-        .status-pending_review .node-1 .step-dot { background: #8DC63F; }
-        .status-pending_review .node-2 .step-dot { background: #eab308; box-shadow: 0 0 0 3px rgba(234,179,8,0.2); }
-        .status-pending_review .node-1 .step-label, .status-pending_review .node-2 .step-label { color: var(--text-primary); }
-
-        /* Approved */
-        .status-approved .progress-fill-line { width: calc(100% - 60px); background: linear-gradient(90deg, #8DC63F 0%, #22c55e 100%); }
-        .status-approved .progress-step .step-dot { background: #22c55e; }
-        .status-approved .node-7 .step-dot { box-shadow: 0 0 0 3px rgba(34,197,94,0.2); }
-        .status-approved .progress-step .step-label { color: var(--text-primary); }
-
-        /* Rejected */
-        .status-rejected .progress-fill-line { width: 33%; background: linear-gradient(90deg, #8DC63F 0%, #22c55e 60%, #ef4444 100%); }
-        .status-rejected .node-1 .step-dot, .status-rejected .node-2 .step-dot { background: #22c55e; }
-        .status-rejected .node-3 .step-dot { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.25); }
-        .status-rejected .node-1 .step-label, .status-rejected .node-2 .step-label { color: var(--text-primary); }
-        .status-rejected .node-3 .step-label { color: #ef4444; font-weight: 700; }
-
-        /* Returned */
-        .status-returned .progress-fill-line { width: 33%; background: linear-gradient(90deg, #8DC63F 0%, #22c55e 60%, #eab308 100%); }
-        .status-returned .node-1 .step-dot, .status-returned .node-2 .step-dot { background: #22c55e; }
-        .status-returned .node-3 .step-dot { background: #eab308; box-shadow: 0 0 0 3px rgba(234,179,8,0.25); }
-        .status-returned .node-1 .step-label, .status-returned .node-2 .step-label { color: var(--text-primary); }
-        .status-returned .node-3 .step-label { color: #eab308; font-weight: 700; }
+        .step-label { font-size: 0.6rem; text-align: center; white-space: normal; line-height: 1.1; }
       `}</style>
     </div>
   );

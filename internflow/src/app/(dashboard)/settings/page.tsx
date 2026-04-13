@@ -10,56 +10,24 @@ export default async function SettingsPage() {
   const session = await auth();
   if (!session?.user?.id) return null;
   const user = session.user;
-  const userName = user?.name || "User";
-  const userEmail = user?.email || "No email provided";
   const role = user?.role || "student";
 
-  if (role === "principal") {
-    const [u] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
-    
-    async function updateProfile(formData: FormData) {
-      "use server";
-      const session = await auth();
-      if (!session?.user?.id) return;
-      await db.update(users).set({ 
-        firstName: formData.get("firstName") as string,
-        lastName: formData.get("lastName") as string,
-        phone: formData.get("phone") as string,
-        about: formData.get("about") as string
-      }).where(eq(users.id, session.user.id));
-      revalidatePath("/profile");
-      revalidatePath("/settings");
-    }
+  // Fetch full user data from DB for all roles
+  const [u] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+  if (!u) return null;
 
-    return (
-      <div className="animate-fade-in">
-        <div className="page-header">
-          <h1>Update Profile</h1>
-          <p>Modify your administrative account details here.</p>
-        </div>
-        <div className="card" style={{ maxWidth: "500px" }}>
-          <form action={updateProfile} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>First Name</label>
-              <input name="firstName" defaultValue={u.firstName} required style={{ padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }} />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>Last Name</label>
-              <input name="lastName" defaultValue={u.lastName} required style={{ padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }} />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>Phone Number</label>
-              <input name="phone" defaultValue={u.phone || ""} style={{ padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }} />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>About You</label>
-              <textarea name="about" defaultValue={u.about || ""} rows={4} placeholder="Write a short summary about yourself..." style={{ padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)", resize: "vertical" }} />
-            </div>
-            <button type="submit" className="button" style={{ marginTop: "1rem" }}>Save Changes</button>
-          </form>
-        </div>
-      </div>
-    );
+  async function updateProfile(formData: FormData) {
+    "use server";
+    const session = await auth();
+    if (!session?.user?.id) return;
+    await db.update(users).set({ 
+      firstName: formData.get("firstName") as string,
+      lastName: formData.get("lastName") as string,
+      phone: formData.get("phone") as string,
+      about: formData.get("about") as string
+    }).where(eq(users.id, session.user.id));
+    revalidatePath("/profile");
+    revalidatePath("/settings");
   }
 
   return (
@@ -69,31 +37,51 @@ export default async function SettingsPage() {
         <p>Manage your account preferences, security, and notifications.</p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "var(--space-6)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "var(--space-6)", maxWidth: "700px" }}>
         
-        {/* Profile Details */}
+        {/* Profile Edit Form — all roles */}
         <div className="card">
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-6)" }}>
             <div style={{ width: "40px", height: "40px", borderRadius: "8px", backgroundColor: "rgba(155, 46, 135, 0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <User size={20} color="var(--color-primary)" />
             </div>
-            <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Profile Information</h2>
+            <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Edit Profile Information</h2>
           </div>
           
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
-            <div>
-              <label style={{ display: "block", color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "var(--space-2)" }}>Full Name</label>
-              <input type="text" className="input" defaultValue={userName} disabled />
+          <form action={updateProfile} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>First Name</label>
+                <input name="firstName" defaultValue={u.firstName} required style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)", width: "100%", boxSizing: "border-box" }} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>Last Name</label>
+                <input name="lastName" defaultValue={u.lastName} required style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)", width: "100%", boxSizing: "border-box" }} />
+              </div>
             </div>
-            <div>
-              <label style={{ display: "block", color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "var(--space-2)" }}>Email Address</label>
-              <input type="email" className="input" defaultValue={userEmail} disabled />
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>Email Address</label>
+              <input type="email" defaultValue={u.email} disabled style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-secondary)", color: "var(--text-secondary)", cursor: "not-allowed", width: "100%", boxSizing: "border-box" }} />
             </div>
-            <div>
-              <label style={{ display: "block", color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "var(--space-2)" }}>Role</label>
-              <input type="text" className="input" defaultValue={role.replace('_', ' ')} style={{ textTransform: "capitalize" }} disabled />
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>Role</label>
+              <input type="text" defaultValue={role.replace(/_/g, " ")} disabled style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-secondary)", color: "var(--text-secondary)", textTransform: "capitalize", cursor: "not-allowed", width: "100%", boxSizing: "border-box" }} />
             </div>
-          </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>Phone Number</label>
+              <input name="phone" defaultValue={u.phone || ""} placeholder="Enter your phone number" style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)", width: "100%", boxSizing: "border-box" }} />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>About You</label>
+              <textarea name="about" defaultValue={u.about || ""} rows={4} placeholder="Write a short summary about yourself..." style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)", resize: "vertical", width: "100%", boxSizing: "border-box" }} />
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ marginTop: "var(--space-2)", width: "100%", justifyContent: "center" }}>Save Changes</button>
+          </form>
         </div>
 
         {/* Security Settings */}

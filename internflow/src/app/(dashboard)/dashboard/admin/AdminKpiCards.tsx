@@ -4,14 +4,21 @@ import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { TrendingUp, Users, Building2, CheckCircle } from "lucide-react";
 import { Sparkline } from "@/components/ui/charts/Sparkline";
 
-const kpiData = [
-  { label: "Pending Approvals", value: 8, icon: <CheckCircle size={22} />, color: "var(--color-warning)", gradient: "var(--gradient-warm)" },
-  { label: "Active Students", value: 2450, icon: <Users size={22} />, color: "var(--color-info)", gradient: "var(--gradient-accent)" },
-  { label: "Companies", value: 24, icon: <Building2 size={22} />, color: "var(--color-primary)", gradient: "var(--gradient-primary)" },
-  { label: "Placement Rate", value: 78, icon: <TrendingUp size={22} />, color: "var(--rathinam-green)", gradient: "var(--gradient-success)", suffix: "%" },
-];
+interface AdminKpiProps {
+  pendingApprovals: number;
+  activeStudents: number;
+  totalCompanies: number;
+  placementRate: number;
+}
 
-export function AdminKpiCards() {
+export function AdminKpiCards({ pendingApprovals, activeStudents, totalCompanies, placementRate }: AdminKpiProps) {
+  const kpiData = [
+    { label: "Pending Approvals", value: pendingApprovals, icon: <CheckCircle size={22} />, color: "var(--color-warning)", gradient: "var(--gradient-warm)" },
+    { label: "Active Students", value: activeStudents, icon: <Users size={22} />, color: "var(--color-info)", gradient: "var(--gradient-accent)" },
+    { label: "Companies", value: totalCompanies, icon: <Building2 size={22} />, color: "var(--color-primary)", gradient: "var(--gradient-primary)" },
+    { label: "Placement Rate", value: placementRate, icon: <TrendingUp size={22} />, color: "var(--rathinam-green)", gradient: "var(--gradient-success)", suffix: "%" },
+  ];
+
   return (
     <div className="grid grid-4" style={{ marginBottom: "var(--space-6)" }}>
       {kpiData.map((kpi, idx) => (
@@ -84,7 +91,7 @@ export function AdminKpiCards() {
 
           <div style={{ marginTop: "auto", position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 0 }}>
              <Sparkline 
-               data={Array.from({ length: 12 }).map((_, i) => kpi.value * 0.5 + Math.sin(i * 0.8) * (kpi.value * 0.2) + Math.random() * (kpi.value * 0.1))} 
+               data={Array.from({ length: 12 }).map((_, i) => Math.max(1, kpi.value * 0.5 + Math.sin(i * 0.8) * (kpi.value * 0.2) + Math.random() * (kpi.value * 0.1)))} 
                color={kpi.color.replace("var(--color-warning)", "#f59e0b").replace("var(--color-info)", "#0ea5e9").replace("var(--color-primary)", "#6366f1").replace("var(--rathinam-green)", "#10b981")} 
                height={30} 
              />

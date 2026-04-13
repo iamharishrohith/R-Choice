@@ -2,12 +2,68 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GraduationCap, Award, BookOpen, CheckSquare, Square, Search, Trash2, Mail, Download } from "lucide-react";
+import { GraduationCap, Award, BookOpen, CheckSquare, Square, Search, Trash2, Mail, Download, Eye, X } from "lucide-react";
+
+function StudentDetailModal({ student, onClose }: { student: any; onClose: () => void }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center",
+      background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)"
+    }} onClick={onClose}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        onClick={e => e.stopPropagation()}
+        className="card"
+        style={{ width: "90%", maxWidth: "500px", padding: "var(--space-6)", position: "relative" }}
+      >
+        <button onClick={onClose} style={{ position: "absolute", top: "12px", right: "12px", background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
+          <X size={20} />
+        </button>
+        
+        <div style={{ textAlign: "center", marginBottom: "var(--space-4)" }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--gradient-accent)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", fontWeight: 700, margin: "0 auto var(--space-3)" }}>
+            {student.firstName[0]}{student.lastName[0]}
+          </div>
+          <h2 style={{ fontSize: "1.25rem", marginBottom: "4px" }}>{student.firstName} {student.lastName}</h2>
+          <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{student.email}</div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
+          <div style={{ padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>Department</div>
+            <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{student.department || "Unassigned"}</div>
+          </div>
+          <div style={{ padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>Year / Section</div>
+            <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>Year {student.year || "-"} · Sec {student.section || "-"}</div>
+          </div>
+          <div style={{ padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>Register No</div>
+            <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{student.registerNo || "N/A"}</div>
+          </div>
+          <div style={{ padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>Phone</div>
+            <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{student.phone || "Not provided"}</div>
+          </div>
+        </div>
+
+        {student.cgpa && (
+          <div style={{ marginTop: "var(--space-3)", padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>CGPA</div>
+            <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{student.cgpa}</div>
+          </div>
+        )}
+      </motion.div>
+    </div>
+  );
+}
 
 export default function StudentsClient({ initialStudents, queryParam }: { initialStudents: any[], queryParam: string }) {
   const [students, setStudents] = useState(initialStudents);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isLassoActive, setIsLassoActive] = useState(false);
+  const [viewingStudent, setViewingStudent] = useState<any>(null);
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
@@ -19,6 +75,23 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
   const toggleAll = () => {
     if (selectedIds.size === students.length) setSelectedIds(new Set());
     else setSelectedIds(new Set(students.map(s => s.id)));
+  };
+
+  const exportCSV = () => {
+    const selected = students.filter(s => selectedIds.has(s.id));
+    const data = selected.length > 0 ? selected : students;
+    const headers = ["First Name", "Last Name", "Email", "Department", "Year", "Section", "Phone", "Register No"];
+    const rows = data.map(s => [
+      s.firstName, s.lastName, s.email, s.department || "", s.year || "", s.section || "", s.phone || "", s.registerNo || ""
+    ]);
+    const csv = [headers.join(","), ...rows.map(r => r.map((c: string) => `"${c}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `students_export_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const departmentColors: Record<string, string> = {
@@ -74,6 +147,8 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              flexWrap: "wrap",
+              gap: "12px",
               boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
               border: "1px solid var(--color-primary)"
             }}
@@ -81,20 +156,26 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
             <div style={{ fontWeight: "bold", color: "var(--color-primary)" }}>
               {selectedIds.size} students selected
             </div>
-            <div style={{ display: "flex", gap: "12px" }}>
+            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
               <button className="btn btn-outline" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px" }}>
                 <Mail size={16} /> Email Group
               </button>
-              <button className="btn btn-outline" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px" }}>
+              <button className="btn btn-outline" onClick={exportCSV} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px" }}>
                 <Download size={16} /> Export CSV
-              </button>
-              <button className="btn btn-outline" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", color: "var(--color-danger)", borderColor: "rgba(239, 68, 68, 0.2)" }}>
-                <Trash2 size={16} /> Delete
               </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Export all button when none selected */}
+      {selectedIds.size === 0 && students.length > 0 && (
+        <div style={{ marginBottom: "var(--space-4)", display: "flex", justifyContent: "flex-end" }}>
+          <button className="btn btn-outline" onClick={exportCSV} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px" }}>
+            <Download size={16} /> Export All CSV
+          </button>
+        </div>
+      )}
 
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
@@ -108,12 +189,13 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
                 <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>Department</th>
                 <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>Batch / Section</th>
                 <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>Contact Info</th>
+                <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem", textAlign: "center" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {students.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: "var(--space-8)", color: "var(--text-secondary)" }}>
+                  <td colSpan={6} style={{ textAlign: "center", padding: "var(--space-8)", color: "var(--text-secondary)" }}>
                     No students found.
                   </td>
                 </tr>
@@ -146,7 +228,7 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
                         </td>
                         <td style={{ padding: "var(--space-4)" }}>
                           <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "12px" }}>
-                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--gradient-accent)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.875rem" }}>
+                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--gradient-accent)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.875rem", flexShrink: 0 }}>
                               {student.firstName[0]}{student.lastName[0]}
                             </div>
                             <div>
@@ -176,6 +258,16 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
                             {student.phone || "No contact saved"}
                           </div>
                         </td>
+                        <td style={{ padding: "var(--space-4)", textAlign: "center" }}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setViewingStudent(student); }}
+                            className="btn btn-ghost"
+                            style={{ padding: "6px 10px", minHeight: "auto", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.8125rem" }}
+                            title="View student details"
+                          >
+                            <Eye size={16} /> View
+                          </button>
+                        </td>
                       </motion.tr>
                     );
                   })}
@@ -185,6 +277,13 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
           </table>
         </div>
       </div>
+
+      {/* Student Detail Modal */}
+      <AnimatePresence>
+        {viewingStudent && (
+          <StudentDetailModal student={viewingStudent} onClose={() => setViewingStudent(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

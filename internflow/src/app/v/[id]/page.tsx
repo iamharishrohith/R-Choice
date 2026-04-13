@@ -153,6 +153,7 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
                     key={i} 
                     href={link.url}
                     target="_blank"
+                    className="vcard-link"
                     style={{ 
                       display: "flex", 
                       alignItems: "center", 
@@ -163,8 +164,6 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
                       textDecoration: "none",
                       transition: "background var(--transition-fast)"
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = "var(--bg-hover)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                   >
                     <div style={{ width: 40, height: 40, background: "var(--bg-secondary)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-primary)" }}>
                       <LinkIcon size={18} />

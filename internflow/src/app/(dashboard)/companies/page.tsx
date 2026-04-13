@@ -1,12 +1,16 @@
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { Building, Globe, Mail } from "lucide-react";
+import { Building, Globe, Mail, Phone, Calendar, ExternalLink } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { format } from "date-fns";
+import { auth } from "@/lib/auth";
+import Link from "next/link";
 
 export default async function CompaniesPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
   const searchParams = await props.searchParams;
   const queryParam = (searchParams.q || "").toLowerCase();
+  const session = await auth();
+  const isAdmin = session?.user?.role && ["dean", "placement_officer", "principal"].includes(session.user.role);
 
   let companies = await db
     .select()
@@ -28,20 +32,29 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
           <h1>Company Directory</h1>
           <p>List of all corporate partners registered on R-Choice for hiring.</p>
         </div>
-        <form method="GET" style={{ display: "flex", gap: "var(--space-2)" }}>
-          <input 
-            type="search" 
-            name="q" 
-            placeholder="Search companies..." 
-            defaultValue={queryParam}
-            style={{ padding: "8px 12px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", background: "var(--bg-primary)" }}
-          />
-          <button type="submit" className="button">Search</button>
-        </form>
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+          <form method="GET" style={{ display: "flex", gap: "var(--space-2)" }}>
+            <input 
+              type="search" 
+              name="q" 
+              placeholder="Search companies..." 
+              defaultValue={queryParam}
+              style={{ padding: "8px 12px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)", background: "var(--bg-primary)" }}
+            />
+            <button type="submit" className="button">Search</button>
+          </form>
+          {isAdmin && (
+            <Link href="/companies/review" style={{ textDecoration: "none" }}>
+              <button className="btn btn-outline" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                Review Registrations
+              </button>
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="card">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "var(--space-4)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "var(--space-4)" }}>
           {companies.length === 0 ? (
             <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "var(--space-8)", color: "var(--text-secondary)" }}>
               No companies have registered yet.
@@ -80,11 +93,16 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                    <Mail size={14} /> {company.email}
+                    <Mail size={14} /> <a href={`mailto:${company.email}`} style={{ color: "inherit" }}>{company.email}</a>
                   </div>
                   {company.phone && (
                     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                      <Globe size={14} /> {company.phone}
+                      <Phone size={14} /> <a href={`tel:${company.phone}`} style={{ color: "inherit" }}>{company.phone}</a>
+                    </div>
+                  )}
+                  {company.createdAt && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", color: "var(--text-muted)", fontSize: "0.8125rem" }}>
+                      <Calendar size={14} /> Member since {format(new Date(company.createdAt), "MMM yyyy")}
                     </div>
                   )}
                 </div>
@@ -96,3 +114,4 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
     </div>
   );
 }
+

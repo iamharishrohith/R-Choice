@@ -5,6 +5,18 @@ import { studentProfiles, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import ProfileBuilderClient from "./ProfileBuilderClient";
 import DeanProfileClient from "./DeanProfileClient";
+import Link from "next/link";
+import { Settings, Pencil } from "lucide-react";
+
+function EditProfileButton() {
+  return (
+    <Link href="/settings" style={{ textDecoration: "none" }}>
+      <button className="btn btn-outline" style={{ display: "inline-flex", gap: "8px", alignItems: "center", padding: "8px 16px" }}>
+        <Pencil size={16} /> Edit Profile
+      </button>
+    </Link>
+  );
+}
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -20,9 +32,12 @@ export default async function ProfilePage() {
     const [u] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     return (
       <div className="animate-fade-in">
-        <div className="page-header">
-          <h1>Principal Profile</h1>
-          <p>Personal profile overview.</p>
+        <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+          <div>
+            <h1>Principal Profile</h1>
+            <p>Personal profile overview.</p>
+          </div>
+          <EditProfileButton />
         </div>
         <div className="card" style={{ maxWidth: "600px", display: "flex", flexDirection: "column", gap: "var(--space-3)", padding: "var(--space-6)", fontSize: "1.05rem" }}>
           <div><strong style={{ display: "inline-block", width: "120px" }}>Name:</strong> {u.firstName} {u.lastName}</div>
@@ -57,9 +72,12 @@ export default async function ProfilePage() {
 
     return (
       <div>
-        <div className="page-header">
-          <h1>Dean Profile Settings</h1>
-          <p>Update your personal and administrative contact details.</p>
+        <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+          <div>
+            <h1>Dean Profile Settings</h1>
+            <p>Update your personal and administrative contact details.</p>
+          </div>
+          <EditProfileButton />
         </div>
         <DeanProfileClient initialData={deanData || {}} />
       </div>
@@ -101,9 +119,12 @@ export default async function ProfilePage() {
   const [genericUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   return (
     <div className="animate-fade-in">
-      <div className="page-header">
-        <h1 style={{ textTransform: "capitalize" }}>{genericUser.role.replace(/_/g, " ")} Profile</h1>
-        <p>Personal profile overview.</p>
+      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+        <div>
+          <h1 style={{ textTransform: "capitalize" }}>{genericUser.role.replace(/_/g, " ")} Profile</h1>
+          <p>Personal profile overview.</p>
+        </div>
+        <EditProfileButton />
       </div>
       <div className="card" style={{ maxWidth: "600px", display: "flex", flexDirection: "column", gap: "var(--space-3)", padding: "var(--space-6)", fontSize: "1.05rem" }}>
         <div><strong style={{ display: "inline-block", width: "120px" }}>Name:</strong> {genericUser.firstName} {genericUser.lastName}</div>

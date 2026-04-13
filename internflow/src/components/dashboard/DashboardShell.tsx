@@ -68,7 +68,7 @@ function getNavSections(role: string): NavSection[] {
           label: "Main",
           items: [
             { label: "Dashboard", href: "/dashboard/staff", icon: <LayoutDashboard size={20} /> },
-            { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} />, badge: 5 },
+            { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
           ],
         },
         {
@@ -93,7 +93,7 @@ function getNavSections(role: string): NavSection[] {
           label: "Main",
           items: [
             { label: "Dashboard", href: "/dashboard/staff", icon: <LayoutDashboard size={20} /> },
-            { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} />, badge: 3 },
+            { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
           ],
         },
         {
@@ -118,7 +118,7 @@ function getNavSections(role: string): NavSection[] {
           label: "Main",
           items: [
             { label: "Dashboard", href: "/dashboard/admin", icon: <LayoutDashboard size={20} /> },
-            { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} />, badge: 8 },
+            { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
             { label: "Analytics", href: "/analytics", icon: <BarChart3 size={20} /> },
           ],
         },
@@ -128,6 +128,7 @@ function getNavSections(role: string): NavSection[] {
             { label: "All Students", href: "/students", icon: <GraduationCap size={20} /> },
             { label: "User Accounts", href: "/users", icon: <Users size={20} /> },
             { label: "Companies", href: "/companies", icon: <Building2 size={20} /> },
+            { label: "Registration Review", href: "/companies/review", icon: <ClipboardCheck size={20} /> },
           ],
         },
         {
@@ -157,6 +158,7 @@ function getNavSections(role: string): NavSection[] {
             { label: "All Students", href: "/students", icon: <GraduationCap size={20} /> },
             { label: "User Accounts", href: "/users", icon: <Users size={20} /> },
             { label: "Companies", href: "/companies", icon: <Building2 size={20} /> },
+            { label: "Registration Review", href: "/companies/review", icon: <ClipboardCheck size={20} /> },
           ],
         },
         {
