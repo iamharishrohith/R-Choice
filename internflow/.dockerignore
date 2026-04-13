@@ -1,0 +1,13 @@
+﻿Dockerfile
+.dockerignore
+node_modules
+npm-debug.log
+README.md
+.next
+.git
+e2e
+playwright-report
+test-results
+AGENTS.md
+build_analysis.txt
+shimmer_readme.txt

@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable static export for Capacitor (APK builds)
-  // Uncomment when building for mobile:
-  // output: "export",
+  output: "standalone",
 
   // Security headers
   async headers() {
