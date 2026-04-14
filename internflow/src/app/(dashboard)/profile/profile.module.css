@@ -154,27 +154,30 @@
   }
   .profileSidebar {
     width: 100%;
-    flex-direction: row;
+    flex-direction: column;
     position: static;
   }
   .completionWidget {
-    flex: 1;
-    flex-direction: row;
-    justify-content: space-between;
+    flex: none;
+    flex-direction: column;
     padding: var(--space-4);
   }
   .progressCircle {
-    width: 64px;
-    height: 64px;
-    margin: 0;
+    width: 80px;
+    height: 80px;
+    margin-bottom: var(--space-4);
   }
   .percentage {
     font-size: 1.25rem;
   }
   .tabNav {
-    flex: 2;
+    flex: none;
     flex-direction: row;
     overflow-x: auto;
     align-items: center;
+  }
+  .formHeader {
+    flex-wrap: wrap;
+    gap: var(--space-4);
   }
 }

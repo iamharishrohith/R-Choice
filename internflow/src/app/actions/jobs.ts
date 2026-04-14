@@ -27,7 +27,6 @@ export async function createJobPosting(formData: FormData) {
     const deadline = validateDate(formData.get("deadline"), "Application Deadline");
 
     // Determine the company name from the user profile
-    const [_user] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
     
     await db.insert(jobPostings).values({
       postedBy: session.user.id,
@@ -165,7 +164,7 @@ export async function updateJobPosting(jobId: string, formData: FormData) {
     const deadline = formData.get("deadline") as string;
     const openingsCount = formData.get("openingsCount") as string;
 
-    const updatePayload: Record<string, any> = {
+    const updatePayload: Partial<typeof jobPostings.$inferInsert> = {
       updatedAt: new Date(),
     };
 
@@ -182,8 +181,8 @@ export async function updateJobPosting(jobId: string, formData: FormData) {
     revalidatePath("/jobs/manage");
     revalidatePath(`/approvals/jobs`);
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Job update error:", error);
-    return { error: `Failed to update job: ${error?.message || String(error)}` };
+    return { error: `Failed to update job: ${error instanceof Error ? error.message : String(error)}` };
   }
 }

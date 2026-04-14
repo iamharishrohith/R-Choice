@@ -46,8 +46,8 @@ export async function submitWorkReport(formData: FormData) {
     revalidatePath("/reports");
     
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Report submission error:", error);
-    return { error: error.message || "Failed to submit work report." };
+    return { error: (error instanceof Error ? error.message : "An error occurred") || "Failed to submit work report." };
   }
 }

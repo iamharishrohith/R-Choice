@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 const { auth } = NextAuth(authConfig);
 
 // Routes accessible without auth
-const publicRoutes = ["/", "/register/company", "/api/auth", "/v"];
+const publicRoutes = ["/", "/register/company", "/api/auth", "/v", "/team"];
 
 // Shared routes every authenticated role can access
 const sharedRoutes = ["/settings", "/profile"];

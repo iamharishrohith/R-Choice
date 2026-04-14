@@ -4,11 +4,8 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
   users,
-  studentProfiles,
   jobPostings,
   companyRegistrations,
-  internshipRequests,
-  notifications,
   auditLogs,
 } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -55,9 +52,9 @@ export async function deleteUser(userId: string) {
     revalidatePath("/students");
     revalidatePath("/users");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Delete user error:", error);
-    return { error: `Failed to delete user: ${error?.message || String(error)}` };
+    return { error: `Failed to delete user: ${error instanceof Error ? error.message : String(error)}` };
   }
 }
 
@@ -81,9 +78,9 @@ export async function deleteJob(jobId: string) {
     revalidatePath("/jobs");
     revalidatePath("/approvals/jobs");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Delete job error:", error);
-    return { error: `Failed to delete job: ${error?.message || String(error)}` };
+    return { error: `Failed to delete job: ${error instanceof Error ? error.message : String(error)}` };
   }
 }
 
@@ -117,8 +114,8 @@ export async function deleteCompany(companyRegId: string) {
     revalidatePath("/companies/review");
     revalidatePath("/users");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Delete company error:", error);
-    return { error: `Failed to delete company: ${error?.message || String(error)}` };
+    return { error: `Failed to delete company: ${error instanceof Error ? error.message : String(error)}` };
   }
 }

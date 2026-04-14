@@ -21,7 +21,7 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
   let condition: any = undefined;
 
   if (filterStatus === "pending") {
-    const baseConditions = [eq(internshipRequests.status, targetStatus as any)];
+    const baseConditions = [eq(internshipRequests.status, targetStatus as "draft" | "pending_tutor" | "pending_coordinator" | "pending_hod" | "pending_dean" | "pending_po" | "pending_principal" | "approved" | "rejected" | "returned")];
     if (role === "dean" || role === "placement_officer" || role === "principal") {
       if (role === "dean") baseConditions.push(eq(internshipRequests.currentTier, 4));
       else if (role === "placement_officer") baseConditions.push(eq(internshipRequests.currentTier, 5));

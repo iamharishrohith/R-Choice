@@ -85,8 +85,8 @@ export async function saveBasicProfile(formData: {
 
     revalidatePath("/profile");
     return { success: true, score };
-  } catch (error: any) {
-    if (error.code === '23505') return { error: "Register Number is already in use by another student." };
+  } catch (error: unknown) {
+    if ((error as any).code === '23505') return { error: "Register Number is already in use by another student." };
     return { error: "Failed to save profile. Please try again." };
   }
 }
@@ -118,16 +118,16 @@ export async function saveDeanProfile(formData: {
 
     revalidatePath("/profile");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Dean profile save error:", error);
-    if (error.code === '23505') { 
+    if ((error as any).code === '23505') { 
       return { error: "Email is already in use by another user." };
     }
     return { error: "Failed to save profile. Please try again." };
   }
 }
 
-export async function saveEducation(educationData: any[]) {
+export async function saveEducation(educationData: { institution?: string; degree?: string; fieldOfStudy?: string; startYear?: string | number; endYear?: string | number; score?: string | number }[]) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
   const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
@@ -173,7 +173,7 @@ export async function saveSkills(skillsData: {name: string, type: string}[]) {
   } catch { return { error: "Failed to save skills." }; }
 }
 
-export async function saveProjects(projectsData: any[]) {
+export async function saveProjects(projectsData: { title?: string; description?: string; projectUrl?: string }[]) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
   const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
@@ -196,7 +196,7 @@ export async function saveProjects(projectsData: any[]) {
   } catch { return { error: "Failed to save projects." }; }
 }
 
-export async function saveCertifications(certsData: any[]) {
+export async function saveCertifications(certsData: { name?: string; issuingOrg?: string; credentialUrl?: string }[]) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
   const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
@@ -219,7 +219,7 @@ export async function saveCertifications(certsData: any[]) {
   } catch { return { error: "Failed to save certs." }; }
 }
 
-export async function saveLinks(linksData: any[]) {
+export async function saveLinks(linksData: { title?: string; url?: string; platform: string }[]) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
   const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);

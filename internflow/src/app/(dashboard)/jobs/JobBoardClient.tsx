@@ -128,17 +128,17 @@ export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: a
           />
         </div>
         
-        <div style={{ display: "flex", background: "var(--bg-secondary)", padding: "4px", borderRadius: "12px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", background: "var(--bg-secondary)", padding: "4px", borderRadius: "12px" }}>
           <button 
             className={`btn ${viewMode === "grid" ? "" : "btn-ghost"}`}
-            style={{ padding: "8px 16px", background: viewMode === "grid" ? "var(--bg-card)" : "transparent", boxShadow: viewMode === "grid" ? "var(--shadow-sm)" : "none", color: viewMode === "grid" ? "var(--color-primary)" : "var(--text-secondary)", height: "auto" }}
+            style={{ whiteSpace: "nowrap", padding: "8px 16px", background: viewMode === "grid" ? "var(--bg-card)" : "transparent", boxShadow: viewMode === "grid" ? "var(--shadow-sm)" : "none", color: viewMode === "grid" ? "var(--color-primary)" : "var(--text-secondary)", height: "auto" }}
             onClick={() => setViewMode("grid")}
           >
             <Grid2x2 size={18} style={{ marginRight: 8 }} /> Grid
           </button>
           <button 
             className={`btn ${viewMode === "swipe" ? "" : "btn-ghost"}`}
-            style={{ padding: "8px 16px", background: viewMode === "swipe" ? "var(--bg-card)" : "transparent", boxShadow: viewMode === "swipe" ? "var(--shadow-sm)" : "none", color: viewMode === "swipe" ? "var(--color-primary)" : "var(--text-secondary)", height: "auto" }}
+            style={{ whiteSpace: "nowrap", display: "flex", alignItems: "center", padding: "8px 16px", background: viewMode === "swipe" ? "var(--bg-card)" : "transparent", boxShadow: viewMode === "swipe" ? "var(--shadow-sm)" : "none", color: viewMode === "swipe" ? "var(--color-primary)" : "var(--text-secondary)", height: "auto" }}
             onClick={() => setViewMode("swipe")}
           >
             <Layers size={18} style={{ marginRight: 8 }} /> Swipe Mode 
@@ -185,9 +185,11 @@ export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: a
           description={searchTerm ? "Try adjusting your search or filter criteria." : undefined}
         />
       ) : viewMode === "swipe" ? (
-        <SwipeDeck jobs={sortedAndFilteredJobs} isStudent={isStudent} />
+        <div style={{ paddingBottom: "80px" }}>
+          <SwipeDeck jobs={sortedAndFilteredJobs} isStudent={isStudent} />
+        </div>
       ) : (
-        <div className="grid grid-2" style={{ gap: "var(--space-5)" }}>
+        <div className="grid grid-2" style={{ gap: "var(--space-5)", paddingBottom: "80px" }}>
           {sortedAndFilteredJobs.map((job, idx) => {
             const isRecommended = roleKeywords.some(
               (kw) => job.title.toLowerCase().includes(kw) || job.description.toLowerCase().includes(kw)

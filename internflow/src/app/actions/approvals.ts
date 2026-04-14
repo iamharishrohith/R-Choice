@@ -7,6 +7,8 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getApproversForStudent } from "@/lib/db/queries/authority";
 
+type AppRole = "student" | "tutor" | "placement_coordinator" | "hod" | "dean" | "placement_officer" | "principal" | "company" | "alumni";
+
 // Approval tier progression order
 const TIER_CHAIN: Record<string, { nextStatus: string; nextTier: number }> = {
   "tutor:pending_tutor":          { nextStatus: "pending_coordinator", nextTier: 2 },
@@ -50,8 +52,8 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
         if (role === "placement_coordinator" && approverId !== approvers.placementCoordinatorId) return { error: "Unauthorized: You are not mapped as this student's PC." };
         if (role === "hod" && approverId !== approvers.hodId) return { error: "Unauthorized: You are not mapped as this student's HOD." };
         if (role === "dean" && approverId !== approvers.deanId) return { error: "Unauthorized: You are not mapped as this student's Dean." };
-      } catch (err: any) {
-        return { error: err.message || "Failed to verify authority mapping. Student profile might be incomplete." };
+      } catch (err: unknown) {
+        return { error: (err instanceof Error ? err.message : "An error occurred") || "Failed to verify authority mapping. Student profile might be incomplete." };
       }
     }
     // ---------------------------------------------------------
@@ -73,7 +75,7 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
       await db.insert(approvalLogs).values({
         requestId,
         approverId,
-        approverRole: role as any,
+        approverRole: role as AppRole,
         tier: request.currentTier || 0,
         action: "rejected",
         comment: trimmedComment,
@@ -116,7 +118,7 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
       await db.insert(approvalLogs).values({
         requestId,
         approverId,
-        approverRole: role as any,
+        approverRole: role as AppRole,
         tier: request.currentTier || 0,
         action: "approved",
         comment: trimmedComment,
@@ -167,7 +169,7 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
     await db.insert(approvalLogs).values({
       requestId,
       approverId,
-      approverRole: role as any,
+      approverRole: role as AppRole,
       tier: request.currentTier || 0,
       action: "approved",
       comment: trimmedComment,
@@ -194,8 +196,8 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
     revalidatePath("/approvals");
     revalidatePath("/applications");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Approval error:", error);
-    return { error: `Failed to process approval: ${error?.message || String(error)}` };
+    return { error: `Failed to process approval: ${error instanceof Error ? error.message : String(error)}` };
   }
 }

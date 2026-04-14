@@ -2,8 +2,9 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { internshipRequests, externalInternshipDetails, jobApplications, jobPostings, companyRegistrations } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { internshipRequests, externalInternshipDetails, jobApplications, jobPostings, companyRegistrations, users, notifications } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
+import { sendCompanyResultEmail } from "@/lib/mail";
 import { getApproversForStudent } from "@/lib/db/queries/authority";
 import { revalidatePath } from "next/cache";
 import {
@@ -11,7 +12,6 @@ import {
   sanitizeOptional,
   validateEmail,
   validateUrl,
-  validateUrlOptional,
   validatePhone,
   validateDate,
   validateEnum,
@@ -194,10 +194,6 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
   }
 
   try {
-    const { eq, and, sql } = require("drizzle-orm");
-    const { jobApplications, jobPostings, users, companyRegistrations, notifications } = require("@/lib/db/schema");
-    const { sendCompanyResultEmail } = require("@/lib/mail");
-
     // Get Job Details
     const [job] = await db.select({
       role: jobPostings.title,
@@ -206,7 +202,7 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
 
     const [company] = await db.select({
       name: companyRegistrations.companyLegalName
-    }).from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId)).limit(1);
+    }).from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId as string)).limit(1);
 
     for (const studentId of selectedStudentIds) {
       // Generate 6 digit code
@@ -253,9 +249,9 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
     
     revalidatePath("/dashboard/company/applicants");
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Post results error:", err);
-    return { error: err.message || "Failed to post results" };
+    return { error: err instanceof Error ? err.message : "Failed to post results" };
   }
 }
 
@@ -266,9 +262,6 @@ export async function verifyAndInitializeOD(applicationId: string, code: string,
   }
 
   try {
-    const { eq, and } = require("drizzle-orm");
-    const { jobApplications, internshipRequests, jobPostings, companyRegistrations } = require("@/lib/db/schema");
-
     // 1. Fetch application
     const [app] = await db.select({
       id: jobApplications.id,
@@ -286,7 +279,7 @@ export async function verifyAndInitializeOD(applicationId: string, code: string,
 
     // 2. Fetch Job/Company info to seed the OD Request
     const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, app.jobId)).limit(1);
-    const [company] = await db.select().from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId)).limit(1);
+    const [company] = await db.select().from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId as string)).limit(1);
 
     // Execute mutations within a resilient transaction boundary
     await db.transaction(async (tx) => {
@@ -315,9 +308,9 @@ export async function verifyAndInitializeOD(applicationId: string, code: string,
 
     revalidatePath("/dashboard/student");
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof ValidationError) return { error: err.message };
     console.error("OD Verification error:", err);
-    return { error: err.message || "Failed to verify and initialize OD." };
+    return { error: err instanceof Error ? err.message : "Failed to verify and initialize OD." };
   }
 }

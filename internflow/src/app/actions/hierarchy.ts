@@ -19,7 +19,7 @@ export async function fetchStaffByRole(role: string) {
     return await db
       .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email })
       .from(users)
-      .where(eq(users.role, role as any));
+      .where(eq(users.role, role as "student" | "tutor" | "placement_coordinator" | "hod" | "dean" | "placement_officer" | "principal" | "company" | "alumni"));
   } catch {
     return [];
   }
@@ -87,9 +87,9 @@ export async function upsertMapping(formData: FormData) {
 
     revalidatePath("/settings/hierarchy");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Hierarchy mapping error:", error);
-    return { error: `Failed: ${error?.message || String(error)}` };
+    return { error: `Failed: ${error instanceof Error ? error.message : String(error)}` };
   }
 }
 
@@ -104,7 +104,7 @@ export async function deleteMapping(mappingId: string) {
     await db.delete(authorityMappings).where(eq(authorityMappings.id, mappingId));
     revalidatePath("/settings/hierarchy");
     return { success: true };
-  } catch (error: any) {
-    return { error: `Failed: ${error?.message || String(error)}` };
+  } catch (error: unknown) {
+    return { error: `Failed: ${error instanceof Error ? error.message : String(error)}` };
   }
 }

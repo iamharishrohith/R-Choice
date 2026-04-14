@@ -347,8 +347,27 @@ export function DashboardShell({
               R-<span>Choice</span>
             </span>
           </div>
-          <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "var(--space-4)", alignItems: "center" }}>
             <NotificationsDropdown />
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const btn = document.getElementById("mobile-logout-btn");
+                  if (btn) btn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>';
+                  const { logoutAction } = await import("@/app/actions/auth");
+                  await logoutAction();
+                } catch (e) {
+                  window.location.href = "/api/auth/signout";
+                }
+              }}
+              id="mobile-logout-btn"
+              aria-label="Sign out"
+              title="Sign out"
+              style={{ background: "transparent", border: "none", color: "var(--color-text)", cursor: "pointer", display: "flex", padding: "0.25rem" }}
+            >
+              <LogOut size={22} />
+            </button>
           </div>
         </header>
 

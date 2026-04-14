@@ -367,42 +367,54 @@ export default function LoginPage() {
       </section>
       </div>
 
-      <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 100 }}>
+      <footer style={{
+        marginTop: "auto",
+        padding: "3rem 1.5rem",
+        borderTop: "1px solid var(--border-color)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "16px",
+        background: "var(--bg-card)",
+      }}>
+        <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", fontWeight: 500 }}>
+          Designed and Developed by
+        </p>
         <Link 
           href="/team" 
           style={{ 
             textDecoration: 'none', 
-            background: 'rgba(255,255,255,0.85)', 
-            backdropFilter: 'blur(10px)', 
-            padding: '10px 18px', 
+            background: 'var(--bg-secondary)', 
+            padding: '12px 28px', 
             borderRadius: '50px', 
-            fontSize: '13px', 
-            fontWeight: 600, 
-            color: 'var(--text-secondary)', 
-            boxShadow: '0 4px 15px rgba(0,0,0,0.06)', 
+            fontSize: '15px', 
+            fontWeight: 700, 
+            color: 'var(--text-primary)', 
             display: 'flex', 
             alignItems: 'center', 
-            gap: '8px', 
-            border: '1px solid rgba(0,0,0,0.05)', 
-            transition: 'all 0.3s ease' 
+            gap: '10px', 
+            border: '1px solid var(--border-color)', 
+            transition: 'all 0.3s ease',
+            boxShadow: 'var(--shadow-sm)'
           }} 
           onMouseOver={(e) => { 
-            e.currentTarget.style.transform = 'translateY(-3px)'; 
-            e.currentTarget.style.color = 'var(--rathinam-red)'; 
-            e.currentTarget.style.borderColor = 'rgba(226,35,26,0.2)'; 
-            e.currentTarget.style.boxShadow = '0 10px 20px rgba(226,35,26,0.15)'; 
+            e.currentTarget.style.background = 'var(--bg-hover)'; 
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = 'var(--shadow-md)';
           }} 
           onMouseOut={(e) => { 
-            e.currentTarget.style.transform = 'translateY(0)'; 
-            e.currentTarget.style.color = 'var(--text-secondary)'; 
-            e.currentTarget.style.borderColor = 'rgba(0,0,0,0.05)'; 
-            e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.06)'; 
+            e.currentTarget.style.background = 'var(--bg-secondary)'; 
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
           }}
         >
-          <Crown size={16} style={{ color: '#fbbf24', filter: 'drop-shadow(0 2px 4px rgba(251,191,36,0.4))' }} />
+          <Crown size={18} style={{ color: '#fbbf24', filter: 'drop-shadow(0 2px 4px rgba(251,191,36,0.4))', transition: 'all 0.3s ease' }} />
           Team Monarchs
         </Link>
-      </div>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginTop: "12px", textAlign: "center" }}>
+          © {new Date().getFullYear()} Rathinam College of Arts and Science. All rights reserved.
+        </p>
+      </footer>
 
     </div>
   );
