@@ -16,6 +16,10 @@ export async function saveBasicProfile(formData: {
   cgpa: string;
   professionalSummary: string;
   roles?: string[];
+  dob?: string;
+  githubLink?: string;
+  linkedinLink?: string;
+  portfolioUrl?: string;
 }) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
@@ -35,43 +39,49 @@ export async function saveBasicProfile(formData: {
 
     let profileId: string;
 
-    await db.transaction(async (tx) => {
-      if (existingProfile) {
-        profileId = existingProfile.id;
-        await tx.update(studentProfiles).set({
-          registerNo: formData.registerNo,
-          department: formData.department,
-          year: formData.year,
-          section: formData.section,
-          cgpa: cgpaVal,
-          professionalSummary: formData.professionalSummary,
-          profileCompletionScore: score 
-        }).where(eq(studentProfiles.id, existingProfile.id));
-      } else {
-        const [newProfile] = await tx.insert(studentProfiles).values({
-          userId,
-          registerNo: formData.registerNo,
-          department: formData.department,
-          year: formData.year,
-          section: formData.section,
-          cgpa: cgpaVal,
-          professionalSummary: formData.professionalSummary,
-          profileCompletionScore: score,
-        }).returning({ id: studentProfiles.id });
-        profileId = newProfile.id;
-      }
+    if (existingProfile) {
+      profileId = existingProfile.id;
+      await db.update(studentProfiles).set({
+        registerNo: formData.registerNo,
+        department: formData.department,
+        year: formData.year,
+        section: formData.section,
+        cgpa: cgpaVal,
+        professionalSummary: formData.professionalSummary,
+        dob: formData.dob || null,
+        githubLink: formData.githubLink || null,
+        linkedinLink: formData.linkedinLink || null,
+        portfolioUrl: formData.portfolioUrl || null,
+        profileCompletionScore: score 
+      }).where(eq(studentProfiles.id, existingProfile.id));
+    } else {
+      const [newProfile] = await db.insert(studentProfiles).values({
+        userId,
+        registerNo: formData.registerNo,
+        department: formData.department,
+        year: formData.year,
+        section: formData.section,
+        cgpa: cgpaVal,
+        professionalSummary: formData.professionalSummary,
+        dob: formData.dob || null,
+        githubLink: formData.githubLink || null,
+        linkedinLink: formData.linkedinLink || null,
+        portfolioUrl: formData.portfolioUrl || null,
+        profileCompletionScore: score,
+      }).returning({ id: studentProfiles.id });
+      profileId = newProfile.id;
+    }
 
-      if (formData.roles && formData.roles.length > 0) {
-        await tx.delete(studentJobInterests).where(eq(studentJobInterests.studentId, profileId));
-        for (const role of formData.roles.slice(0, 5)) {
-          await tx.insert(studentJobInterests).values({
-            studentId: profileId,
-            roleCategory: "General",
-            roleName: role
-          });
-        }
+    if (formData.roles && formData.roles.length > 0) {
+      await db.delete(studentJobInterests).where(eq(studentJobInterests.studentId, profileId));
+      for (const role of formData.roles.slice(0, 5)) {
+        await db.insert(studentJobInterests).values({
+          studentId: profileId,
+          roleCategory: "General",
+          roleName: role
+        });
       }
-    });
+    }
 
     revalidatePath("/profile");
     return { success: true, score };

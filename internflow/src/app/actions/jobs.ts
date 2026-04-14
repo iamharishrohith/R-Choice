@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { jobPostings, users } from "@/lib/db/schema";
+import { jobPostings, users, auditLogs } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sanitize, sanitizeOptional, validateDate, ValidationError } from "@/lib/validation";
@@ -39,8 +39,9 @@ export async function createJobPosting(formData: FormData) {
       workMode: "Hybrid",
       duration: "3 Months",
       stipendSalary: stipendInfo || "Unpaid",
-      openingsCount: 1,
+      openingsCount: isNaN(parseInt(formData.get("openingsCount") as string, 10)) ? 1 : parseInt(formData.get("openingsCount") as string, 10),
       applicationDeadline: deadline,
+      requiredSkills: requirements ? [requirements] : [],
       status: "pending_review", // Jobs now go through staff review before being visible
     });
 
@@ -79,6 +80,14 @@ export async function updateJobStatus(jobId: string, action: "approve" | "reject
         verifiedAt: new Date()
       })
       .where(eq(jobPostings.id, jobId));
+
+    await db.insert(auditLogs).values({
+      userId: session.user.id,
+      action: `review_job_${action}`,
+      entityType: "job_posting",
+      entityId: jobId,
+      details: { newStatus },
+    });
 
     revalidatePath("/approvals/jobs");
     revalidatePath("/jobs");
@@ -126,5 +135,55 @@ export async function fetchCompanyJobs(companyId: string) {
   } catch (err) {
     console.error("Failed to fetch company jobs:", err);
     return [];
+  }
+}
+
+export async function updateJobPosting(jobId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { error: "Not authenticated" };
+  }
+
+  const role = session.user.role;
+  
+  try {
+    const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
+    if (!job) return { error: "Job not found." };
+
+    // Only the posting company or admin roles can edit
+    const isOwner = job.postedBy === session.user.id;
+    const isAdmin = ["dean", "placement_officer", "principal"].includes(role);
+
+    if (!isOwner && !isAdmin) {
+      return { error: "You do not have permission to edit this job." };
+    }
+
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const location = formData.get("location") as string;
+    const stipendSalary = formData.get("stipendSalary") as string;
+    const deadline = formData.get("deadline") as string;
+    const openingsCount = formData.get("openingsCount") as string;
+
+    const updatePayload: Record<string, any> = {
+      updatedAt: new Date(),
+    };
+
+    if (title?.trim()) updatePayload.title = title.trim();
+    if (description?.trim()) updatePayload.description = description.trim();
+    if (location?.trim()) updatePayload.location = location.trim();
+    if (stipendSalary?.trim()) updatePayload.stipendSalary = stipendSalary.trim();
+    if (deadline?.trim()) updatePayload.applicationDeadline = deadline.trim();
+    if (openingsCount?.trim()) updatePayload.openingsCount = parseInt(openingsCount, 10);
+
+    await db.update(jobPostings).set(updatePayload).where(eq(jobPostings.id, jobId));
+
+    revalidatePath("/jobs");
+    revalidatePath("/jobs/manage");
+    revalidatePath(`/approvals/jobs`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Job update error:", error);
+    return { error: `Failed to update job: ${error?.message || String(error)}` };
   }
 }

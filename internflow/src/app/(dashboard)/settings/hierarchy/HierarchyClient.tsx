@@ -1,0 +1,376 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { upsertMapping, deleteMapping } from "@/app/actions/hierarchy";
+import {
+  GitBranch, Plus, Trash2, Save, Loader2, X,
+  GraduationCap, Users, BookOpen, Crown, ArrowRight
+} from "lucide-react";
+import { toast } from "sonner";
+
+type StaffMember = { id: string; firstName: string; lastName: string };
+type Mapping = {
+  id: string;
+  department: string;
+  year: number;
+  programType: string;
+  tutorId: string | null;
+  placementCoordinatorId: string | null;
+  hodId: string | null;
+  deanId: string | null;
+};
+
+const DEPARTMENTS = [
+  "Computer Science",
+  "Information Technology",
+  "Artificial Intelligence",
+  "Electronics",
+  "Mechanical",
+  "Civil",
+  "Business Administration",
+  "Commerce",
+  "Science",
+];
+
+const YEARS = [1, 2, 3, 4, 5];
+const PROGRAM_TYPES = ["UG", "PG"];
+
+export default function HierarchyClient({
+  initialMappings,
+  tutors,
+  coordinators,
+  hods,
+  deans,
+}: {
+  initialMappings: Mapping[];
+  tutors: StaffMember[];
+  coordinators: StaffMember[];
+  hods: StaffMember[];
+  deans: StaffMember[];
+}) {
+  const [mappings] = useState<Mapping[]>(initialMappings);
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
+  // Form state
+  const [dept, setDept] = useState(DEPARTMENTS[0]);
+  const [year, setYear] = useState(1);
+  const [programType, setProgramType] = useState("UG");
+  const [tutorId, setTutorId] = useState("");
+  const [coordinatorId, setCoordinatorId] = useState("");
+  const [hodId, setHodId] = useState("");
+  const [deanId, setDeanId] = useState("");
+
+  const resetForm = () => {
+    setDept(DEPARTMENTS[0]);
+    setYear(1);
+    setProgramType("UG");
+    setTutorId("");
+    setCoordinatorId("");
+    setHodId("");
+    setDeanId("");
+    setEditId(null);
+  };
+
+  const openEdit = (m: Mapping) => {
+    setDept(m.department);
+    setYear(m.year);
+    setProgramType(m.programType || "UG");
+    setTutorId(m.tutorId || "");
+    setCoordinatorId(m.placementCoordinatorId || "");
+    setHodId(m.hodId || "");
+    setDeanId(m.deanId || "");
+    setEditId(m.id);
+    setShowForm(true);
+  };
+
+  const handleSave = () => {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("department", dept);
+      fd.set("year", String(year));
+      fd.set("section", programType); // We reuse the section DB field for UG/PG
+      fd.set("tutorId", tutorId);
+      fd.set("coordinatorId", coordinatorId);
+      fd.set("hodId", hodId);
+      fd.set("deanId", deanId);
+
+      const result = await upsertMapping(fd);
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(editId ? "Mapping updated!" : "New mapping created!");
+        setShowForm(false);
+        resetForm();
+        router.refresh();
+      }
+    });
+  };
+
+  const handleDelete = (id: string) => {
+    if (!confirm("Are you sure you want to remove this mapping?")) return;
+    startTransition(async () => {
+      const result = await deleteMapping(id);
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Mapping removed.");
+        router.refresh();
+      }
+    });
+  };
+
+  const getName = (id: string | null, list: StaffMember[]) => {
+    if (!id) return "Not Assigned";
+    const found = list.find((s) => s.id === id);
+    return found ? `${found.firstName} ${found.lastName}` : "Unknown";
+  };
+
+  return (
+    <div className="animate-fade-in">
+      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-4)" }}>
+        <div>
+          <h1 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <GitBranch size={24} /> Authority Hierarchy
+          </h1>
+          <p>Map approval chains: Department + Year → Tutor → HOD → Dean</p>
+        </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => { resetForm(); setShowForm(true); }}
+          style={{ display: "flex", alignItems: "center", gap: "6px" }}
+        >
+          <Plus size={18} /> New Mapping
+        </button>
+      </div>
+
+      {/* Flowchart Cards */}
+      {mappings.length === 0 ? (
+        <div className="card" style={{ textAlign: "center", padding: "var(--space-12)", color: "var(--text-secondary)" }}>
+          <GitBranch size={48} style={{ margin: "0 auto var(--space-4)", opacity: 0.3 }} />
+          <p>No authority mappings defined yet. Create one to establish the approval flow.</p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: "var(--space-5)" }}>
+          {mappings.map((m) => (
+            <div key={m.id} className="card" style={{ padding: "var(--space-5)", position: "relative" }}>
+              {/* Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-4)" }}>
+                <div>
+                  <h3 style={{ fontSize: "1.125rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "8px" }}>
+                    {m.department}
+                    <span style={{
+                      padding: "2px 10px", borderRadius: "100px", fontSize: "0.6875rem", fontWeight: 600,
+                      background: m.programType === "PG" ? "rgba(168,85,247,0.1)" : "rgba(99,102,241,0.1)",
+                      color: m.programType === "PG" ? "#a855f7" : "#6366f1",
+                    }}>
+                      {m.programType || "UG"}
+                    </span>
+                  </h3>
+                  <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                    Year {m.year}
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={() => openEdit(m)}
+                    className="btn btn-outline"
+                    style={{ padding: "4px 10px", fontSize: "0.8125rem" }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(m.id)}
+                    className="btn"
+                    style={{ padding: "4px 10px", background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "none", borderRadius: "var(--border-radius-sm)" }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Flowchart visualization */}
+              <div style={{
+                display: "flex", alignItems: "center", gap: "0",
+                overflowX: "auto", padding: "var(--space-3) 0",
+              }}>
+                <FlowNode
+                  icon={<GraduationCap size={18} />}
+                  label="Students"
+                  sublabel={`${m.department} Yr ${m.year}`}
+                  color="#6366f1"
+                />
+                <FlowArrow />
+
+                <FlowNode
+                  icon={<BookOpen size={18} />}
+                  label="Tutor"
+                  sublabel={getName(m.tutorId, tutors)}
+                  color="#0ea5e9"
+                />
+                <FlowArrow />
+
+                <FlowNode
+                  icon={<Users size={18} />}
+                  label="HOD"
+                  sublabel={getName(m.hodId, hods)}
+                  color="#a855f7"
+                />
+                <FlowArrow />
+
+                <FlowNode
+                  icon={<Crown size={18} />}
+                  label="Dean"
+                  sublabel={getName(m.deanId, deans)}
+                  color="#f59e0b"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Create/Edit Modal */}
+      {showForm && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 999,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
+          }}
+          onClick={() => { setShowForm(false); resetForm(); }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="card"
+            style={{
+              width: "90%", maxWidth: "520px",
+              padding: "var(--space-6)", position: "relative",
+              maxHeight: "85vh", overflowY: "auto",
+              animation: "fadeIn 0.2s ease-out",
+            }}
+          >
+            <button
+              onClick={() => { setShowForm(false); resetForm(); }}
+              style={{ position: "absolute", top: "12px", right: "12px", background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
+            >
+              <X size={20} />
+            </button>
+
+            <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "var(--space-5)" }}>
+              {editId ? "Edit Mapping" : "New Authority Mapping"}
+            </h2>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "var(--space-3)" }}>
+                <div>
+                  <label style={labelStyle}>Department</label>
+                  <select value={dept} onChange={(e) => setDept(e.target.value)} className="input-field" style={{ width: "100%" }}>
+                    {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Year</label>
+                  <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="input-field" style={{ width: "100%" }}>
+                    {YEARS.map((y) => <option key={y} value={y}>Year {y}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Program</label>
+                  <select value={programType} onChange={(e) => setProgramType(e.target.value)} className="input-field" style={{ width: "100%" }}>
+                    {PROGRAM_TYPES.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <StaffSelect label="Tutor" value={tutorId} onChange={setTutorId} options={tutors} />
+              <StaffSelect label="Placement Coordinator" value={coordinatorId} onChange={setCoordinatorId} options={coordinators} />
+              <StaffSelect label="Head of Department" value={hodId} onChange={setHodId} options={hods} />
+              <StaffSelect label="Dean" value={deanId} onChange={setDeanId} options={deans} />
+            </div>
+
+            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "var(--space-5)" }}>
+              <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-outline" style={{ padding: "8px 16px" }}>
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isPending}
+                className="btn btn-primary"
+                style={{ padding: "8px 20px", display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                {isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                {editId ? "Update" : "Create"} Mapping
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
+}
+
+const labelStyle: React.CSSProperties = {
+  fontSize: "0.8125rem", fontWeight: 500,
+  color: "var(--text-secondary)", display: "block", marginBottom: "4px",
+};
+
+function StaffSelect({ label, value, onChange, options }: {
+  label: string; value: string; onChange: (v: string) => void; options: StaffMember[];
+}) {
+  return (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="input-field" style={{ width: "100%" }}>
+        <option value="">— Not Assigned —</option>
+        {options.map((s) => (
+          <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function FlowNode({ icon, label, sublabel, color }: {
+  icon: React.ReactNode; label: string; sublabel: string; color: string;
+}) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      padding: "var(--space-3) var(--space-4)",
+      background: `color-mix(in srgb, ${color} 8%, transparent)`,
+      borderRadius: "12px", minWidth: "120px",
+      border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: "50%",
+        background: `color-mix(in srgb, ${color} 15%, transparent)`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        color, marginBottom: "6px",
+      }}>
+        {icon}
+      </div>
+      <div style={{ fontWeight: 600, fontSize: "0.8125rem", color }}>{label}</div>
+      <div style={{ fontSize: "0.6875rem", color: "var(--text-secondary)", textAlign: "center", maxWidth: "110px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {sublabel}
+      </div>
+    </div>
+  );
+}
+
+function FlowArrow() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", padding: "0 4px", color: "var(--text-muted)" }}>
+      <ArrowRight size={20} />
+    </div>
+  );
+}

@@ -1,34 +1,32 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
+import { TEST_ACCOUNTS, loginAs } from "./helpers";
 
-test.describe('Internship Applications Pipeline', () => {
+test.describe("Internship Applications Pipeline", () => {
   test.beforeEach(async ({ page }) => {
-    // Standard login as student before applying for an internship
-    await page.goto('/');
-    await page.click('button:has-text("Student")');
-    await page.fill('input[type="email"]', 'e2e_student@rathinam.in');
-    await page.fill('input[type="password"]', 'password123');
-    await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/\/dashboard\/student/);
+    await loginAs(page, TEST_ACCOUNTS.student, "Student", /\/dashboard\/student/);
   });
 
-  test('student can navigate to My Applications and see progress tracker', async ({ page }) => {
-    await page.click('text=My Applications');
+  test("student can navigate to My Applications and see progress tracker", async ({ page }) => {
+    await page.click("text=My Applications");
     await expect(page).toHaveURL(/\/applications/);
-    
-    // Page header should be there
-    await expect(page.locator('h1')).toContainText(/My Applications/i);
-    // Tracker or 'No applications found' state
-    const trackerContainer = page.locator('.tracker-scroll-wrapper');
-    const emptyState = page.locator('h3:has-text("No Applications Started")');
+    await expect(page.getByRole("heading", { name: /my applications/i }).first()).toBeVisible();
+    await expect(page.getByText(/track your internship approval status/i)).toBeVisible();
 
-    await expect(trackerContainer.or(emptyState)).toBeVisible();
+    const applicationCards = page.getByRole("heading", { level: 3 });
+    const newRequestLink = page.getByRole("link", { name: /new request/i });
+
+    if ((await applicationCards.count()) > 0) {
+      await expect(applicationCards.first()).toBeVisible();
+    } else {
+      await expect(newRequestLink).toBeVisible();
+    }
   });
 
-  test('student can browse and apply for jobs', async ({ page }) => {
-    await page.click('text=Browse Jobs');
+  test("student can browse and apply for jobs", async ({ page }) => {
+    await page.click("text=Browse Jobs");
     await expect(page).toHaveURL(/\/jobs/);
-    
-    // UI Check - assuming the swipe deck or job cards load
-    await expect(page.locator('h1')).toContainText(/Internship Opportunities/i);
+    await expect(
+      page.getByRole("heading", { name: /browse jobs|opportunities/i }).first()
+    ).toBeVisible();
   });
 });

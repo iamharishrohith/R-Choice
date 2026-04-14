@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import NotificationsDropdown from "./NotificationsDropdown";
@@ -21,6 +21,7 @@ import {
   Link2,
   FileDown,
   CalendarDays,
+  GitBranch,
 } from "lucide-react";
 import styles from "../../app/(dashboard)/layout.module.css";
 
@@ -47,8 +48,6 @@ function getNavSections(role: string): NavSection[] {
           items: [
             { label: "Dashboard", href: "/dashboard/student", icon: <LayoutDashboard size={20} /> },
             { label: "My Profile", href: "/profile", icon: <User size={20} /> },
-            { label: "My Links", href: "/profile/links", icon: <Link2 size={20} /> },
-            { label: "Resume", href: "/profile/resume", icon: <FileDown size={20} /> },
           ],
         },
         {
@@ -68,7 +67,7 @@ function getNavSections(role: string): NavSection[] {
           label: "Main",
           items: [
             { label: "Dashboard", href: "/dashboard/staff", icon: <LayoutDashboard size={20} /> },
-            { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
+            { label: "Internship Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
           ],
         },
         {
@@ -93,7 +92,7 @@ function getNavSections(role: string): NavSection[] {
           label: "Main",
           items: [
             { label: "Dashboard", href: "/dashboard/staff", icon: <LayoutDashboard size={20} /> },
-            { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
+            { label: "Internship Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
           ],
         },
         {
@@ -118,7 +117,7 @@ function getNavSections(role: string): NavSection[] {
           label: "Main",
           items: [
             { label: "Dashboard", href: "/dashboard/admin", icon: <LayoutDashboard size={20} /> },
-            { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
+            { label: "Internship Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
             { label: "Analytics", href: "/analytics", icon: <BarChart3 size={20} /> },
           ],
         },
@@ -147,7 +146,7 @@ function getNavSections(role: string): NavSection[] {
           label: "Main",
           items: [
             { label: "Dashboard", href: "/dashboard/admin", icon: <LayoutDashboard size={20} /> },
-            { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
+            { label: "Internship Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
             { label: "Job Approvals", href: "/approvals/jobs", icon: <ClipboardCheck size={20} /> },
             { label: "Analytics", href: "/analytics", icon: <BarChart3 size={20} /> },
           ],
@@ -165,6 +164,13 @@ function getNavSections(role: string): NavSection[] {
           label: "Opportunities",
           items: [
             { label: "Job Postings", href: "/jobs", icon: <Briefcase size={20} /> },
+          ],
+        },
+        {
+          label: "Configuration",
+          items: [
+            { label: "Hierarchy Manager", href: "/settings/hierarchy", icon: <GitBranch size={20} /> },
+            { label: "Settings", href: "/settings", icon: <Settings size={20} /> },
           ],
         },
       ];
@@ -265,8 +271,9 @@ export function DashboardShell({
             <div key={section.label} className={styles.navSection}>
               <p className={styles.navSectionLabel}>{section.label}</p>
               {section.items.map((item) => {
-                const isActive =
-                  pathname === item.href || pathname.startsWith(item.href + "/");
+                const allHrefs = navSections.flatMap(s => s.items.map(i => i.href));
+                const hasMoreSpecificMatch = allHrefs.some(h => h !== item.href && h.startsWith(item.href + "/") && (pathname === h || pathname.startsWith(h + "/")));
+                const isActive = hasMoreSpecificMatch ? false : (pathname === item.href || pathname.startsWith(item.href + "/"));
                 return (
                   <Link
                     key={item.href}
@@ -292,14 +299,26 @@ export function DashboardShell({
             <p className={styles.userRole}>{roleLabel}</p>
           </div>
           <button
-              type="button"
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className={styles.navItem}
-              style={{ padding: "8px", cursor: "pointer", border: "none", background: "none" }}
-              aria-label="Sign out"
-            >
-              <LogOut size={18} />
-            </button>
+            type="button"
+            onClick={async () => {
+              try {
+                // simple visual feedback (we could use transition, but this is simple)
+                const btn = document.getElementById("logout-btn");
+                if (btn) btn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>';
+                const { logoutAction } = await import("@/app/actions/auth");
+                await logoutAction();
+              } catch (e) {
+                console.error(e);
+                window.location.href = "/api/auth/signout";
+              }
+            }}
+            id="logout-btn"
+            className={styles.logoutButton}
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </aside>
 

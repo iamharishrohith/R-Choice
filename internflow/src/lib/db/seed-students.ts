@@ -77,6 +77,8 @@ const students = [
   { regNo: "RCAS2024BCS056", name: "DHAYANITHI J", email: "dhayanithij.bcs24@rathinam.in" },
   { regNo: "RCAS2024BCS057", name: "SHARVESH B B", email: "sharveshbb.bcs24@rathinam.in" },
   { regNo: "RCAS2024BCS058", name: "MOHAMED OSMAN ALI ADAM", email: "mohamedosmanalidam.bcs24@rathinam.in" },
+  { regNo: "RCAS2024BCT122", name: "HARISH ROHITH S", email: "harishrohiths.bct24@rathinam.in" },
+  { regNo: "RCAS2024BCT115", name: "SUBHAHARINI S", email: "subhaharini.bct24@rathinam.in" },
 ];
 
 function splitName(fullName: string): { firstName: string; lastName: string } {

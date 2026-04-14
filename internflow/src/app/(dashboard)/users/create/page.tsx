@@ -7,7 +7,7 @@ import { ShieldAlert } from "lucide-react";
 
 export default async function CreateUserPage() {
   const session = await auth();
-  if (session?.user?.role !== "principal") {
+  if (!session?.user?.role || !["principal", "dean", "placement_officer"].includes(session.user.role)) {
     redirect("/");
   }
 
@@ -16,7 +16,7 @@ export default async function CreateUserPage() {
     
     // Auth Validation Over-check
     const session = await auth();
-    if (session?.user?.role !== "principal") {
+    if (!session?.user?.role || !["principal", "dean", "placement_officer"].includes(session.user.role)) {
       throw new Error("Unauthorized");
     }
 

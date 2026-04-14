@@ -87,9 +87,16 @@ export default function CreateJobPage() {
             />
           </div>
 
-          <div className="input-group" style={{ maxWidth: "300px" }}>
-            <label>Application Deadline *</label>
-            <input type="date" name="deadline" className="input-field" required />
+          <div className="grid grid-2" style={{ gap: "var(--space-4)" }}>
+            <div className="input-group">
+              <label>Number of Vacancies *</label>
+              <input type="number" min="1" name="openingsCount" className="input-field" required defaultValue="1" />
+            </div>
+
+            <div className="input-group">
+              <label>Application Deadline *</label>
+              <input type="date" name="deadline" className="input-field" required />
+            </div>
           </div>
 
           {error && <div style={{ color: "var(--color-danger)", fontSize: "0.875rem", padding: "8px", background: "rgba(239, 68, 68, 0.1)", borderRadius: "4px" }}>{error}</div>}

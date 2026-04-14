@@ -21,7 +21,7 @@ function DeadlineBadge({ deadline }: { deadline: string }) {
     </span>
   );
   if (daysLeft <= 7) return <span className="job-tag" style={{ color: "var(--color-warning)", background: "rgba(244, 122, 42, 0.08)" }}><Clock size={12} /> {daysLeft}d left</span>;
-  return <span className="job-tag"><Calendar size={12} /> {dl.toLocaleDateString()}</span>;
+  return <span className="job-tag" suppressHydrationWarning><Calendar size={12} /> {dl.toLocaleDateString()}</span>;
 }
 
 function VelocityBadge() {
@@ -46,6 +46,7 @@ export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: a
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "swipe">("grid");
   const [minSalary, setMinSalary] = useState(0);
+  const [activeFilter, setActiveFilter] = useState<"all" | "remote" | "onsite" | "paid" | "unpaid">("all");
 
   const roleKeywords = useMemo(() => interests.map((i) => i.roleName.toLowerCase()), [interests]);
 
@@ -63,7 +64,17 @@ export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: a
       );
     }
     
-    if (minSalary > 0) {
+    if (activeFilter === "remote") {
+      result = result.filter(j => j.location.toLowerCase().includes("remote"));
+    } else if (activeFilter === "onsite") {
+      result = result.filter(j => !j.location.toLowerCase().includes("remote"));
+    } else if (activeFilter === "paid") {
+      result = result.filter(j => j.stipendInfo && !j.stipendInfo.toLowerCase().includes("unpaid") && j.stipendInfo.trim() !== "");
+    } else if (activeFilter === "unpaid") {
+      result = result.filter(j => !j.stipendInfo || j.stipendInfo.toLowerCase().includes("unpaid") || j.stipendInfo.trim() === "");
+    }
+
+    if (minSalary > 0 && activeFilter === "paid") {
       result = result.filter(j => {
         // Attempt to parse salary/stipend text to extract a number representing monthly pay
         const str = (j.stipendSalary || j.stipendInfo || "").replace(/,/g, '');
@@ -133,7 +144,32 @@ export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: a
         </div>
       </div>
 
-      {viewMode === "grid" && (
+      <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "12px", marginBottom: "var(--space-2)" }}>
+        {(["all", "remote", "onsite", "paid", "unpaid"] as const).map(f => (
+          <button
+            key={f}
+            className={`btn ${activeFilter === f ? "" : "btn-outline"}`}
+            style={{ 
+              borderRadius: "100px", 
+              padding: "6px 16px", 
+              fontSize: "0.875rem", 
+              textTransform: "capitalize", 
+              minWidth: "max-content", 
+              height: "auto",
+              background: activeFilter === f ? "var(--color-primary)" : "transparent",
+              color: activeFilter === f ? "white" : "var(--text-secondary)"
+            }}
+            onClick={() => {
+              setActiveFilter(f);
+              if (f !== "paid") setMinSalary(0);
+            }}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
+      {viewMode === "grid" && activeFilter === "paid" && (
         <div style={{ background: "var(--bg-secondary)", padding: "var(--space-4)", borderRadius: "12px", marginBottom: "var(--space-6)" }}>
           <SalarySlider min={0} max={50000} value={minSalary} onChange={setMinSalary} />
         </div>

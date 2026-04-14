@@ -2,7 +2,8 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { internshipRequests, externalInternshipDetails } from "@/lib/db/schema";
+import { internshipRequests, externalInternshipDetails, jobApplications, jobPostings, companyRegistrations } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { getApproversForStudent } from "@/lib/db/queries/authority";
 import { revalidatePath } from "next/cache";
 import {
@@ -135,23 +136,47 @@ export async function createPortalApplication(jobId: string, companyName: string
       return { error: "No class tutor mapped to your department/section. Cannot apply." };
     }
 
-    // Portal requests start immediately at pending_tutor tier 1
+    const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
+    if (!job) {
+      return { error: "Job not found." };
+    }
+
+    const [company] = job.companyId
+      ? await db.select().from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId)).limit(1)
+      : [null];
+
+    const today = new Date();
+    const fallbackStart = job.startDate ? new Date(job.startDate) : today;
+    const fallbackEnd = new Date(fallbackStart);
+    fallbackEnd.setMonth(fallbackEnd.getMonth() + 3);
+
+    const formatDate = (value: Date) => value.toISOString().slice(0, 10);
+
+    await db.insert(jobApplications).values({
+      jobId,
+      studentId: userId,
+      status: "applied",
+    });
+
+    // Keep portal applications visible in the same approval pipeline used by external requests.
     await db.insert(internshipRequests).values({
       studentId: userId,
+      jobPostingId: jobId,
       applicationType: "portal",
-      companyName,
-      companyAddress: "Virtual / See Posting",
-      role: roleTitle,
-      startDate: new Date().toISOString().split("T")[0],
-      endDate: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split("T")[0],
-      stipend: "See Posting",
-      workMode: "Portal",
-      status: "pending_tutor", 
-      currentTier: 1, 
+      companyName: company?.companyLegalName || companyName,
+      companyAddress: company?.address || null,
+      role: job.title || roleTitle,
+      startDate: formatDate(fallbackStart),
+      endDate: formatDate(fallbackEnd),
+      stipend: job.stipendSalary || null,
+      workMode: job.workMode || "onsite",
+      status: "pending_tutor",
+      currentTier: 1,
       submittedAt: new Date(),
     });
 
     revalidatePath("/applications");
+    revalidatePath("/approvals");
     revalidatePath("/jobs");
     
     return { success: true };
@@ -159,5 +184,140 @@ export async function createPortalApplication(jobId: string, companyName: string
     console.error("Portal apply error:", error);
     const msg = error instanceof Error ? error.message : "Failed to submit portal application.";
     return { error: msg };
+  }
+}
+
+export async function postCompanyResults(jobId: string, selectedStudentIds: string[]) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== "company") {
+    return { error: "Unauthorized. Only companies can post results." };
+  }
+
+  try {
+    const { eq, and, sql } = require("drizzle-orm");
+    const { jobApplications, jobPostings, users, companyRegistrations, notifications } = require("@/lib/db/schema");
+    const { sendCompanyResultEmail } = require("@/lib/mail");
+
+    // Get Job Details
+    const [job] = await db.select({
+      role: jobPostings.title,
+      companyId: jobPostings.companyId
+    }).from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
+
+    const [company] = await db.select({
+      name: companyRegistrations.companyLegalName
+    }).from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId)).limit(1);
+
+    for (const studentId of selectedStudentIds) {
+      // Generate 6 digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Execute mutations within a resilient transaction boundary
+      const emailTask = await db.transaction(async (tx) => {
+        // Update the application status
+        await tx.update(jobApplications)
+          .set({ status: "selected", verificationCode: code, updatedAt: new Date() })
+          .where(and(eq(jobApplications.jobId, jobId), eq(jobApplications.studentId, studentId)));
+
+        // Build email
+        const [student] = await tx.select().from(users).where(eq(users.id, studentId)).limit(1);
+        
+        if (student && student.email) {
+          // Notify Student Directly
+          await tx.insert(notifications).values({
+            userId: student.id,
+            type: "selection",
+            title: "Internship Selection Result",
+            message: `Congratulations! You have been selected by ${company?.name}. Please check your email for the verification code to start your OD request.`,
+            linkUrl: "/dashboard/student"
+          });
+          
+          return { email: student.email, name: `${student.firstName} ${student.lastName}` };
+        }
+        return null;
+      });
+
+      // Side-effects (Email API requests) fire only if the atomic db transaction succeeds
+      if (emailTask) {
+        await sendCompanyResultEmail(
+          emailTask.email,
+          emailTask.name,
+          company?.name || "The Company",
+          job?.role || "Internship",
+          code
+        );
+      }
+    }
+
+    // Optional: Alert the hierarchy that a result was posted (can be global or mapped to selected students)
+    
+    revalidatePath("/dashboard/company/applicants");
+    return { success: true };
+  } catch (err: any) {
+    console.error("Post results error:", err);
+    return { error: err.message || "Failed to post results" };
+  }
+}
+
+export async function verifyAndInitializeOD(applicationId: string, code: string, startDate: string, endDate: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== "student") {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    const { eq, and } = require("drizzle-orm");
+    const { jobApplications, internshipRequests, jobPostings, companyRegistrations } = require("@/lib/db/schema");
+
+    // 1. Fetch application
+    const [app] = await db.select({
+      id: jobApplications.id,
+      verificationCode: jobApplications.verificationCode,
+      isVerified: jobApplications.isVerified,
+      jobId: jobApplications.jobId
+    })
+    .from(jobApplications)
+    .where(and(eq(jobApplications.id, applicationId), eq(jobApplications.studentId, session.user.id)))
+    .limit(1);
+
+    if (!app) return { error: "Application not found" };
+    if (app.isVerified) return { error: "Already verified." };
+    if (app.verificationCode !== code) return { error: "Invalid verification code." };
+
+    // 2. Fetch Job/Company info to seed the OD Request
+    const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, app.jobId)).limit(1);
+    const [company] = await db.select().from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId)).limit(1);
+
+    // Execute mutations within a resilient transaction boundary
+    await db.transaction(async (tx) => {
+      // 3. Mark application as verified
+      await tx.update(jobApplications)
+        .set({ isVerified: true, updatedAt: new Date() })
+        .where(eq(jobApplications.id, applicationId));
+
+      // 4. Create the final rigorous OD Request mapping
+      await tx.insert(internshipRequests).values({
+        studentId: session.user.id,
+        jobPostingId: app.jobId,
+        applicationType: "portal",
+        companyName: company?.companyLegalName || "External Company",
+        companyAddress: String(company?.address || "Registered Address"),
+        role: job?.title || "Intern",
+        startDate: validateDate(startDate, "Start Date"),
+        endDate: validateDate(endDate, "End Date"),
+        stipend: job?.stipendSalary || "Unpaid",
+        workMode: job?.workMode || "onsite",
+        status: "pending_tutor", // Begins hierarchical approval
+        currentTier: 1, 
+        submittedAt: new Date(),
+      });
+    });
+
+    revalidatePath("/dashboard/student");
+    return { success: true };
+  } catch (err: any) {
+    if (err instanceof ValidationError) return { error: err.message };
+    console.error("OD Verification error:", err);
+    return { error: err.message || "Failed to verify and initialize OD." };
   }
 }

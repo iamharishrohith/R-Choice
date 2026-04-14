@@ -1,10 +1,13 @@
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { Building, Globe, Mail, Phone, Calendar, ExternalLink } from "lucide-react";
+import { users, companyRegistrations } from "@/lib/db/schema";
+import { Building, Globe, Mail, Phone, Calendar, Trash2 } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { format } from "date-fns";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import DeleteCompanyButton from "./DeleteCompanyButton";
 
 export default async function CompaniesPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
   const searchParams = await props.searchParams;
@@ -23,6 +26,36 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
       c.lastName.toLowerCase().includes(queryParam) ||
       (c.email && c.email.toLowerCase().includes(queryParam))
     );
+  }
+
+  async function deleteCompany(formData: FormData) {
+    "use server";
+    const session = await auth();
+    if (!session?.user?.id) return;
+    if (!["placement_officer", "principal"].includes(session.user.role)) return;
+
+    const companyId = formData.get("companyId") as string;
+    if (!companyId) return;
+
+    try {
+      // Null out any nullable FK references to this user across all tables
+      await db.execute(
+        `DELETE FROM job_postings WHERE posted_by = '${companyId}' OR company_id = '${companyId}';
+         UPDATE internship_requests SET last_reviewed_by = NULL WHERE last_reviewed_by = '${companyId}';
+         UPDATE authority_mappings SET updated_by = NULL WHERE updated_by = '${companyId}';
+         DELETE FROM company_registrations WHERE user_id = '${companyId}';
+         DELETE FROM audit_logs WHERE user_id = '${companyId}';
+         DELETE FROM notifications WHERE user_id = '${companyId}';
+         DELETE FROM users WHERE id = '${companyId}';`
+      );
+    } catch {
+      // If multi-statement fails, try individual deletes
+      await db.delete(companyRegistrations).where(eq(companyRegistrations.userId, companyId));
+      // Use Drizzle's raw execute for cascading delete
+      await db.execute(`DELETE FROM users WHERE id = '${companyId}'`);
+    }
+
+    revalidatePath("/companies");
   }
 
   return (
@@ -67,7 +100,8 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
                 padding: "var(--space-4)",
                 display: "flex",
                 flexDirection: "column",
-                gap: "var(--space-3)"
+                gap: "var(--space-3)",
+                position: "relative",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
                   <div style={{ 
@@ -83,12 +117,21 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
                   }}>
                     <Building size={24} color="var(--primary-color)" />
                   </div>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: "1.125rem" }}>{company.firstName} {company.lastName}</div>
                     <span className="badge" style={{ backgroundColor: "var(--primary-light)", color: "var(--primary-color)", marginTop: "4px" }}>
                       Authorized Partner
                     </span>
                   </div>
+
+                  {/* Delete button for PO/Principal */}
+                  {isAdmin && (
+                    <DeleteCompanyButton
+                      companyId={company.id}
+                      companyName={`${company.firstName} ${company.lastName}`}
+                      deleteAction={deleteCompany}
+                    />
+                  )}
                 </div>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
@@ -114,4 +157,3 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
     </div>
   );
 }
-

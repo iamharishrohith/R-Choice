@@ -2,11 +2,149 @@
 
 import { useState, useMemo } from "react";
 import styles from "./profile.module.css";
-import { CheckCircle2, Save, User, Book, Briefcase, Award, Plus, Trash2, Code, Languages, Globe, Zap, Target, Star } from "lucide-react";
-import { saveBasicProfile, saveEducation, saveSkills, saveProjects, saveCertifications } from "@/app/actions/profile";
+import { CheckCircle2, Save, User, Book, Briefcase, Award, Plus, Trash2, Code, Languages, Globe, Zap, Target, Star, Link as LinkIcon, Code2, Terminal, GripVertical } from "lucide-react";
+import { saveBasicProfile, saveEducation, saveSkills, saveProjects, saveCertifications, saveLinks } from "@/app/actions/profile";
 import { toast } from "sonner";
+import Image from "next/image";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GitHubHeatmap } from "@/components/profile/GitHubHeatmap";
 
-export default function ProfileBuilderClient({ initialData }: { initialData: any }) {
+const linkPlatforms = ["GitHub", "LeetCode", "HackerRank", "LinkedIn", "Portfolio", "Other"];
+
+const getLinkIcon = (platform: string) => {
+  switch (platform) {
+    case "GitHub": return <Globe size={18} />;
+    case "LeetCode": return <Code2 size={18} />;
+    case "HackerRank": return <Terminal size={18} />;
+    default: return <LinkIcon size={18} />;
+  }
+};
+
+function SortableLinkRow({
+  link,
+  index,
+  onUpdate,
+  onDelete,
+}: {
+  link: any;
+  index: number;
+  onUpdate: (index: number, field: string, value: string) => void;
+  onDelete: (index: number) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: link._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="grid grid-3"
+      data-dragging={isDragging || undefined}
+    >
+      <div className="input-group" style={{ position: "relative" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span
+            {...attributes}
+            {...listeners}
+            style={{
+              cursor: "grab",
+              color: "var(--text-muted)",
+              display: "inline-flex",
+              padding: "2px",
+              borderRadius: "4px",
+              transition: "color var(--transition-fast)",
+            }}
+            title="Drag to reorder"
+          >
+            <GripVertical size={14} />
+          </span>
+          Platform
+        </label>
+        <select
+          className="input-field"
+          value={link.platform || "Other"}
+          onChange={(e) => onUpdate(index, "platform", e.target.value)}
+        >
+          {linkPlatforms.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
+      </div>
+      <div className="input-group">
+        <label>Title / Identifier</label>
+        <input
+          className="input-field"
+          placeholder="e.g. My Profile"
+          value={link.title || ""}
+          onChange={(e) => onUpdate(index, "title", e.target.value)}
+          required
+        />
+      </div>
+      <div className="input-group" style={{ display: "flex", flexDirection: "row", gap: "8px", alignItems: "center" }}>
+        <div style={{ flex: 1 }}>
+          <label>URL</label>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {getLinkIcon(link.platform)}
+            <input
+              className="input-field"
+              placeholder="https://"
+              value={link.url || ""}
+              onChange={(e) => onUpdate(index, "url", e.target.value)}
+              required
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onDelete(index)}
+          style={{
+            color: "var(--color-danger)",
+            paddingBottom: "12px",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            transition: "transform var(--transition-fast)",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.15)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+        >
+          <Trash2 size={20} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function ProfileBuilderClient({ initialData, initialLinks = [] }: { initialData: any; initialLinks?: any[] }) {
   const [data, setData] = useState(initialData);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
@@ -25,6 +163,53 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
 
   // Isolated languages array
   const [newLanguage, setNewLanguage] = useState("");
+
+  // Links state
+  const [links, setLinks] = useState<any[]>(
+    (initialLinks || []).map((l: any, i: number) => ({ ...l, _id: `link-${i}` }))
+  );
+
+  // DnD sensors for links
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setLinks((items) => {
+        const oldIndex = items.findIndex((i) => i._id === active.id);
+        const newIndex = items.findIndex((i) => i._id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+      toast.info("Link order updated — remember to save!");
+    }
+  };
+
+  const handleLinkUpdate = (index: number, field: string, value: string) => {
+    const n = [...links];
+    n[index][field] = value;
+    setLinks(n);
+  };
+
+  const handleLinkDelete = (index: number) => {
+    setLinks(links.filter((_, i) => i !== index));
+    toast("Link removed", { description: "Click Save to confirm." });
+  };
+
+  // GitHub heatmap from links
+  const githubLink = useMemo(() => links.find((l) => l.platform?.toLowerCase() === "github" && l.url), [links]);
+  const githubUser = useMemo(() => {
+    if (!githubLink?.url) return null;
+    try {
+      const url = new URL(githubLink.url);
+      const parts = url.pathname.split("/").filter(Boolean);
+      return parts[0] || null;
+    } catch {
+      return null;
+    }
+  }, [githubLink]);
 
   // Role recommendations algorithm
   const suggestedRoles = ["Frontend Developer", "Backend Developer", "Full Stack Engineer", "UI/UX Designer", "Data Scientist", "DevOps Engineer", "Machine Learning Engineer", "Product Manager"];
@@ -85,7 +270,11 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
           section: data.section || "A",
           cgpa: data.cgpa?.toString() || "",
           professionalSummary: data.professionalSummary || "",
-          roles: roles
+          roles: roles,
+          dob: data.dob || "",
+          githubLink: data.githubLink || "",
+          linkedinLink: data.linkedinLink || "",
+          portfolioUrl: data.portfolioUrl || "",
         });
         if (result.error) toast.error(result.error);
         else { toast.success("Profile updated successfully!"); setData({ ...data, profileCompletionScore: result.score }); }
@@ -105,6 +294,11 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
         const result = await saveCertifications(certs);
         if (result.error) toast.error(result.error);
         else toast.success("Certifications updated successfully!");
+      } else if (activeTab === "links") {
+        const filtered = links.filter((l) => l.url && l.title);
+        const result = await saveLinks(filtered);
+        if (result.error) toast.error(result.error);
+        else toast.success("Links saved successfully!");
       }
     } catch {
       toast.error("An unexpected error occurred.");
@@ -120,11 +314,52 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
     { id: "languages", label: "Languages", icon: <Languages size={18} /> },
     { id: "projects", label: "Projects", icon: <Briefcase size={18} /> },
     { id: "certs", label: "Certifications", icon: <Award size={18} /> },
+    { id: "links", label: "My Links", icon: <LinkIcon size={18} /> },
   ];
 
   return (
     <div className={styles.profileContainer}>
       <div className={styles.profileSidebar}>
+        {/* Avatar Upload Section */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "var(--space-6)" }}>
+          <div style={{
+            position: "relative", width: "120px", height: "120px", borderRadius: "50%", background: "var(--bg-elevated)", border: "2px solid var(--border-color)", overflow: "hidden", marginBottom: "var(--space-3)", display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            {data.avatarUrl ? (
+              <Image src={data.avatarUrl} alt="Profile Picture" width={120} height={120} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              <User size={48} color="var(--text-muted)" />
+            )}
+          </div>
+          <label className="btn btn-outline" style={{ fontSize: "0.8125rem", padding: "6px 12px", cursor: "pointer", borderRadius: "100px" }}>
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith("image/")) { toast.error("File must be an image"); return; }
+                if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
+                toast.loading("Uploading profile picture...", { id: "avatar-upload" });
+                const fd = new FormData();
+                fd.append("file", file);
+                const res = await fetch("/api/upload/avatar", { method: "POST", body: fd });
+                const result = await res.json();
+                if (res.ok) {
+                  toast.success("Profile picture updated!", { id: "avatar-upload" });
+                  setData({ ...data, avatarUrl: result.url });
+                  window.location.reload(); // Reload to update sidebar header avatar globally
+                } else {
+                  toast.error(result.error || "Upload failed", { id: "avatar-upload" });
+                }
+                e.target.value = "";
+              }}
+            />
+            {data.avatarUrl ? "Change Photo" : "Upload Photo"}
+          </label>
+        </div>
+
         <nav className={styles.tabNav}>
           {tabs.map((tab) => (
             <button
@@ -137,10 +372,41 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
             </button>
           ))}
         </nav>
-        <div style={{ marginTop: "var(--space-6)" }}>
-          <a href="/api/profile/resume" target="_blank" className="btn btn-outline" style={{ width: "100%", justifyContent: "center", display: "flex" }}>
-            <Book size={18} style={{ marginRight: "8px" }} /> ATS Resume
-          </a>
+        <div style={{ marginTop: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          <label
+            className="btn btn-outline"
+            style={{ width: "100%", justifyContent: "center", display: "flex", cursor: "pointer", position: "relative" }}
+          >
+            <input
+              type="file"
+              accept=".pdf"
+              style={{ display: "none" }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.type !== "application/pdf") { toast.error("Only PDF files are accepted"); return; }
+                if (file.size > 10 * 1024 * 1024) { toast.error("File must be under 10MB"); return; }
+                toast.loading("Uploading resume...", { id: "resume-upload" });
+                const fd = new FormData();
+                fd.append("file", file);
+                const res = await fetch("/api/upload/resume", { method: "POST", body: fd });
+                const result = await res.json();
+                if (res.ok) {
+                  toast.success("Resume uploaded!", { id: "resume-upload" });
+                  setData({ ...data, resumeUrl: result.url });
+                } else {
+                  toast.error(result.error || "Upload failed", { id: "resume-upload" });
+                }
+                e.target.value = "";
+              }}
+            />
+            <Book size={18} style={{ marginRight: "8px" }} /> {data.resumeUrl ? "Replace Resume" : "Upload Resume (PDF)"}
+          </label>
+          {data.resumeUrl && (
+            <a href={data.resumeUrl} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ width: "100%", justifyContent: "center", display: "flex", textDecoration: "none" }}>
+              <Book size={18} style={{ marginRight: "8px" }} /> View My Resume
+            </a>
+          )}
         </div>
       </div>
 
@@ -168,19 +434,19 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
                 <div className="grid grid-2" style={{ gap: "var(--space-4)" }}>
                   <div className="input-group">
                     <label>Register Number *</label>
-                    <input className="input-field" value={data.registerNo} onChange={(e) => setData({ ...data, registerNo: e.target.value })} required />
+                    <input className="input-field" value={data.registerNo || ""} onChange={(e) => setData({ ...data, registerNo: e.target.value })} required />
                   </div>
                   <div className="input-group">
                     <label>Department *</label>
-                    <input className="input-field" value={data.department} onChange={(e) => setData({ ...data, department: e.target.value })} required />
+                    <input className="input-field" value={data.department || ""} onChange={(e) => setData({ ...data, department: e.target.value })} required />
                   </div>
                   <div className="input-group">
                     <label>Current CGPA</label>
-                    <input className="input-field" type="number" step="0.01" value={data.cgpa} onChange={(e) => setData({ ...data, cgpa: e.target.value })} />
+                    <input className="input-field" type="number" step="0.01" value={data.cgpa || ""} onChange={(e) => setData({ ...data, cgpa: e.target.value })} />
                   </div>
                   <div className="input-group">
                     <label>Year of Study</label>
-                    <select className="input-field" value={data.year} onChange={(e) => setData({ ...data, year: Number(e.target.value) })}>
+                    <select className="input-field" value={data.year || ""} onChange={(e) => setData({ ...data, year: Number(e.target.value) })}>
                       <option value="1">1st Year</option>
                       <option value="2">2nd Year</option>
                       <option value="3">3rd Year</option>
@@ -192,6 +458,26 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
                 <div className="input-group" style={{ marginTop: "var(--space-4)" }}>
                   <label>Professional Summary</label>
                   <textarea className="input-field" rows={4} value={data.professionalSummary || ""} onChange={(e) => setData({ ...data, professionalSummary: e.target.value })} />
+                </div>
+
+                <h3 style={{ marginTop: "var(--space-6)", marginBottom: "var(--space-3)", fontSize: "1rem", fontWeight: 600, borderTop: "1px solid var(--border-color)", paddingTop: "var(--space-4)" }}>Personal & Links</h3>
+                <div className="grid grid-2" style={{ gap: "var(--space-4)" }}>
+                  <div className="input-group">
+                    <label>Date of Birth</label>
+                    <input className="input-field" type="date" value={data.dob || ""} onChange={(e) => setData({ ...data, dob: e.target.value })} />
+                  </div>
+                  <div className="input-group">
+                    <label>GitHub Profile URL</label>
+                    <input className="input-field" placeholder="https://github.com/username" value={data.githubLink || ""} onChange={(e) => setData({ ...data, githubLink: e.target.value })} />
+                  </div>
+                  <div className="input-group">
+                    <label>LinkedIn Profile URL</label>
+                    <input className="input-field" placeholder="https://linkedin.com/in/username" value={data.linkedinLink || ""} onChange={(e) => setData({ ...data, linkedinLink: e.target.value })} />
+                  </div>
+                  <div className="input-group">
+                    <label>Portfolio Website URL</label>
+                    <input className="input-field" placeholder="https://your-portfolio.com" value={data.portfolioUrl || ""} onChange={(e) => setData({ ...data, portfolioUrl: e.target.value })} />
+                  </div>
                 </div>
               </div>
             )}
@@ -246,7 +532,7 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
                     <div className="grid grid-2" style={{ gap: "var(--space-4)" }}>
                       <div className="input-group">
                         <label>Level of Education *</label>
-                        <select className="input-field" value={edu.degree} onChange={(e) => { const n = [...education]; n[idx].degree = e.target.value; setEducation(n); }} required>
+                        <select className="input-field" value={edu.degree || ""} onChange={(e) => { const n = [...education]; n[idx].degree = e.target.value; setEducation(n); }} required>
                           <option value="" disabled>Select Level...</option>
                           <option value="Schooling">Schooling (10th / 12th Std)</option>
                           <option value="Diploma">Diploma</option>
@@ -256,23 +542,23 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
                       </div>
                       <div className="input-group">
                         <label>Institution Name *</label>
-                        <input className="input-field" placeholder="e.g. Rathinam College" value={edu.institution} onChange={(e) => { const n = [...education]; n[idx].institution = e.target.value; setEducation(n); }} required />
+                        <input className="input-field" placeholder="e.g. Rathinam College" value={edu.institution || ""} onChange={(e) => { const n = [...education]; n[idx].institution = e.target.value; setEducation(n); }} required />
                       </div>
                       <div className="input-group">
                         <label>Field of Study / Department</label>
-                        <input className="input-field" placeholder="e.g. Computer Science" value={edu.fieldOfStudy} onChange={(e) => { const n = [...education]; n[idx].fieldOfStudy = e.target.value; setEducation(n); }} />
+                        <input className="input-field" placeholder="e.g. Computer Science" value={edu.fieldOfStudy || ""} onChange={(e) => { const n = [...education]; n[idx].fieldOfStudy = e.target.value; setEducation(n); }} />
                       </div>
                       <div className="input-group">
                         <label>Start Year</label>
-                        <input className="input-field" type="number" placeholder="2020" value={edu.startYear} onChange={(e) => { const n = [...education]; n[idx].startYear = e.target.value; setEducation(n); }} />
+                        <input className="input-field" type="number" placeholder="2020" value={edu.startYear || ""} onChange={(e) => { const n = [...education]; n[idx].startYear = e.target.value; setEducation(n); }} />
                       </div>
                       <div className="input-group">
                         <label>End Year</label>
-                        <input className="input-field" type="number" placeholder="2024" value={edu.endYear} onChange={(e) => { const n = [...education]; n[idx].endYear = e.target.value; setEducation(n); }} />
+                        <input className="input-field" type="number" placeholder="2024" value={edu.endYear || ""} onChange={(e) => { const n = [...education]; n[idx].endYear = e.target.value; setEducation(n); }} />
                       </div>
                       <div className="input-group">
                         <label>Score (%) / CGPA</label>
-                        <input className="input-field" placeholder="8.5" value={edu.score} onChange={(e) => { const n = [...education]; n[idx].score = e.target.value; setEducation(n); }} />
+                        <input className="input-field" placeholder="8.5" value={edu.score || ""} onChange={(e) => { const n = [...education]; n[idx].score = e.target.value; setEducation(n); }} />
                       </div>
                     </div>
                   </div>
@@ -411,15 +697,15 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
                     <div className="grid grid-2" style={{ gap: "var(--space-4)", marginBottom: "var(--space-4)" }}>
                       <div className="input-group">
                         <label>Title</label>
-                        <input className="input-field" value={proj.title} onChange={(e) => { const n = [...projects]; n[idx].title = e.target.value; setProjects(n); }} required />
+                        <input className="input-field" value={proj.title || ""} onChange={(e) => { const n = [...projects]; n[idx].title = e.target.value; setProjects(n); }} required />
                       </div>
                       <div className="input-group">
                         <label>Project URL (GitHub/Live)</label>
-                        <input className="input-field" value={proj.projectUrl} onChange={(e) => { const n = [...projects]; n[idx].projectUrl = e.target.value; setProjects(n); }} />
+                        <input className="input-field" value={proj.projectUrl || ""} onChange={(e) => { const n = [...projects]; n[idx].projectUrl = e.target.value; setProjects(n); }} />
                       </div>
                       <div className="input-group" style={{ gridColumn: "1 / -1" }}>
                         <label>Description</label>
-                        <textarea className="input-field" rows={3} value={proj.description} onChange={(e) => { const n = [...projects]; n[idx].description = e.target.value; setProjects(n); }} required />
+                        <textarea className="input-field" rows={3} value={proj.description || ""} onChange={(e) => { const n = [...projects]; n[idx].description = e.target.value; setProjects(n); }} required />
                       </div>
                     </div>
                   </div>
@@ -442,15 +728,15 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
                     <div className="grid grid-2" style={{ gap: "var(--space-4)" }}>
                       <div className="input-group">
                         <label>Name</label>
-                        <input className="input-field" value={cert.name} onChange={(e) => { const n = [...certs]; n[idx].name = e.target.value; setCerts(n); }} required />
+                        <input className="input-field" value={cert.name || ""} onChange={(e) => { const n = [...certs]; n[idx].name = e.target.value; setCerts(n); }} required />
                       </div>
                       <div className="input-group">
                         <label>Issuing Organization</label>
-                        <input className="input-field" value={cert.issuingOrg} onChange={(e) => { const n = [...certs]; n[idx].issuingOrg = e.target.value; setCerts(n); }} required />
+                        <input className="input-field" value={cert.issuingOrg || ""} onChange={(e) => { const n = [...certs]; n[idx].issuingOrg = e.target.value; setCerts(n); }} required />
                       </div>
                       <div className="input-group" style={{ gridColumn: "1 / -1" }}>
                         <label>Credential URL</label>
-                        <input className="input-field" value={cert.credentialUrl} onChange={(e) => { const n = [...certs]; n[idx].credentialUrl = e.target.value; setCerts(n); }} />
+                        <input className="input-field" value={cert.credentialUrl || ""} onChange={(e) => { const n = [...certs]; n[idx].credentialUrl = e.target.value; setCerts(n); }} />
                       </div>
                     </div>
                   </div>
@@ -458,6 +744,52 @@ export default function ProfileBuilderClient({ initialData }: { initialData: any
                 <button type="button" className="btn btn-outline" style={{ width: "100%", justifyContent: "center", display: "flex" }} onClick={() => setCerts([...certs, { name: "", issuingOrg: "", credentialUrl: "" }])}>
                   <Award size={18} style={{ marginRight: 8 }} /> Add Certification
                 </button>
+              </div>
+            )}
+
+            {/* Links Tab */}
+            {activeTab === "links" && (
+              <div className="animate-fade-in">
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={links.map((l) => l._id)} strategy={verticalListSortingStrategy}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                      {links.map((link, idx) => (
+                        <SortableLinkRow
+                          key={link._id}
+                          link={link}
+                          index={idx}
+                          onUpdate={handleLinkUpdate}
+                          onDelete={handleLinkDelete}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+
+                <div style={{ display: "flex", gap: "var(--space-4)", marginTop: "var(--space-6)" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() =>
+                      setLinks([...links, { platform: "GitHub", title: "", url: "", _id: `link-${Date.now()}` }])
+                    }
+                  >
+                    <Plus size={18} /> Add Link
+                  </button>
+                </div>
+
+                {githubUser && (
+                  <div style={{ 
+                    marginTop: "var(--space-6)",
+                    "--github-level-0": "var(--bg-secondary)",
+                    "--github-level-1": "rgba(46, 160, 67, 0.4)",
+                    "--github-level-2": "rgba(46, 160, 67, 0.6)",
+                    "--github-level-3": "rgba(46, 160, 67, 0.8)",
+                    "--github-level-4": "rgba(46, 160, 67, 1)",
+                  } as React.CSSProperties}>
+                    <GitHubHeatmap username={githubUser} />
+                  </div>
+                )}
               </div>
             )}
           </form>

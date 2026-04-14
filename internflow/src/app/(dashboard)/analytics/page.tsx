@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { users, internshipRequests, jobPostings } from "@/lib/db/schema";
+import { users, internshipRequests, jobPostings, studentProfiles } from "@/lib/db/schema";
 import { BarChart, Users, FileText, CheckCircle, Clock, XCircle, Briefcase } from "lucide-react";
 import { eq, sql } from "drizzle-orm";
 
@@ -27,9 +27,9 @@ export default async function AnalyticsPage() {
     .groupBy(internshipRequests.status)
   ]);
 
-  const totalStudents = Number(totalStudentsRes[0].count) || 100;
-  const totalCompanies = Number(totalCompaniesRes[0].count) || 20;
-  const totalJobs = Number(totalJobsRes[0].count) || 45;
+  const totalStudents = Number(totalStudentsRes[0].count) || 0;
+  const totalCompanies = Number(totalCompaniesRes[0].count) || 0;
+  const totalJobs = Number(totalJobsRes[0].count) || 0;
 
   let approved = 0, pending = 0, rejected = 0;
   requestsStats.forEach(stat => {
@@ -38,10 +38,7 @@ export default async function AnalyticsPage() {
     else pending += Number(stat.count); // any pending tier
   });
   
-  if (approved === 0 && pending === 0 && rejected === 0) {
-    // Generate synthetic data if DB is empty to demonstrate visualizations
-    approved = 120; pending = 45; rejected = 15;
-  }
+  // No synthetic fallback — display actual zeros if DB is empty
 
   const pipelineData = [
     { label: "Approved Internships", value: approved, color: "#10b981" },
@@ -49,13 +46,30 @@ export default async function AnalyticsPage() {
     { label: "Rejected Apps", value: rejected, color: "#ef4444" },
   ];
 
-  // Synthetic Treemap data mapped over total students proportionally
-  const treemapData = [
-    { label: "CSE", value: Math.round(totalStudents * 0.4), color: "#6366f1" },
-    { label: "IT", value: Math.round(totalStudents * 0.25), color: "#8b5cf6" },
-    { label: "ECE", value: Math.round(totalStudents * 0.2), color: "#ec4899" },
-    { label: "Mech", value: Math.round(totalStudents * 0.15), color: "#f43f5e" },
-  ];
+  // Fetch real department distribution from studentProfiles
+  const deptDistribution = await db
+    .select({
+      department: studentProfiles.department,
+      count: sql`count(*)`,
+    })
+    .from(studentProfiles)
+    .groupBy(studentProfiles.department);
+
+  const deptColors: Record<string, string> = {
+    "Computer Science": "#6366f1",
+    "Information Technology": "#8b5cf6",
+    "Artificial Intelligence": "#ec4899",
+    "Electronics": "#f43f5e",
+    "Mechanical": "#f59e0b",
+    "Civil": "#0ea5e9",
+    "Business Administration": "#10b981",
+  };
+
+  const treemapData = deptDistribution.map(d => ({
+    label: d.department.length > 12 ? d.department.slice(0, 12) + "…" : d.department,
+    value: Number(d.count),
+    color: deptColors[d.department] || "#6b7280",
+  }));
 
   const placementRate = Math.min(100, Math.round((approved / totalStudents) * 100)) || 0;
 
@@ -143,7 +157,7 @@ export default async function AnalyticsPage() {
               <h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "var(--space-2)" }}>Institutional Rate</h2>
               <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", maxWidth: "200px" }}>Overall percentage of enrolled students who have secured a placement.</p>
             </div>
-            <LiquidGauge value={placementRate || 68} size={140} color="#10b981" />
+            <LiquidGauge value={placementRate} size={140} color="#10b981" />
           </div>
         </div>
       </div>

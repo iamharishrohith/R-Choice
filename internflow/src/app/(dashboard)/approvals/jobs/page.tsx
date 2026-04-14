@@ -24,6 +24,9 @@ export default async function JobApprovalsPage() {
       companyName: users.firstName,
       stipend: jobPostings.stipendSalary,
       location: jobPostings.location,
+      description: jobPostings.description,
+      requiredSkills: jobPostings.requiredSkills,
+      openingsCount: jobPostings.openingsCount,
       createdAt: jobPostings.createdAt
     })
     .from(jobPostings)
@@ -49,58 +52,48 @@ export default async function JobApprovalsPage() {
           </p>
         </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Company</th>
-                <th>Job Title</th>
-                <th>Location</th>
-                <th>Stipend</th>
-                <th>Date Posted</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {jobs.map((job) => (
-                <tr key={job.id}>
-                  <td style={{ fontWeight: 600 }}>{job.companyName}</td>
-                  <td>{job.title}</td>
-                  <td>{job.location}</td>
-                  <td>{job.stipend}</td>
-                  <td>{job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'N/A'}</td>
-                  <td>
-                    <JobApprovalActions jobId={job.id} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          {jobs.map((job) => (
+            <div key={job.id} className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-5)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "var(--space-4)" }}>
+                <div>
+                  <h3 style={{ margin: "0 0 8px 0", fontSize: "1.25rem", color: "var(--text-primary)" }}>{job.title}</h3>
+                  <div style={{ display: "flex", gap: "16px", color: "var(--text-secondary)", fontSize: "0.875rem", flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 600, color: "var(--primary-color)" }}>{job.companyName}</span>
+                    <span>• {job.location}</span>
+                    <span>• {job.stipend}</span>
+                    <span>• {job.openingsCount} Vacancies</span>
+                    <span>• Posted: {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'N/A'}</span>
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0 }}>
+                  <JobApprovalActions jobId={job.id} />
+                </div>
+              </div>
+
+              <div style={{ background: "var(--bg-hover)", padding: "var(--space-4)", borderRadius: "var(--border-radius-md)" }}>
+                <h4 style={{ margin: "0 0 8px 0", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)" }}>Job Description & Requirements</h4>
+                <p style={{ margin: "0 0 16px 0", fontSize: "0.95rem", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                  {job.description}
+                </p>
+                
+                {job.requiredSkills && job.requiredSkills.length > 0 && (
+                  <div>
+                    <h4 style={{ margin: "0 0 8px 0", fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)" }}>Required Skills</h4>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {job.requiredSkills.map((skill, idx) => (
+                        <span key={idx} style={{ padding: "4px 10px", background: "var(--bg-primary)", border: "1px solid var(--border-color)", borderRadius: "100px", fontSize: "0.875rem" }}>
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
-
-      <style>{`
-        .data-table {
-          width: 100%;
-          border-collapse: collapse;
-          background: var(--bg-primary);
-          border-radius: var(--border-radius-lg);
-          overflow: hidden;
-          box-shadow: var(--shadow-sm);
-        }
-        .data-table th, .data-table td {
-          padding: 12px 16px;
-          text-align: left;
-          border-bottom: 1px solid var(--border-color);
-        }
-        .data-table th {
-          background: var(--bg-hover);
-          font-size: 0.75rem;
-          text-transform: uppercase;
-          color: var(--text-secondary);
-          letter-spacing: 0.05em;
-        }
-      `}</style>
     </div>
   );
 }

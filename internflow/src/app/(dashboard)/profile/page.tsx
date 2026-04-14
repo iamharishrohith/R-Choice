@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { studentProfiles, users } from "@/lib/db/schema";
+import { studentProfiles, studentLinks, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import ProfileBuilderClient from "./ProfileBuilderClient";
 import DeanProfileClient from "./DeanProfileClient";
@@ -92,17 +92,31 @@ export default async function ProfilePage() {
       .where(eq(studentProfiles.userId, userId))
       .limit(1);
 
+    const [user] = await db.select({ avatarUrl: users.avatarUrl }).from(users).where(eq(users.id, userId)).limit(1);
+
+    let links: any[] = [];
+    if (profile) {
+      links = await db.select().from(studentLinks).where(eq(studentLinks.studentId, profile.id)).orderBy(studentLinks.displayOrder);
+    }
+
     const initialData = profile || {
       id: "",
       userId,
       registerNo: "",
       department: "",
       year: 1,
-      section: "A",
+      section: "",
       cgpa: "0.0",
       professionalSummary: "",
+      dob: "",
+      githubLink: "",
+      linkedinLink: "",
+      portfolioUrl: "",
+      resumeUrl: "",
       profileCompletionScore: 0,
     };
+    
+    const dataWithAvatar = { ...initialData, avatarUrl: user?.avatarUrl || null };
 
     return (
       <div>
@@ -110,7 +124,7 @@ export default async function ProfilePage() {
           <h1>Your Professional Profile</h1>
           <p>Complete your profile to unlock job applications.</p>
         </div>
-        <ProfileBuilderClient initialData={initialData} />
+        <ProfileBuilderClient initialData={dataWithAvatar} initialLinks={links} />
       </div>
     );
   }

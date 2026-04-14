@@ -39,8 +39,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="light">
-      <body className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" data-theme="light" suppressHydrationWarning>
+      <body className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
         <script
           dangerouslySetInnerHTML={{
             __html: `

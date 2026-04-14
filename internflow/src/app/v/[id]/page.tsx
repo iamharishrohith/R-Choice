@@ -3,6 +3,7 @@ import { getPublicProfile } from "@/app/actions/vcard";
 import { MapPin, Briefcase, GraduationCap, Link as LinkIcon, Code, ExternalLink, Award, FileText } from "lucide-react";
 import { GitHubHeatmap } from "@/components/profile/GitHubHeatmap";
 import Link from "next/link";
+import Image from "next/image";
 
 export default async function VCardPage({ params }: { params: { id: string } }) {
   const profile = (await getPublicProfile(params.id)) as any;
@@ -58,7 +59,7 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
             marginBottom: "var(--space-4)"
           }}>
             {profile.avatarUrl ? (
-              <img src={profile.avatarUrl} alt={profile.firstName} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+              <Image src={profile.avatarUrl} alt={profile.firstName} width={120} height={120} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
             ) : (
               <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--gradient-accent)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "3rem", color: "white", fontWeight: "bold" }}>
                 {profile.firstName[0]}{profile.lastName[0]}

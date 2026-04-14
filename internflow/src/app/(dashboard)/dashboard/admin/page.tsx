@@ -4,14 +4,14 @@ import { AuditLogTypewriter } from "@/components/dashboard/admin/AuditLogTypewri
 import { ExportDataButton } from "@/components/dashboard/admin/ExportDataButton";
 import { db } from "@/lib/db";
 import { users, internshipRequests, companyRegistrations, auditLogs } from "@/lib/db/schema";
-import { eq, count, desc } from "drizzle-orm";
+import { eq, count, desc, inArray } from "drizzle-orm";
 
 export default async function AdminDashboard() {
   // Fetch real KPI data
   const [pendingResult] = await db
     .select({ value: count() })
     .from(internshipRequests)
-    .where(eq(internshipRequests.status, "pending_admin"));
+    .where(inArray(internshipRequests.status, ["pending_dean", "pending_po", "pending_principal"]));
   const pendingApprovals = pendingResult?.value ?? 0;
 
   const [studentsResult] = await db

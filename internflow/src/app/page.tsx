@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import {
@@ -16,15 +16,9 @@ import {
   Lock,
   Eye,
   EyeOff,
-  ArrowRight,
-  ArrowLeft,
   LogIn,
   Loader2,
-  CheckCircle2,
-  FileCheck2,
-  Shield,
   Zap,
-  ChevronDown,
 } from "lucide-react";
 import styles from "./login.module.css";
 
@@ -56,17 +50,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  
-  // Carousel Animation States
-  const [mounted, setMounted] = useState(false);
-
   // Filtered staff roles for carousel
   const carouselRoles = useMemo(() => ROLES.filter(r => r.id !== 'student' && r.id !== 'company'), []);
-
-  // Hydration fix & Entry Animation
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleRoleSelect = (roleId: string) => {
     if (roleId !== selectedRole) {
@@ -121,17 +106,13 @@ export default function LoginPage() {
       } else if (result?.ok) {
         router.push(getRedirectUrl(selectedRole));
       }
-    } catch (e: any) {
+    } catch {
       setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
     }
   };
 
   const selectedRoleInfo = ROLES.find((r) => r.id === selectedRole);
-
-  const scrollToLogin = () => {
-    document.getElementById("login-section")?.scrollIntoView({ behavior: "smooth" });
-  };
 
   return (
     <div className={styles.page}>
@@ -167,7 +148,7 @@ export default function LoginPage() {
       <div className={styles.splitLayout}>
 
         {/* ── Hero / Landing Section ── */}
-        <section className={`${styles.heroSection} ${mounted ? styles.heroVisible : ""}`}>
+        <section className={`${styles.heroSection} ${styles.heroVisible}`}>
           {/* Navigation Bar */}
           <nav className={styles.navbar}>
             <div className={styles.navLogo}>
@@ -269,8 +250,8 @@ export default function LoginPage() {
                     key={role.id}
                     className={`${styles.carousel3DCard} ${selectedRole === role.id && isStaffRole ? styles.carouselActive : ""} ${styles[role.category]}`}
                     style={{
-                      transform: mounted ? `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})` : `translateX(${translateX > 0 ? 300 : -300}px) translateZ(-400px) scale(0)`,
-                      opacity: mounted ? opacity : 0,
+                      transform: `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
+                      opacity,
                       zIndex,
                     }}
                     onClick={() => handleRoleSelect(role.id)}
@@ -281,6 +262,27 @@ export default function LoginPage() {
                       {role.icon}
                     </div>
                     <span className={styles.carousel3DName}>{role.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className={styles.roleShortcutGrid} aria-label="Staff and admin roles">
+              {carouselRoles.map((role) => {
+                const isSelected = selectedRole === role.id;
+
+                return (
+                  <button
+                    key={`${role.id}-shortcut`}
+                    type="button"
+                    className={`${styles.roleShortcut} ${isSelected ? styles.roleShortcutActive : ""}`}
+                    onClick={() => handleRoleSelect(role.id)}
+                    aria-pressed={isSelected}
+                  >
+                    <span className={`${styles.roleShortcutIcon} ${styles[role.category]}`}>
+                      {role.icon}
+                    </span>
+                    <span className={styles.roleShortcutText}>{role.label}</span>
                   </button>
                 );
               })}

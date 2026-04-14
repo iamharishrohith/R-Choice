@@ -5,12 +5,44 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 
+import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import DeleteUserButton from "./DeleteUserButton";
+
 export default async function UsersPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
   const session = await auth();
   const userRole = session?.user?.role || "";
   const searchParams = await props.searchParams;
   const queryParam = (searchParams.q || "").toLowerCase();
   const roleFilter = searchParams.role || "";
+
+  async function deleteUser(formData: FormData) {
+    "use server";
+    const session = await auth();
+    if (!session?.user?.id) return;
+    if (!["principal", "dean", "placement_officer"].includes(session.user.role)) return;
+
+    const targetUserId = formData.get("userId") as string;
+    if (!targetUserId) return;
+
+    try {
+      // Null out any nullable FK references to this user across all tables
+      await db.execute(
+        `DELETE FROM job_postings WHERE posted_by = '${targetUserId}' OR company_id = '${targetUserId}';
+         UPDATE internship_requests SET last_reviewed_by = NULL WHERE last_reviewed_by = '${targetUserId}';
+         UPDATE authority_mappings SET updated_by = NULL WHERE updated_by = '${targetUserId}';
+         DELETE FROM student_profiles WHERE user_id = '${targetUserId}';
+         DELETE FROM company_registrations WHERE user_id = '${targetUserId}';
+         DELETE FROM audit_logs WHERE user_id = '${targetUserId}';
+         DELETE FROM notifications WHERE user_id = '${targetUserId}';
+         DELETE FROM users WHERE id = '${targetUserId}';`
+      );
+    } catch {
+      await db.execute(`DELETE FROM users WHERE id = '${targetUserId}'`);
+    }
+
+    revalidatePath("/users");
+  }
 
   // Fetch all users from the database natively via Drizzle
   let allUsers = await db.select().from(users).orderBy(users.createdAt);
@@ -33,7 +65,7 @@ export default async function UsersPage(props: { searchParams: Promise<{ [key: s
         <div>
           <h1>User Management</h1>
           <p>Complete directory of all registered accounts on the platform.</p>
-          {userRole === "principal" && (
+          {["principal", "dean", "placement_officer"].includes(userRole) && (
             <div style={{ marginTop: "1rem" }}>
               <Link href="/users/create" style={{ textDecoration: "none" }}>
                 <button className="button" style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
@@ -75,6 +107,7 @@ export default async function UsersPage(props: { searchParams: Promise<{ [key: s
                 <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500 }}>Role</th>
                 <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500 }}>Email</th>
                 <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500 }}>Joined</th>
+                <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500, width: "60px" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -92,8 +125,8 @@ export default async function UsersPage(props: { searchParams: Promise<{ [key: s
                       <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>ID: {user.id.substring(0, 8)}...</div>
                     </td>
                     <td style={{ padding: "var(--space-4)" }}>
-                      <span className="badge" style={{ backgroundColor: "var(--primary-light)", color: "var(--primary-color)", outline: "1px solid var(--primary-color)" }}>
-                        <Shield size={14} style={{ marginRight: "4px", display: "inline-block", verticalAlign: "bottom" }} />
+                      <span className="badge" style={{ backgroundColor: "var(--primary-light)", color: "var(--primary-color)", outline: "1px solid var(--primary-color)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                        <Shield size={14} style={{ flexShrink: 0 }} />
                         {user.role.charAt(0).toUpperCase() + user.role.slice(1).replace('_', ' ')}
                       </span>
                     </td>
@@ -108,6 +141,11 @@ export default async function UsersPage(props: { searchParams: Promise<{ [key: s
                         <Clock size={16} />
                         {user.createdAt ? format(new Date(user.createdAt), "MMM d, yyyy") : "Unknown"}
                       </div>
+                    </td>
+                    <td style={{ padding: "var(--space-4)", textAlign: "center" }}>
+                      {["principal", "dean", "placement_officer"].includes(userRole) && user.id !== session?.user?.id && (
+                        <DeleteUserButton userId={user.id} userName={`${user.firstName} ${user.lastName}`} deleteAction={deleteUser} />
+                      )}
                     </td>
                   </tr>
                 ))

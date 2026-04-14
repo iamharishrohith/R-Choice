@@ -31,7 +31,9 @@ export const requestStatusEnum = pgEnum("request_status", [
   "pending_tutor",
   "pending_coordinator",
   "pending_hod",
-  "pending_admin",
+  "pending_dean",
+  "pending_po",
+  "pending_principal",
   "approved",
   "rejected",
   "returned",
@@ -121,6 +123,7 @@ export const studentProfiles = pgTable("student_profiles", {
   githubLink: text("github_link"),
   linkedinLink: text("linkedin_link"),
   portfolioUrl: text("portfolio_url"),
+  resumeUrl: text("resume_url"),
   profileCompletionScore: integer("profile_completion_score").default(0),
   isProfilePublic: boolean("is_profile_public").default(false),
   profileViewCount: integer("profile_view_count").default(0),
@@ -452,6 +455,8 @@ export const jobApplications = pgTable("job_applications", {
     .references(() => users.id)
     .notNull(),
   status: varchar("status", { length: 30 }).default("applied"),
+  verificationCode: varchar("verification_code", { length: 10 }),
+  isVerified: boolean("is_verified").default(false),
   appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

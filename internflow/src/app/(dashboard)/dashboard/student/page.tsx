@@ -1,10 +1,11 @@
 import styles from "./student.module.css";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { studentProfiles, internshipRequests } from "@/lib/db/schema";
+import { studentProfiles, internshipRequests, jobApplications, jobPostings, companyRegistrations } from "@/lib/db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { Hand, FileEdit, FileText, Briefcase } from "lucide-react";
 import Link from "next/link";
+import VerificationBannerClient from "./VerificationBannerClient";
 
 export default async function StudentDashboard() {
   const session = await auth();
@@ -15,6 +16,9 @@ export default async function StudentDashboard() {
   let applicationCount = 0;
   let approvedCount = 0;
   let pendingCount = 0;
+  
+  // New verification flow
+  let pendingVerificationApp = null;
 
   if (userId) {
     // Profile completion
@@ -25,7 +29,7 @@ export default async function StudentDashboard() {
       .limit(1);
     profileScore = profile?.score ?? 0;
 
-    // Application counts
+    // OD Application counts
     const allApps = await db
       .select({ status: internshipRequests.status })
       .from(internshipRequests)
@@ -36,6 +40,27 @@ export default async function StudentDashboard() {
     pendingCount = allApps.filter(
       (a) => a.status !== "approved" && a.status !== "rejected" && a.status !== "draft"
     ).length;
+
+    // Check for selected but unverified Job Applications
+    const [unverifiedApp] = await db
+      .select({
+        appId: jobApplications.id,
+        jobTitle: jobPostings.title,
+        companyName: companyRegistrations.companyLegalName
+      })
+      .from(jobApplications)
+      .innerJoin(jobPostings, eq(jobApplications.jobId, jobPostings.id))
+      .innerJoin(companyRegistrations, eq(jobPostings.companyId, companyRegistrations.id))
+      .where(and(
+        eq(jobApplications.studentId, userId),
+        eq(jobApplications.status, "selected"),
+        eq(jobApplications.isVerified, false)
+      ))
+      .limit(1);
+
+    if (unverifiedApp) {
+      pendingVerificationApp = unverifiedApp;
+    }
   }
 
   // Readiness score = profile score for now (V1)
@@ -43,11 +68,19 @@ export default async function StudentDashboard() {
   const completionPercent = Math.min(profileScore, 100);
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <div className="page-header">
         <h1>Welcome back! <Hand size={24} style={{ display: "inline-block", verticalAlign: "middle" }} /></h1>
         <p>Here&apos;s your placement journey at a glance.</p>
       </div>
+
+      {pendingVerificationApp && (
+        <VerificationBannerClient 
+          applicationId={pendingVerificationApp.appId}
+          jobTitle={pendingVerificationApp.jobTitle}
+          companyName={pendingVerificationApp.companyName || "Company"}
+        />
+      )}
 
       {/* Profile Completion Banner */}
       <div className={styles.completionBanner}>
@@ -64,9 +97,9 @@ export default async function StudentDashboard() {
       {/* KPI Cards */}
       <div className="grid grid-3" style={{ marginBottom: "var(--space-6)" }}>
         {[
-          { label: "Applications", value: String(applicationCount), color: "var(--rathinam-purple)" },
-          { label: "Approved", value: String(approvedCount), color: "var(--rathinam-green)" },
-          { label: "Pending", value: String(pendingCount), color: "var(--rathinam-gold)" },
+          { label: "OD Requests", value: String(applicationCount), color: "var(--rathinam-purple)" },
+          { label: "Approved ODs", value: String(approvedCount), color: "var(--rathinam-green)" },
+          { label: "Pending ODs", value: String(pendingCount), color: "var(--rathinam-gold)" },
           { label: "Readiness Score", value: String(readinessScore), color: "var(--rathinam-blue)" },
         ].map((kpi) => (
           <div className="card" key={kpi.label}>
@@ -91,11 +124,11 @@ export default async function StudentDashboard() {
             </p>
           </div>
         </Link>
-        <Link href="/profile/resume" style={{ textDecoration: "none", color: "inherit" }}>
+        <Link href="/profile?tab=resume" style={{ textDecoration: "none", color: "inherit" }}>
           <div className="card" style={{ cursor: "pointer" }}>
-            <p style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}><FileText size={18} /> Generate Resume</p>
+            <p style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}><FileText size={18} /> Upload Resume</p>
             <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-              Download an ATS-friendly resume
+              Manage your Cloudinary PDF resume
             </p>
           </div>
         </Link>

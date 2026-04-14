@@ -1,6 +1,6 @@
 "use server";
 
-import { signIn, auth } from "@/lib/auth";
+import { signIn, auth, signOut } from "@/lib/auth";
 import { AuthError } from "next-auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -157,7 +157,7 @@ export async function registerCompany(formData: FormData) {
       city: "Please update",
       state: "Please update",
       pinCode: "000000",
-      status: "approved" // Immediately approve contextually so they can post right away for test
+      status: "pending" // Sets status to pending for admin review
     });
 
     return { success: true };
@@ -167,4 +167,6 @@ export async function registerCompany(formData: FormData) {
   }
 }
 
-
+export async function logoutAction() {
+  await signOut({ redirectTo: "/" });
+}

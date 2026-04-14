@@ -15,8 +15,14 @@ export default async function StudentsPage(props: { searchParams: Promise<{ [key
       email: users.email,
       department: studentProfiles.department,
       year: studentProfiles.year,
-      section: studentProfiles.section,
-      phone: users.phone
+      phone: users.phone,
+      registerNo: studentProfiles.registerNo,
+      cgpa: studentProfiles.cgpa,
+      dob: studentProfiles.dob,
+      professionalSummary: studentProfiles.professionalSummary,
+      githubLink: studentProfiles.githubLink,
+      linkedinLink: studentProfiles.linkedinLink,
+      portfolioUrl: studentProfiles.portfolioUrl
     })
     .from(studentProfiles)
     .innerJoin(users, eq(users.id, studentProfiles.userId));

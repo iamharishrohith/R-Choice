@@ -11,7 +11,9 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
     if (role === "tutor") targetStatus = "pending_tutor";
     else if (role === "placement_coordinator") targetStatus = "pending_coordinator";
     else if (role === "hod") targetStatus = "pending_hod";
-    else if (role === "dean" || role === "placement_officer" || role === "principal") targetStatus = "pending_admin";
+    else if (role === "dean") targetStatus = "pending_dean";
+    else if (role === "placement_officer") targetStatus = "pending_po";
+    else if (role === "principal") targetStatus = "pending_principal";
   }
 
   if (targetStatus === "none") return [];

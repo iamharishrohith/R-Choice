@@ -16,12 +16,13 @@ function StudentDetailModal({ student, onClose }: { student: any; onClose: () =>
         exit={{ opacity: 0, scale: 0.9 }}
         onClick={e => e.stopPropagation()}
         className="card"
-        style={{ width: "90%", maxWidth: "500px", padding: "var(--space-6)", position: "relative" }}
+        style={{ width: "90%", maxWidth: "600px", padding: "var(--space-6)", position: "relative", maxHeight: "85vh", overflowY: "auto" }}
       >
         <button onClick={onClose} style={{ position: "absolute", top: "12px", right: "12px", background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
           <X size={20} />
         </button>
         
+        {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "var(--space-4)" }}>
           <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--gradient-accent)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", fontWeight: 700, margin: "0 auto var(--space-3)" }}>
             {student.firstName[0]}{student.lastName[0]}
@@ -30,32 +31,54 @@ function StudentDetailModal({ student, onClose }: { student: any; onClose: () =>
           <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{student.email}</div>
         </div>
 
+        {/* Academic Info */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
-          <div style={{ padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>Department</div>
-            <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{student.department || "Unassigned"}</div>
-          </div>
-          <div style={{ padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>Year / Section</div>
-            <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>Year {student.year || "-"} · Sec {student.section || "-"}</div>
-          </div>
-          <div style={{ padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>Register No</div>
-            <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{student.registerNo || "N/A"}</div>
-          </div>
-          <div style={{ padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>Phone</div>
-            <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{student.phone || "Not provided"}</div>
-          </div>
+          <InfoCell label="Department" value={student.department || "Unassigned"} />
+          <InfoCell label="Academic Year" value={`Year ${student.year || "-"}`} />
+          <InfoCell label="Register No" value={student.registerNo || "N/A"} />
+          <InfoCell label="Phone" value={student.phone || "Not provided"} />
+          <InfoCell label="CGPA" value={student.cgpa || "N/A"} />
+          <InfoCell label="Date of Birth" value={student.dob ? new Date(student.dob).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "N/A"} />
         </div>
 
-        {student.cgpa && (
-          <div style={{ marginTop: "var(--space-3)", padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>CGPA</div>
-            <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{student.cgpa}</div>
+        {/* Professional Summary */}
+        {student.professionalSummary && (
+          <div style={{ marginTop: "var(--space-4)", padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600 }}>Professional Summary</div>
+            <div style={{ fontSize: "0.8125rem", lineHeight: 1.6, color: "var(--text-primary)" }}>{student.professionalSummary}</div>
+          </div>
+        )}
+
+        {/* External Links */}
+        {(student.githubLink || student.linkedinLink || student.portfolioUrl) && (
+          <div style={{ display: "flex", gap: "var(--space-3)", marginTop: "var(--space-4)", flexWrap: "wrap" }}>
+            {student.githubLink && (
+              <a href={student.githubLink} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ flex: 1, padding: "8px", fontSize: "0.8125rem", textAlign: "center", textDecoration: "none", minWidth: "100px" }}>
+                GitHub
+              </a>
+            )}
+            {student.linkedinLink && (
+              <a href={student.linkedinLink} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ flex: 1, padding: "8px", fontSize: "0.8125rem", textAlign: "center", textDecoration: "none", minWidth: "100px" }}>
+                LinkedIn
+              </a>
+            )}
+            {student.portfolioUrl && (
+              <a href={student.portfolioUrl} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ flex: 1, padding: "8px", fontSize: "0.8125rem", textAlign: "center", textDecoration: "none", minWidth: "100px" }}>
+                Portfolio
+              </a>
+            )}
           </div>
         )}
       </motion.div>
+    </div>
+  );
+}
+
+function InfoCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
+      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>{label}</div>
+      <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{value}</div>
     </div>
   );
 }
@@ -157,25 +180,23 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
               {selectedIds.size} students selected
             </div>
             <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+              <button onClick={exportCSV} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px" }}>
+                <Download size={16} /> Export Selected
+              </button>
               <button className="btn btn-outline" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px" }}>
                 <Mail size={16} /> Email Group
-              </button>
-              <button className="btn btn-outline" onClick={exportCSV} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px" }}>
-                <Download size={16} /> Export CSV
               </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Export all button when none selected */}
-      {selectedIds.size === 0 && students.length > 0 && (
-        <div style={{ marginBottom: "var(--space-4)", display: "flex", justifyContent: "flex-end" }}>
-          <button className="btn btn-outline" onClick={exportCSV} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px" }}>
-            <Download size={16} /> Export All CSV
-          </button>
-        </div>
-      )}
+      {/* Export All (always visible) */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "var(--space-3)" }}>
+        <button onClick={exportCSV} className="btn btn-outline" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", fontSize: "0.875rem" }}>
+          <Download size={16} /> Export CSV
+        </button>
+      </div>
 
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
@@ -187,7 +208,7 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
                 </th>
                 <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>Student Name</th>
                 <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>Department</th>
-                <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>Batch / Section</th>
+                <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>Academic Year</th>
                 <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>Contact Info</th>
                 <th style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem", textAlign: "center" }}>Actions</th>
               </tr>
@@ -246,10 +267,7 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
                         <td style={{ padding: "var(--space-4)", color: "var(--text-secondary)", fontSize: "0.875rem" }}>
                           <div style={{ display: "flex", gap: "16px" }}>
                             <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                              <Award size={14} /> Yr {student.year || "-"}
-                            </span>
-                            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                              <BookOpen size={14} /> Sec {student.section || "-"}
+                              <Award size={14} /> Year {student.year || "-"}
                             </span>
                           </div>
                         </td>

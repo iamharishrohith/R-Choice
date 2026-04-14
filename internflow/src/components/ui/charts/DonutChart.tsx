@@ -35,26 +35,27 @@ export function DonutChart({
 
   // Calculate segment arc lengths
   const gapLength = (gap / 360) * circumference;
-  let cumulativeOffset = 0;
-
-  const segments = data.map((item, index) => {
+  const segments = data.reduce((acc, item, index) => {
     const fraction = item.value / total;
     const arcLength = fraction * circumference;
     const adjustedArc = Math.max(0, arcLength - gapLength);
     const dashArray = `${adjustedArc} ${circumference - adjustedArc}`;
-    // SVG dashoffset: rotate the segment into place
-    const dashOffset = -cumulativeOffset;
+    
+    // SVG dashoffset: rotate the segment into place based on previous offset
+    const currentOffset = acc.cumulativeOffset;
+    const dashOffset = -currentOffset;
 
-    cumulativeOffset += arcLength;
-
-    return {
+    acc.result.push({
       ...item,
       dashArray,
       dashOffset,
       arcLength: adjustedArc,
       index,
-    };
-  });
+    });
+
+    acc.cumulativeOffset += arcLength;
+    return acc;
+  }, { result: [] as any[], cumulativeOffset: 0 }).result;
 
   return (
     <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>

@@ -1,10 +1,10 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { internshipRequests } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { internshipRequests, approvalLogs, users } from "@/lib/db/schema";
+import { eq, desc, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { PlusCircle, ExternalLink, Calendar, MapPin, Building2, FolderOpen } from "lucide-react";
+import { PlusCircle, ExternalLink, Calendar, MapPin, Building2, FolderOpen, MessageSquare } from "lucide-react";
 
 export default async function ApplicationsPage() {
   const session = await auth();
@@ -20,6 +20,32 @@ export default async function ApplicationsPage() {
     .from(internshipRequests)
     .where(eq(internshipRequests.studentId, userId))
     .orderBy(desc(internshipRequests.createdAt));
+
+  const appIds = applications.map(a => a.id);
+  let allLogs: any[] = [];
+  if (appIds.length > 0) {
+    allLogs = await db
+      .select({
+        requestId: approvalLogs.requestId,
+        action: approvalLogs.action,
+        comment: approvalLogs.comment,
+        createdAt: approvalLogs.createdAt,
+        approverName: users.firstName,
+        approverRole: users.role,
+      })
+      .from(approvalLogs)
+      .innerJoin(users, eq(approvalLogs.approverId, users.id))
+      .where(inArray(approvalLogs.requestId, appIds))
+      .orderBy(desc(approvalLogs.createdAt));
+  }
+
+  // Create a map to grab the latest log for each application
+  const latestLogsMap = allLogs.reduce((acc: any, log) => {
+    if (!acc[log.requestId]) {
+      acc[log.requestId] = log;
+    }
+    return acc;
+  }, {});
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; cls: string }> = {
@@ -142,6 +168,20 @@ export default async function ApplicationsPage() {
                   })}
                 </div>
               </div>
+
+              {latestLogsMap[app.id] && latestLogsMap[app.id].comment && (
+                <div style={{ marginTop: "var(--space-4)", padding: "var(--space-4)", borderRadius: "var(--border-radius-md)", background: String(app.status) === "rejected" ? "rgba(239, 68, 68, 0.05)" : "var(--bg-hover)", borderLeft: `3px solid ${String(app.status) === "rejected" ? "#ef4444" : "var(--primary-color)"}`, display: "flex", gap: "12px" }}>
+                  <MessageSquare size={18} color={String(app.status) === "rejected" ? "#ef4444" : "var(--primary-color)"} style={{ flexShrink: 0, marginTop: "2px" }} />
+                  <div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginBottom: "4px" }}>
+                      Message from <strong style={{ color: "var(--text-primary)" }}>{latestLogsMap[app.id].approverName}</strong> • <span style={{textTransform: "capitalize"}}>{String(latestLogsMap[app.id].approverRole).replace("_", " ")}</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: "0.9375rem", color: String(app.status) === "rejected" ? "#dc2626" : "var(--text-primary)" }}>
+                      {latestLogsMap[app.id].comment}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
