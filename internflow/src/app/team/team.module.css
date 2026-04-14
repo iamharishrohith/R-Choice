@@ -1,0 +1,298 @@
+.page {
+  min-height: 100dvh;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+  padding: 4rem 2rem;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── Abstract Background Elements ── */
+.bgAbstracts {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.abstractCircle1 {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(30, 155, 215, 0.08) 0%, transparent 70%);
+  top: -10%;
+  left: -10%;
+  animation: floatSlow 20s ease-in-out infinite;
+}
+
+.abstractCircle2 {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(155, 46, 135, 0.06) 0%, transparent 70%);
+  bottom: -10%;
+  right: -10%;
+  animation: floatSlow 25s ease-in-out infinite reverse;
+}
+
+.abstractCircle3 {
+  position: absolute;
+  width: 800px;
+  height: 800px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(141, 198, 63, 0.03) 0%, transparent 70%);
+  top: 30%;
+  left: 30%;
+  animation: floatSlow 30s ease-in-out infinite;
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, 20px) scale(1.05); }
+}
+
+/* ── Header Area ── */
+.header {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto 5rem;
+}
+
+.backButton {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-decoration: none;
+  font-size: 0.95rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+:global(.dark) .backButton {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.backButton:hover {
+  transform: translateX(-5px);
+  color: var(--rathinam-red);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+:global(.dark) .backButton:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.titleWrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.logoCrown {
+  color: #fbbf24;
+  filter: drop-shadow(0 4px 6px rgba(251, 191, 36, 0.3));
+}
+
+.title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--rathinam-red) 0%, #ff6b6b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ── Content Area ── */
+.content {
+  position: relative;
+  z-index: 10;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
+}
+
+/* ── Member Card ── */
+.card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+  padding: 3rem 2rem;
+  text-align: center;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+:global(.dark) .card {
+  background: rgba(20, 20, 20, 0.6);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  border-color: rgba(226, 35, 26, 0.3); /* Rathinam Red highlight */
+}
+
+:global(.dark) .card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  border-color: rgba(226, 35, 26, 0.4);
+}
+
+/* ── Card Glow ── */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--rathinam-red), transparent);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+/* ── Avatar Placeholder ── */
+.avatar {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 1.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(226, 35, 26, 0.1), rgba(226, 35, 26, 0.05));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rathinam-red);
+  border: 2px solid rgba(226, 35, 26, 0.2);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.card:hover .avatar {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(226, 35, 26, 0.2);
+  border-color: rgba(226, 35, 26, 0.4);
+}
+
+/* ── Typography ── */
+.name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.role {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+  background: rgba(226, 35, 26, 0.08);
+  color: var(--rathinam-red);
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Social Links ── */
+.socials {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.socialBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+:global(.dark) .socialBtn {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.socialBtn:hover {
+  background: var(--rathinam-red);
+  color: white;
+  transform: translateY(-3px);
+}
+
+/* ── Footer ── */
+.footer {
+  margin-top: auto;
+  padding-top: 5rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  position: relative;
+  z-index: 10;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .title {
+    font-size: 2.5rem;
+  }
+  
+  .backButton {
+    position: relative;
+    display: inline-flex;
+    margin-bottom: 2rem;
+  }
+  
+  .header {
+    padding-top: 1rem;
+  }
+}

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import {
   GraduationCap,
@@ -365,6 +366,44 @@ export default function LoginPage() {
         </div>
       </section>
       </div>
+
+      <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 100 }}>
+        <Link 
+          href="/team" 
+          style={{ 
+            textDecoration: 'none', 
+            background: 'rgba(255,255,255,0.85)', 
+            backdropFilter: 'blur(10px)', 
+            padding: '10px 18px', 
+            borderRadius: '50px', 
+            fontSize: '13px', 
+            fontWeight: 600, 
+            color: 'var(--text-secondary)', 
+            boxShadow: '0 4px 15px rgba(0,0,0,0.06)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            border: '1px solid rgba(0,0,0,0.05)', 
+            transition: 'all 0.3s ease' 
+          }} 
+          onMouseOver={(e) => { 
+            e.currentTarget.style.transform = 'translateY(-3px)'; 
+            e.currentTarget.style.color = 'var(--rathinam-red)'; 
+            e.currentTarget.style.borderColor = 'rgba(226,35,26,0.2)'; 
+            e.currentTarget.style.boxShadow = '0 10px 20px rgba(226,35,26,0.15)'; 
+          }} 
+          onMouseOut={(e) => { 
+            e.currentTarget.style.transform = 'translateY(0)'; 
+            e.currentTarget.style.color = 'var(--text-secondary)'; 
+            e.currentTarget.style.borderColor = 'rgba(0,0,0,0.05)'; 
+            e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.06)'; 
+          }}
+        >
+          <Crown size={16} style={{ color: '#fbbf24', filter: 'drop-shadow(0 2px 4px rgba(251,191,36,0.4))' }} />
+          Team Monarchs
+        </Link>
+      </div>
+
     </div>
   );
 }
