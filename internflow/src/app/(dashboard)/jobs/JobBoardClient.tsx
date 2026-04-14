@@ -48,6 +48,9 @@ export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: a
   const [minSalary, setMinSalary] = useState(0);
   const [activeFilter, setActiveFilter] = useState<"all" | "remote" | "onsite" | "paid" | "unpaid">("all");
 
+  // Memoize current time to avoid calling Date.now() during render (React 19 purity rule)
+  const nowMs = useMemo(() => Date.now(), []);
+
   const roleKeywords = useMemo(() => interests.map((i) => i.roleName.toLowerCase()), [interests]);
 
   const sortedAndFilteredJobs = useMemo(() => {
@@ -103,7 +106,7 @@ export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: a
     });
 
     return result;
-  }, [jobs, searchTerm, roleKeywords]);
+  }, [jobs, searchTerm, roleKeywords, activeFilter, minSalary]);
 
   return (
     <>
@@ -190,7 +193,7 @@ export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: a
               (kw) => job.title.toLowerCase().includes(kw) || job.description.toLowerCase().includes(kw)
             );
             const daysUntilDeadline = job.deadline
-              ? Math.ceil((new Date(job.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+              ? Math.ceil((new Date(job.deadline).getTime() - nowMs) / (1000 * 60 * 60 * 24))
               : 999;
             const isUrgent = daysUntilDeadline >= 0 && daysUntilDeadline <= 3;
 

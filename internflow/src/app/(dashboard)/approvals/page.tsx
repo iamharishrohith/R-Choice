@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { getFilteredRequestsForStaff } from "@/lib/db/queries/approvals";
 import { redirect } from "next/navigation";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import ApprovalActions from "./ApprovalActions";
 
 export default async function ApprovalsPage(props: { searchParams: Promise<{ status?: string }> }) {

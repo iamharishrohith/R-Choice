@@ -6,7 +6,6 @@
  */
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import * as schema from "./schema";
 import * as dotenv from "dotenv";
@@ -94,7 +93,7 @@ async function seedStudents() {
   console.log(`   Password format: Register Number (e.g. RCAS2024BCS001)\n`);
 
   let created = 0;
-  let skipped = 0;
+  const skipped = 0;
   let errors = 0;
 
   for (const student of students) {

@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { jobPostings, users } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { CheckCircle, XCircle, Building2 } from "lucide-react";
+import { Building2 } from "lucide-react";
 import JobApprovalActions from "./JobApprovalActions";
 
 export default async function JobApprovalsPage() {

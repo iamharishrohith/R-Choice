@@ -1,5 +1,4 @@
 import styles from "./Skeleton.module.css";
-import { GraduationCap, Briefcase, FileCheck2, Zap } from "lucide-react";
 
 type SkeletonVariant = "text" | "textShort" | "heading" | "card" | "circle" | "kpiCard" | "tableRow";
 

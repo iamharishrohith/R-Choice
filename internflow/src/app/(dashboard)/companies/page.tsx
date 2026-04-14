@@ -1,12 +1,11 @@
 import { db } from "@/lib/db";
 import { users, companyRegistrations } from "@/lib/db/schema";
-import { Building, Globe, Mail, Phone, Calendar, Trash2 } from "lucide-react";
+import { Building, Mail, Phone, Calendar } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { format } from "date-fns";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import DeleteCompanyButton from "./DeleteCompanyButton";
 
 export default async function CompaniesPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {

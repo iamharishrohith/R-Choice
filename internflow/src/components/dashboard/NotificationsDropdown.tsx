@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Check, Info } from "lucide-react";
+import { Bell, Check } from "lucide-react";
 import { getRecentNotifications, markAsRead, markAllAsRead } from "@/app/actions/notifications";
 import Link from "next/link";
 import styles from "../../app/(dashboard)/layout.module.css";

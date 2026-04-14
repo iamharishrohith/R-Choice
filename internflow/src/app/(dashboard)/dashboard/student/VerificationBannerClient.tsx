@@ -40,7 +40,7 @@ export default function VerificationBannerClient({
         toast.success("Verification successful! OD Request initiated to your Tutor.", { id: "verify-od" });
         // The page will revalidate from the server action
       }
-    } catch (e) {
+    } catch {
       toast.error("Process failed.", { id: "verify-od" });
     }
     setIsVerifying(false);
@@ -60,7 +60,7 @@ export default function VerificationBannerClient({
           <Sparkles size={32} color="white" />
         </div>
         <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "700" }}>Congratulations! You've been selected!</h2>
+          <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "700" }}>Congratulations! You&apos;ve been selected!</h2>
           <p style={{ marginTop: "8px", opacity: 0.9 }}>
             <strong>{companyName}</strong> has shortlisted you for the role of <strong>{jobTitle}</strong>. 
             Check your email for the verification code to officially start your On-Duty request.

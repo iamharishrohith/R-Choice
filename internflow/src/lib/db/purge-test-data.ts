@@ -7,7 +7,7 @@
  */
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { eq, like, inArray, and, notInArray } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 import * as schema from "./schema";
 import * as dotenv from "dotenv";
 

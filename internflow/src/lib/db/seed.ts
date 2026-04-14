@@ -54,7 +54,7 @@ async function seed() {
         .onConflictDoNothing();
 
       console.log(`  ✅ ${user.role.padEnd(24)} → ${user.email}`);
-    } catch (err) {
+    } catch {
       console.log(`  ⚠️  ${user.role.padEnd(24)} → already exists or error`);
     }
   }

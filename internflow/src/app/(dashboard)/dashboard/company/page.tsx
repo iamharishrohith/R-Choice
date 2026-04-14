@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { users, jobPostings, internshipRequests, companyRegistrations } from "@/lib/db/schema";
-import { Briefcase, Users, FileText, TrendingUp, CheckCircle, Clock } from "lucide-react";
+import { Briefcase, Users, FileText } from "lucide-react";
 import { eq, desc, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import Link from "next/link";

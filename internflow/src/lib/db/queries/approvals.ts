@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { internshipRequests, users, authorityMappings } from "@/lib/db/schema";
-import { eq, lte, desc, and } from "drizzle-orm";
+import { internshipRequests, users } from "@/lib/db/schema";
+import { eq, desc, and } from "drizzle-orm";
 
 export async function getFilteredRequestsForStaff(userId: string, role: string, filterStatus: string = "pending") {
   let targetStatus = "none";

@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { fetchCompanyJobs } from "@/app/actions/jobs";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { PlusCircle, Users, Eye, Edit, MapPin, Banknote, Clock } from "lucide-react";
+import { PlusCircle, Users, Edit, MapPin, Banknote, Clock } from "lucide-react";
 
 export default async function ManageJobsPage() {
   const session = await auth();
@@ -35,7 +35,7 @@ export default async function ManageJobsPage() {
           <div style={{ fontSize: "3rem", marginBottom: "var(--space-4)" }}>🏢</div>
           <h2 style={{ marginBottom: "var(--space-2)" }}>No Active Postings</h2>
           <p style={{ color: "var(--text-secondary)", maxWidth: "500px", margin: "0 auto" }}>
-            You haven't posted any internship opportunities to the talent pool yet. Create one to start receiving applications.
+            You haven&apos;t posted any internship opportunities to the talent pool yet. Create one to start receiving applications.
           </p>
         </div>
       ) : (

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
-import { MapPin, Building2, Briefcase, Zap, X, Check, SearchX } from "lucide-react";
+import { MapPin, Building2, Briefcase, X, Check, SearchX } from "lucide-react";
 import ApplyButton from "@/app/(dashboard)/jobs/ApplyButton";
 
 function SwipeCard({ job, index, onSwipe, isStudent }: { job: any; index: number; onSwipe: (id: string, dir: "left" | "right") => void; isStudent: boolean }) {
@@ -127,13 +127,11 @@ function SwipeCard({ job, index, onSwipe, isStudent }: { job: any; index: number
 
 export function SwipeDeck({ jobs, isStudent }: { jobs: any[]; isStudent: boolean }) {
   const [deck, setDeck] = useState(jobs);
-  const [direction, setDirection] = useState<"left" | "right" | null>(null);
 
-  const handleSwipe = (id: string, dir: "left" | "right") => {
-    setDirection(dir);
+
+  const handleSwipe = (id: string, _dir: "left" | "right") => {
     setTimeout(() => {
       setDeck((prev) => prev.filter((j) => j.id !== id));
-      setDirection(null);
     }, 200);
   };
 
@@ -143,9 +141,9 @@ export function SwipeDeck({ jobs, isStudent }: { jobs: any[]; isStudent: boolean
         <div style={{ width: 80, height: 80, background: "var(--bg-hover)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "var(--space-4)", color: "var(--text-muted)" }}>
           <SearchX size={40} />
         </div>
-        <h2 style={{ marginBottom: "var(--space-2)" }}>You're all caught up!</h2>
+        <h2 style={{ marginBottom: "var(--space-2)" }}>You&apos;re all caught up!</h2>
         <p style={{ color: "var(--text-secondary)", maxWidth: 400, margin: "0 auto var(--space-6)" }}>
-          You've reviewed all available jobs in your criteria. Check back later for new opportunities.
+          You&apos;ve reviewed all available jobs in your criteria. Check back later for new opportunities.
         </p>
         <button className="btn btn-outline" onClick={() => setDeck(jobs)}>
           Review Again

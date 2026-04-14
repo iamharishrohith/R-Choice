@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerCompany } from "@/app/actions/auth";
-import { Briefcase, Building, MapPin, Loader2 } from "lucide-react";
+import { Building, Loader2 } from "lucide-react";
 
 export default function RegisterCompanyPage() {
   const router = useRouter();
@@ -41,7 +41,7 @@ export default function RegisterCompanyPage() {
             <Building size={32} />
           </div>
           <h2>Partner with R-Choice</h2>
-          <p style={{ color: "var(--text-secondary)" }}>Create a company account to hire Rathinam's top talent.</p>
+          <p style={{ color: "var(--text-secondary)" }}>Create a company account to hire Rathinam&apos;s top talent.</p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>

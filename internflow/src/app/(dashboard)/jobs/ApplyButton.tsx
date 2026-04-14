@@ -1,25 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 import { createPortalApplication } from "@/app/actions/applications";
 
 export default function ApplyButton({ job }: { job: any }) {
-  const router = useRouter();
   const [status, setStatus] = useState<"idle" | "loading" | "applied">("idle");
-  const [error, setError] = useState("");
 
   const handleApply = async () => {
     setStatus("loading");
-    setError("");
 
     const result = await createPortalApplication(job.id, job.companyName, job.title);
 
     if (result.error) {
-      setError(result.error);
+      alert(result.error);
       setStatus("idle");
-      alert(result.error); // Simple fallback alert for now
     } else {
       setStatus("applied");
     }

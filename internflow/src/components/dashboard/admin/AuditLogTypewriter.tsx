@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Terminal, ShieldAlert, CheckCircle, Database, UserCheck, Key, Shield } from "lucide-react";
+import { Terminal, CheckCircle, Database, UserCheck, Key, Shield } from "lucide-react";
 
 interface AuditLog {
   id: string;

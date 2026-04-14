@@ -1,8 +1,6 @@
-import { neon, neonConfig } from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
-
-neonConfig.fetchConnectionCache = true;
 
 // Global singleton to avoid re-creating connection on every hot-reload
 const globalForDb = globalThis as unknown as {

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users, internshipRequests } from "@/lib/db/schema";
-import { eq, count, and, notInArray } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 
 export default async function StaffDashboard() {
   const session = await auth();

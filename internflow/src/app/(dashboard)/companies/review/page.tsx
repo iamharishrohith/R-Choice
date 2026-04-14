@@ -4,7 +4,7 @@ import { companyRegistrations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Building, CheckCircle, XCircle, Clock, Globe, Mail, Phone, MapPin, RotateCcw, FileText, Users, Calendar } from "lucide-react";
+import { Building, CheckCircle, XCircle, Clock, Globe, Mail, Phone, RotateCcw, FileText, Users } from "lucide-react";
 
 export default async function CompanyReviewPage() {
   const session = await auth();

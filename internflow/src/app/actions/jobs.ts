@@ -27,7 +27,7 @@ export async function createJobPosting(formData: FormData) {
     const deadline = validateDate(formData.get("deadline"), "Application Deadline");
 
     // Determine the company name from the user profile
-    const [user] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+    const [_user] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
     
     await db.insert(jobPostings).values({
       postedBy: session.user.id,

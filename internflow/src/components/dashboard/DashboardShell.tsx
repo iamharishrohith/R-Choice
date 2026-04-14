@@ -14,13 +14,9 @@ import {
   BarChart3,
   Users,
   Building2,
-  Bell,
   LogOut,
   Settings,
   GraduationCap,
-  Link2,
-  FileDown,
-  CalendarDays,
   GitBranch,
 } from "lucide-react";
 import styles from "../../app/(dashboard)/layout.module.css";
@@ -38,7 +34,6 @@ type NavSection = {
 };
 
 function getNavSections(role: string): NavSection[] {
-  const common: NavItem[] = [];
 
   switch (role) {
     case "student":

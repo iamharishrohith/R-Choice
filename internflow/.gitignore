@@ -42,3 +42,11 @@ next-env.d.ts
 
 playwright-report/
 test-results/
+test-results-*/
+
+# dev scratch files
+scratch-delete.ts
+test-db.ts
+test_resume.js
+build_analysis.txt
+shimmer_readme.txt
