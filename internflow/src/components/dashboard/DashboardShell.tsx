@@ -20,6 +20,7 @@ import {
   GitBranch,
 } from "lucide-react";
 import styles from "../../app/(dashboard)/layout.module.css";
+import { logoutAction } from "@/app/actions/auth";
 
 type NavItem = {
   label: string;
@@ -296,16 +297,10 @@ export function DashboardShell({
           <button
             type="button"
             onClick={async () => {
-              try {
-                // simple visual feedback (we could use transition, but this is simple)
-                const btn = document.getElementById("logout-btn");
-                if (btn) btn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>';
-                const { logoutAction } = await import("@/app/actions/auth");
-                await logoutAction();
-              } catch (e) {
-                console.error(e);
-                window.location.href = "/api/auth/signout";
-              }
+              // simple visual feedback
+              const btn = document.getElementById("logout-btn");
+              if (btn) btn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>';
+              await logoutAction();
             }}
             id="logout-btn"
             className={styles.logoutButton}
@@ -352,14 +347,9 @@ export function DashboardShell({
             <button
               type="button"
               onClick={async () => {
-                try {
-                  const btn = document.getElementById("mobile-logout-btn");
-                  if (btn) btn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>';
-                  const { logoutAction } = await import("@/app/actions/auth");
-                  await logoutAction();
-                } catch (e) {
-                  window.location.href = "/api/auth/signout";
-                }
+                const btn = document.getElementById("mobile-logout-btn");
+                if (btn) btn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>';
+                await logoutAction();
               }}
               id="mobile-logout-btn"
               aria-label="Sign out"
