@@ -5,39 +5,53 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Download, Loader2, CheckCircle2, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 
+import { bulkExportDatabase } from "@/app/actions/admin";
+import { exportToCSV } from "@/lib/export-utils";
+
 export function ExportDataButton() {
   const [status, setStatus] = useState<"idle" | "preparing" | "generating" | "done">("idle");
   const [progress, setProgress] = useState(0);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (status !== "idle") return;
     
     setStatus("preparing");
     toast.info("Initializing massive bulk export...");
     
-    // Simulate preparation
-    setTimeout(() => {
+    try {
+      // Simulate slight preparation delay for UI feedback
+      await new Promise(r => setTimeout(r, 600));
       setStatus("generating");
+      setProgress(50);
       
-      // Simulate progress
-      let p = 0;
-      const interval = setInterval(() => {
-        p += Math.floor(Math.random() * 15) + 5;
-        if (p >= 100) {
-          p = 100;
-          clearInterval(interval);
-          setStatus("done");
-          toast.success("Export generated successfully!");
-          
-          // Reset after 3 seconds
-          setTimeout(() => {
-            setStatus("idle");
-            setProgress(0);
-          }, 3000);
-        }
-        setProgress(p);
-      }, 300);
-    }, 1500);
+      const res = await bulkExportDatabase();
+      if (res.error) {
+        toast.error(res.error);
+        setStatus("idle");
+        setProgress(0);
+        return;
+      }
+      setProgress(80);
+
+      // Trigger standard web blob download for users
+      if (res.payload?.users && res.payload.users.length > 0) {
+        exportToCSV(`Platform_Users_Export_${new Date().toISOString().slice(0,10)}.csv`, res.payload.users);
+      }
+      
+      setProgress(100);
+      setStatus("done");
+      toast.success("Export generated successfully!");
+      
+      // Reset after 3 seconds
+      setTimeout(() => {
+        setStatus("idle");
+        setProgress(0);
+      }, 3000);
+    } catch (err: any) {
+      toast.error("Failed to generate export file.");
+      setStatus("idle");
+      setProgress(0);
+    }
   };
 
   return (

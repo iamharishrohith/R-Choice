@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { CheckCircle } from "lucide-react";
 import ApprovalActions from "./ApprovalActions";
 
-export default async function ApprovalsPage(props: { searchParams: Promise<{ status?: string }> }) {
+export default async function ApprovalsPage(props: { searchParams: Promise<{ status?: string; page?: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/");
@@ -18,8 +18,11 @@ export default async function ApprovalsPage(props: { searchParams: Promise<{ sta
 
   const searchParams = await props.searchParams;
   const filterStatus = searchParams.status || "pending";
+  const currentPage = parseInt(searchParams.page || "1", 10);
 
-  const requests = await getFilteredRequestsForStaff(session.user.id, role, filterStatus);
+  const result = await getFilteredRequestsForStaff(session.user.id, role, filterStatus, currentPage, 25);
+  const requests = result.data;
+  const totalPages = result.totalPages;
 
   return (
     <div className="animate-fade-in">
@@ -86,6 +89,28 @@ export default async function ApprovalsPage(props: { searchParams: Promise<{ sta
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "24px" }}>
+          <a
+             href={`?status=${filterStatus}&page=${currentPage - 1}`}
+             className="btn btn-outline"
+             style={{ opacity: currentPage <= 1 ? 0.5 : 1, pointerEvents: currentPage <= 1 ? "none" : "auto", display: "inline-block", textDecoration: "none" }}
+          >
+            Previous
+          </a>
+          <span style={{ display: "flex", alignItems: "center", fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>
+             Page {currentPage} of {totalPages}
+          </span>
+          <a
+             href={`?status=${filterStatus}&page=${currentPage + 1}`}
+             className="btn btn-outline"
+             style={{ opacity: currentPage >= totalPages ? 0.5 : 1, pointerEvents: currentPage >= totalPages ? "none" : "auto", display: "inline-block", textDecoration: "none" }}
+          >
+            Next
+          </a>
         </div>
       )}
 

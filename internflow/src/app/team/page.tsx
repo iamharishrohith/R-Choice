@@ -29,7 +29,7 @@ const TEAM_MEMBERS = [
 
 export default function TeamMonarchsPage() {
   return (
-    <div className={styles.page}>
+    <main className={styles.page}>
       {/* Animated Background Abstract Shapes */}
       <div className={styles.bgAbstracts}>
         <div className={styles.abstractCircle1}></div>
@@ -60,7 +60,7 @@ export default function TeamMonarchsPage() {
                 <User size={48} />
               </div>
               
-              <h3 className={styles.name}>{member.name}</h3>
+              <h2 className={styles.name}>{member.name}</h2>
               <div className={styles.role}>
                 {member.icon}
                 {member.role}
@@ -82,6 +82,6 @@ export default function TeamMonarchsPage() {
       <footer className={styles.footer}>
         <p>© {new Date().getFullYear()} Team Monarchs. Designed for Rathinam College.</p>
       </footer>
-    </div>
+    </main>
   );
 }

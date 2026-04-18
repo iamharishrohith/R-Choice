@@ -2,7 +2,6 @@
 
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { TrendingUp, Users, Building2, CheckCircle } from "lucide-react";
-import { Sparkline } from "@/components/ui/charts/Sparkline";
 
 interface AdminKpiProps {
   pendingApprovals: number;
@@ -87,14 +86,6 @@ export function AdminKpiCards({ pendingApprovals, activeStudents, totalCompanies
             }}>
               {kpi.icon}
             </div>
-          </div>
-
-          <div style={{ marginTop: "auto", position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 0 }}>
-             <Sparkline 
-               data={Array.from({ length: 12 }).map((_, i) => Math.max(1, kpi.value * 0.5 + Math.sin(i * 0.8) * (kpi.value * 0.2) + Math.random() * (kpi.value * 0.1)))} 
-               color={kpi.color.replace("var(--color-warning)", "#f59e0b").replace("var(--color-info)", "#0ea5e9").replace("var(--color-primary)", "#6366f1").replace("var(--rathinam-green)", "#10b981")} 
-               height={30} 
-             />
           </div>
         </div>
       ))}

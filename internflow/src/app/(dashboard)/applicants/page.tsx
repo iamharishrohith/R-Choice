@@ -1,10 +1,10 @@
 import { db } from "@/lib/db";
 import { users, jobPostings, jobApplications, companyRegistrations, studentProfiles } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import ApplicantsClient from "./ApplicantsClient";
 
-export default async function ApplicantsPage() {
+export default async function ApplicantsPage(props: { searchParams: Promise<{ page?: string }> }) {
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -19,8 +19,26 @@ export default async function ApplicantsPage() {
 
   const companyId = companyRecord[0]?.id;
 
+  const searchParams = await props.searchParams;
+  const currentPage = parseInt(searchParams.page || "1", 10);
+  const pageSize = 25;
+
   let applicants: any[] = [];
+  let totalPages = 1;
+
   if (companyId) {
+    const limitCount = pageSize;
+    const offsetCount = (currentPage - 1) * pageSize;
+
+    // Count
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(jobApplications)
+      .innerJoin(jobPostings, eq(jobApplications.jobId, jobPostings.id))
+      .where(eq(jobPostings.companyId, companyId));
+      
+    const totalRecords = countResult[0]?.count || 0;
+    totalPages = Math.ceil(totalRecords / pageSize);
     const rawApps = await db
       .select({
         id: users.id, // the student's user logic
@@ -40,7 +58,9 @@ export default async function ApplicantsPage() {
       .innerJoin(jobPostings, eq(jobApplications.jobId, jobPostings.id))
       .leftJoin(studentProfiles, eq(studentProfiles.userId, users.id))
       .where(eq(jobPostings.companyId, companyId))
-      .orderBy(desc(jobApplications.appliedAt));
+      .orderBy(desc(jobApplications.appliedAt))
+      .limit(limitCount)
+      .offset(offsetCount);
       
       // Remap so 'id' is standard studentId for the UI
       applicants = rawApps.map(a => ({
@@ -51,6 +71,6 @@ export default async function ApplicantsPage() {
   }
 
   return (
-     <ApplicantsClient initialApplicants={applicants} />
+     <ApplicantsClient initialApplicants={applicants} currentPage={currentPage} totalPages={totalPages} />
   );
 }

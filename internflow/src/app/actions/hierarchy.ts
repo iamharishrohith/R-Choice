@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { authorityMappings, users } from "@/lib/db/schema";
+import { authorityMappings, users, userRoleEnum } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -16,6 +16,10 @@ export async function fetchAuthorityMappings() {
 
 export async function fetchStaffByRole(role: string) {
   try {
+    const validRoles = userRoleEnum.enumValues as string[];
+    if (!validRoles.includes(role)) {
+      throw new Error("Invalid role");
+    }
     return await db
       .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email })
       .from(users)

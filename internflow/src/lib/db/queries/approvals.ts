@@ -1,8 +1,8 @@
 import { db } from "@/lib/db";
 import { internshipRequests, users } from "@/lib/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
-export async function getFilteredRequestsForStaff(userId: string, role: string, filterStatus: string = "pending") {
+export async function getFilteredRequestsForStaff(userId: string, role: string, filterStatus: string = "pending", page: number = 1, pageSize: number = 25) {
   let targetStatus = "none";
   
   if (filterStatus === "approved") targetStatus = "approved";
@@ -16,7 +16,7 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
     else if (role === "principal") targetStatus = "pending_principal";
   }
 
-  if (targetStatus === "none") return [];
+  if (targetStatus === "none") return { data: [], totalPages: 0 };
 
   let condition: any = undefined;
 
@@ -34,6 +34,18 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
     condition = eq(internshipRequests.status, "rejected");
   }
 
+  const limitCount = pageSize;
+  const offsetCount = (page - 1) * pageSize;
+
+  const [countResult] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(internshipRequests)
+    .innerJoin(users, eq(internshipRequests.studentId, users.id))
+    .where(condition);
+
+  const totalRecords = countResult?.count || 0;
+  const totalPages = Math.ceil(totalRecords / pageSize);
+
   const reqs = await db
     .select({
       id: internshipRequests.id,
@@ -47,11 +59,16 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
     .from(internshipRequests)
     .innerJoin(users, eq(internshipRequests.studentId, users.id))
     .where(condition)
-    .orderBy(desc(internshipRequests.submittedAt));
+    .orderBy(desc(internshipRequests.submittedAt))
+    .limit(limitCount)
+    .offset(offsetCount);
 
-  return reqs;
+  return {
+    data: reqs,
+    totalPages
+  };
 }
 
-export async function getPendingRequestsForStaff(userId: string, role: string) {
-  return getFilteredRequestsForStaff(userId, role, "pending");
+export async function getPendingRequestsForStaff(userId: string, role: string, page = 1) {
+  return getFilteredRequestsForStaff(userId, role, "pending", page);
 }

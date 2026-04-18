@@ -7,6 +7,42 @@ import {
 } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import bcrypt from "bcryptjs";
+
+// Helper to recalculate and update score
+async function updateProfileScore(profileId: string) {
+  const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.id, profileId)).limit(1);
+  if (!profile) return;
+
+  let score = 0;
+  if (profile.registerNo) score += 10;
+  if (profile.department) score += 10;
+  if (profile.year) score += 5;
+  if (profile.cgpa) score += 5;
+  if (profile.professionalSummary && profile.professionalSummary.length > 20) score += 20;
+
+  const [eduRes, skillRes, projRes, linkRes] = await Promise.all([
+    db.execute(`SELECT COUNT(*) FROM student_education WHERE student_id = '${profileId}'`),
+    db.execute(`SELECT COUNT(*) FROM student_skills WHERE student_id = '${profileId}'`),
+    db.execute(`SELECT COUNT(*) FROM student_projects WHERE student_id = '${profileId}'`),
+    db.execute(`SELECT COUNT(*) FROM student_links WHERE student_id = '${profileId}'`)
+  ]);
+
+  const eduCount = Number(eduRes.rows[0]?.count || 0);
+  const skillCount = Number(skillRes.rows[0]?.count || 0);
+  const projCount = Number(projRes.rows[0]?.count || 0);
+  const linkCount = Number(linkRes.rows[0]?.count || 0);
+
+  if (Number(eduCount) > 0) score += 15;
+  if (Number(skillCount) > 0) score += 15;
+  if (Number(projCount) > 0) score += 10;
+  if (Number(linkCount) > 0) score += 10;
+
+  // Max score is 100.
+  score = Math.min(score, 100);
+
+  await db.update(studentProfiles).set({ profileCompletionScore: score }).where(eq(studentProfiles.id, profileId));
+}
 
 export async function saveBasicProfile(formData: {
   registerNo: string;
@@ -96,6 +132,7 @@ export async function saveDeanProfile(formData: {
   lastName: string;
   phone: string;
   email: string;
+  currentPassword?: string;
 }) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== "dean") {
@@ -105,6 +142,17 @@ export async function saveDeanProfile(formData: {
   const userId = session.user.id;
 
   try {
+    // If email is being changed, require password verification
+    if (formData.email !== session.user.email) {
+      if (!formData.currentPassword) {
+        return { error: "Current password is required to change email." };
+      }
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user) return { error: "User not found" };
+      const isValid = await bcrypt.compare(formData.currentPassword, user.passwordHash);
+      if (!isValid) return { error: "Incorrect password." };
+    }
+
     await db
       .update(users)
       .set({
@@ -148,9 +196,10 @@ export async function saveEducation(educationData: { institution?: string; degre
         });
       }
     }
+    await updateProfileScore(profile.id);
     revalidatePath("/profile");
     return { success: true };
-  } catch { return { error: "Failed to save education." }; }
+  } catch (err) { console.error("Education save error:", err); return { error: "Failed to save education." }; }
 }
 
 export async function saveSkills(skillsData: {name: string, type: string}[]) {
@@ -168,9 +217,10 @@ export async function saveSkills(skillsData: {name: string, type: string}[]) {
         skillType: (skill.type === "language" ? "language" : skill.type === "hard" ? "hard" : "soft") as "hard" | "soft" | "language",
       });
     }
+    await updateProfileScore(profile.id);
     revalidatePath("/profile");
     return { success: true };
-  } catch { return { error: "Failed to save skills." }; }
+  } catch (err) { console.error("Skills save error:", err); return { error: "Failed to save skills." }; }
 }
 
 export async function saveProjects(projectsData: { title?: string; description?: string; projectUrl?: string }[]) {
@@ -191,9 +241,10 @@ export async function saveProjects(projectsData: { title?: string; description?:
         });
       }
     }
+    await updateProfileScore(profile.id);
     revalidatePath("/profile");
     return { success: true };
-  } catch { return { error: "Failed to save projects." }; }
+  } catch (err) { console.error("Projects save error:", err); return { error: "Failed to save projects." }; }
 }
 
 export async function saveCertifications(certsData: { name?: string; issuingOrg?: string; credentialUrl?: string }[]) {
@@ -214,9 +265,10 @@ export async function saveCertifications(certsData: { name?: string; issuingOrg?
         });
       }
     }
+    await updateProfileScore(profile.id);
     revalidatePath("/profile");
     return { success: true };
-  } catch { return { error: "Failed to save certs." }; }
+  } catch (err) { console.error("Certs save error:", err); return { error: "Failed to save certs." }; }
 }
 
 export async function saveLinks(linksData: { title?: string; url?: string; platform: string }[]) {
@@ -237,7 +289,57 @@ export async function saveLinks(linksData: { title?: string; url?: string; platf
         });
       }
     }
+    await updateProfileScore(profile.id);
     revalidatePath("/profile/links");
     return { success: true };
-  } catch { return { error: "Failed to save links." }; }
+  } catch (err) { console.error("Links save error:", err); return { error: "Failed to save links." }; }
 }
+
+export async function fetchFullStudentProfile(studentId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+
+    // Fetch the core user + profile
+    const [user] = await db.select({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      phone: users.phone,
+      avatarUrl: users.avatarUrl
+    }).from(users).where(eq(users.id, studentId)).limit(1);
+
+    if (!user) return { error: "Student not found" };
+
+    const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, studentId)).limit(1);
+
+    if (!profile) return { error: "Student profile not found" };
+
+    // Fetch sub-relations
+    const [education, skills, projects, certs, links] = await Promise.all([
+      db.select().from(studentEducation).where(eq(studentEducation.studentId, profile.id)),
+      db.select().from(studentSkills).where(eq(studentSkills.studentId, profile.id)),
+      db.select().from(studentProjects).where(eq(studentProjects.studentId, profile.id)),
+      db.select().from(studentCertifications).where(eq(studentCertifications.studentId, profile.id)),
+      db.select().from(studentLinks).where(eq(studentLinks.studentId, profile.id)),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        user,
+        profile,
+        education,
+        skills,
+        projects,
+        certs,
+        links
+      }
+    };
+  } catch (error) {
+    console.error("Failed to fetch full student profile:", error);
+    return { error: "Database error occurred." };
+  }
+}
+

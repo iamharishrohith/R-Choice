@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notifications } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function getRecentNotifications() {
@@ -32,10 +32,11 @@ export async function markAsRead(notificationId: string) {
   if (!session?.user?.id) return { error: "Not authenticated" };
 
   try {
+    // Ownership check: only mark notifications belonging to the current user
     await db
       .update(notifications)
       .set({ isRead: true })
-      .where(eq(notifications.id, notificationId));
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, session.user.id)));
       
     revalidatePath("/dashboard");
     return { success: true };

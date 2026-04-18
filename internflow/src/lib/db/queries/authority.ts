@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { authorityMappings, studentProfiles } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ilike } from "drizzle-orm";
 
 export async function getApproversForStudent(userId: string) {
   // 1. Get the student's department, section, and year
@@ -20,8 +20,8 @@ export async function getApproversForStudent(userId: string) {
     .from(authorityMappings)
     .where(
       and(
-        eq(authorityMappings.department, profile.department),
-        eq(authorityMappings.section, profile.section || "A"),
+        ilike(authorityMappings.department, profile.department),
+        ilike(authorityMappings.section, profile.section || "A"),
         eq(authorityMappings.year, profile.year)
       )
     )

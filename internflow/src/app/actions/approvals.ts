@@ -201,3 +201,65 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
     return { error: `Failed to process approval: ${error instanceof Error ? error.message : String(error)}` };
   }
 }
+
+export async function getRequestDetails(requestId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+
+    const [request] = await db
+      .select({
+        id: internshipRequests.id,
+        role: internshipRequests.role,
+        companyName: internshipRequests.companyName,
+        applicationType: internshipRequests.applicationType,
+        status: internshipRequests.status,
+        submittedAt: internshipRequests.submittedAt,
+        studentId: internshipRequests.studentId,
+        jobPostingId: internshipRequests.jobPostingId,
+      })
+      .from(internshipRequests)
+      .where(eq(internshipRequests.id, requestId))
+      .limit(1);
+
+    if (!request) return { error: "Request not found" };
+
+    // Try fetching external details if present
+    let externalDetails = null;
+    if (request.applicationType === "external") {
+      const [ext] = await db.select().from(require("@/lib/db/schema").externalInternshipDetails).where(eq(require("@/lib/db/schema").externalInternshipDetails.requestId, requestId)).limit(1);
+      externalDetails = ext || null;
+    }
+
+    // Try fetching portal job details if present
+    let jobDetails = null;
+    let companyDetails = null;
+    if (request.applicationType === "portal" && request.jobPostingId) {
+       const [jobP] = await db.select().from(require("@/lib/db/schema").jobPostings).where(eq(require("@/lib/db/schema").jobPostings.id, request.jobPostingId)).limit(1);
+       if (jobP) {
+         jobDetails = jobP;
+         const [comp] = await db.select().from(require("@/lib/db/schema").companyRegistrations).where(eq(require("@/lib/db/schema").companyRegistrations.userId, jobP.postedBy)).limit(1);
+         companyDetails = comp || null;
+       }
+    }
+
+    // Fetch the basic student snapshot
+    const [user] = await db.select({ firstName: require("@/lib/db/schema").users.firstName, lastName: require("@/lib/db/schema").users.lastName, email: require("@/lib/db/schema").users.email, avatarUrl: require("@/lib/db/schema").users.avatarUrl }).from(require("@/lib/db/schema").users).where(eq(require("@/lib/db/schema").users.id, request.studentId as string)).limit(1);
+    const [profile] = await db.select({ department: require("@/lib/db/schema").studentProfiles.department, year: require("@/lib/db/schema").studentProfiles.year, section: require("@/lib/db/schema").studentProfiles.section, cgpa: require("@/lib/db/schema").studentProfiles.cgpa }).from(require("@/lib/db/schema").studentProfiles).where(eq(require("@/lib/db/schema").studentProfiles.userId, request.studentId as string)).limit(1);
+
+    return {
+      success: true,
+      data: {
+        request,
+        externalDetails,
+        jobDetails,
+        companyDetails,
+        student: { user, profile }
+      }
+    };
+
+  } catch (err) {
+    console.error("Failed to fetch request details:", err);
+    return { error: "Failed to fetch request details" };
+  }
+}

@@ -146,6 +146,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── Split View Layout ── */}
+      <main>
       <div className={styles.splitLayout}>
 
         {/* ── Hero / Landing Section ── */}
@@ -243,7 +244,7 @@ export default function LoginPage() {
                 const translateZ = absDiff * -120;
                 const rotateY = diff * -15;
                 const scale = Math.max(0, 1 - absDiff * 0.15);
-                const opacity = isHidden ? 0 : (isStaffRole ? (1 - absDiff * 0.5) : (0.5 - absDiff * 0.2));
+                const opacity = isHidden ? 0 : 1;
                 const zIndex = 10 - absDiff;
 
                 return (
@@ -366,6 +367,7 @@ export default function LoginPage() {
         </div>
       </section>
       </div>
+      </main>
 
       <footer style={{
         marginTop: "auto",

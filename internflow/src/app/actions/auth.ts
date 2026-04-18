@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { sanitize, validateEmail } from "@/lib/validation";
 
 export async function changePassword(formData: FormData) {
   const session = await auth();
@@ -45,7 +46,7 @@ export async function changePassword(formData: FormData) {
     const newHash = await bcrypt.hash(newPassword, 12);
     
     await db.update(users)
-      .set({ passwordHash: newHash })
+      .set({ passwordHash: newHash, updatedAt: new Date() })
       .where(eq(users.id, userId));
 
     return { success: true };
@@ -104,23 +105,26 @@ function getRedirectUrl(role: string): string {
 }
 
 export async function registerCompany(formData: FormData) {
-  const companyName = formData.get("companyName") as string;
-  const industry = formData.get("industry") as string;
-  const website = formData.get("website") as string;
-  const hrName = formData.get("hrName") as string;
-  const hrPhone = formData.get("hrPhone") as string;
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  if (!companyName || !industry || !website || !hrName || !hrPhone || !email || !password) {
-    return { error: "All fields are required" };
-  }
-
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters long" };
-  }
-
   try {
+    const rawCompanyName = formData.get("companyName");
+    const rawIndustry = formData.get("industry");
+    const rawWebsite = formData.get("website");
+    const rawHrName = formData.get("hrName");
+    const rawHrPhone = formData.get("hrPhone");
+    const rawEmail = formData.get("email");
+    const password = formData.get("password") as string;
+
+    const companyName = sanitize(rawCompanyName, "Company Name", 255);
+    const industry = sanitize(rawIndustry, "Industry Sector", 100);
+    const website = sanitize(rawWebsite, "Website URL", 255);
+    const hrName = sanitize(rawHrName, "HR Name", 100);
+    const hrPhone = sanitize(rawHrPhone, "HR Phone", 50);
+    const email = validateEmail(rawEmail, "Email Address");
+
+    if (!password || password.length < 8) {
+      return { error: "Password must be at least 8 characters long" };
+    }
+
     const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
     if (existing.length > 0) {
       return { error: "An account with this email already exists" };
@@ -128,41 +132,41 @@ export async function registerCompany(formData: FormData) {
 
     const newHash = await bcrypt.hash(password, 12);
     
-    // Using transaction would be better, but doing sequentially for now
-    const [newUser] = await db.insert(users).values({
-      email,
-      passwordHash: newHash,
-      role: "company",
-      firstName: companyName, // For UI purposes
-      lastName: "Partner",
-      isActive: true,
-    }).returning({ id: users.id });
+    // Wrap in transaction to prevent orphaned user without company profile
+    await db.transaction(async (tx) => {
+      const [newUser] = await tx.insert(users).values({
+        email,
+        passwordHash: newHash,
+        role: "company",
+        firstName: companyName, // For UI purposes
+        lastName: "Partner",
+        isActive: true,
+      }).returning({ id: users.id });
 
-    // We can also insert into companyRegistrations so they have a full profile
-    // But since the UI form doesn't ask for city/state/pin/address, we'll put some placeholders
-    // or just let them complete it later. Actually, companyRegistrations requires some notNull fields.
-    // Let me check schema. yes: address, city, state, pinCode.
-    // I will use placeholders for now to satisfy DB constraints.
-    const { companyRegistrations } = await import("@/lib/db/schema");
-    await db.insert(companyRegistrations).values({
-      userId: newUser.id,
-      companyLegalName: companyName,
-      companyType: "Private",
-      industrySector: industry,
-      website: website,
-      hrName: hrName,
-      hrEmail: email,
-      hrPhone: hrPhone,
-      address: "Please update",
-      city: "Please update",
-      state: "Please update",
-      pinCode: "000000",
-      status: "pending" // Sets status to pending for admin review
+      const { companyRegistrations } = await import("@/lib/db/schema");
+      await tx.insert(companyRegistrations).values({
+        userId: newUser.id,
+        companyLegalName: companyName,
+        companyType: "Private",
+        industrySector: industry,
+        website: website,
+        hrName: hrName,
+        hrEmail: email,
+        hrPhone: hrPhone,
+        address: "Please update",
+        city: "Please update",
+        state: "Please update",
+        pinCode: "000000",
+        status: "pending"
+      });
     });
 
     return { success: true };
-  } catch (error) {
-    console.error("Company registration error:", error);
+  } catch (err: any) {
+    if (err.name === "ValidationError") {
+      return { error: err.message };
+    }
+    console.error("Company registration error:", err);
     return { error: "Failed to create company account. Try again later." };
   }
 }

@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { internshipRequests, externalInternshipDetails, jobApplications, jobPostings, companyRegistrations, users, notifications } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { sendCompanyResultEmail } from "@/lib/mail";
+import { sendCompanyResultEmail, sendVerificationSMS } from "@/lib/mail";
 import { getApproversForStudent } from "@/lib/db/queries/authority";
 import { revalidatePath } from "next/cache";
 import {
@@ -74,38 +74,41 @@ export async function submitInternshipRequest(formData: FormData) {
     }
 
     // 3. Create the internship request
-    const insertedReq = await db.insert(internshipRequests).values({
-      studentId: userId,
-      applicationType,
-      companyName,
-      companyAddress,
-      role: roleTitle,
-      startDate,
-      endDate,
-      stipend,
-      workMode,
-      offerLetterUrl: offerLetterUrl || null,
-      status: "pending_tutor", // Starts at tier 1 automatically
-      currentTier: 1,
-      submittedAt: new Date(),
-    }).returning({ id: internshipRequests.id });
+    // Wrap in transaction to prevent partial writes
+    await db.transaction(async (tx) => {
+      const insertedReq = await tx.insert(internshipRequests).values({
+        studentId: userId,
+        applicationType,
+        companyName,
+        companyAddress,
+        role: roleTitle,
+        startDate,
+        endDate,
+        stipend,
+        workMode,
+        offerLetterUrl: offerLetterUrl || null,
+        status: "pending_tutor", // Starts at tier 1 automatically
+        currentTier: 1,
+        submittedAt: new Date(),
+      }).returning({ id: internshipRequests.id });
 
-    const reqId = insertedReq[0].id;
+      const reqId = insertedReq[0].id;
 
-    // 4. Insert External Details if applicable
-    if (applicationType === "external") {
-      await db.insert(externalInternshipDetails).values({
-        requestId: reqId,
-        companyWebsite: companyWebsite || "Not provided",
-        hrName: hrName!,
-        hrEmail: hrEmail!,
-        hrPhone: hrPhone!,
-        companyIdProofUrl: companyIdProofUrl || "Not provided",
-        parentConsentUrl: parentConsentUrl || "Not provided",
-        workMode: workMode || "onsite",
-        discoverySource: discoverySource || "Other",
-      });
-    }
+      // 4. Insert External Details if applicable
+      if (applicationType === "external") {
+        await tx.insert(externalInternshipDetails).values({
+          requestId: reqId,
+          companyWebsite: companyWebsite || "Not provided",
+          hrName: hrName!,
+          hrEmail: hrEmail!,
+          hrPhone: hrPhone!,
+          companyIdProofUrl: companyIdProofUrl || "Not provided",
+          parentConsentUrl: parentConsentUrl || "Not provided",
+          workMode: workMode || "onsite",
+          discoverySource: discoverySource || "Other",
+        });
+      }
+    });
 
     revalidatePath("/applications");
     revalidatePath("/dashboard/student");
@@ -131,59 +134,90 @@ export async function createPortalApplication(jobId: string, companyName: string
   if (role !== "student") return { error: "Only students can apply." };
 
   try {
-    const approvers = await getApproversForStudent(userId);
-    if (!approvers.tutorId) {
-      return { error: "No class tutor mapped to your department/section. Cannot apply." };
-    }
-
     const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
     if (!job) {
       return { error: "Job not found." };
     }
+    if (job.status !== "approved") {
+      return { error: "This internship has not been approved yet." };
+    }
 
-    const [company] = job.companyId
-      ? await db.select().from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId)).limit(1)
-      : [null];
+    // Check if already applied
+    const [existing] = await db.select({ id: jobApplications.id })
+      .from(jobApplications)
+      .where(and(eq(jobApplications.jobId, jobId), eq(jobApplications.studentId, userId)))
+      .limit(1);
+    if (existing) {
+      return { error: "You have already applied to this internship." };
+    }
 
-    const today = new Date();
-    const fallbackStart = job.startDate ? new Date(job.startDate) : today;
-    const fallbackEnd = new Date(fallbackStart);
-    fallbackEnd.setMonth(fallbackEnd.getMonth() + 3);
-
-    const formatDate = (value: Date) => value.toISOString().slice(0, 10);
-
+    // Direct apply — NO authority gate. OD request only after shortlisting + verification.
     await db.insert(jobApplications).values({
       jobId,
       studentId: userId,
       status: "applied",
     });
 
-    // Keep portal applications visible in the same approval pipeline used by external requests.
-    await db.insert(internshipRequests).values({
-      studentId: userId,
-      jobPostingId: jobId,
-      applicationType: "portal",
-      companyName: company?.companyLegalName || companyName,
-      companyAddress: company?.address || null,
-      role: job.title || roleTitle,
-      startDate: formatDate(fallbackStart),
-      endDate: formatDate(fallbackEnd),
-      stipend: job.stipendSalary || null,
-      workMode: job.workMode || "onsite",
-      status: "pending_tutor",
-      currentTier: 1,
-      submittedAt: new Date(),
-    });
-
-    revalidatePath("/applications");
-    revalidatePath("/approvals");
     revalidatePath("/jobs");
+    revalidatePath("/applicants");
+    revalidatePath("/dashboard/student");
     
     return { success: true };
   } catch (error: unknown) {
     console.error("Portal apply error:", error);
-    const msg = error instanceof Error ? error.message : "Failed to submit portal application.";
+    const msg = error instanceof Error ? error.message : "Failed to submit application.";
     return { error: msg };
+  }
+}
+
+export async function shortlistApplicant(applicationId: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== "company") {
+    return { error: "Unauthorized. Only companies can shortlist applicants." };
+  }
+
+  try {
+    const [app] = await db.select({
+      id: jobApplications.id,
+      status: jobApplications.status,
+      jobId: jobApplications.jobId,
+      studentId: jobApplications.studentId,
+    })
+    .from(jobApplications)
+    .where(eq(jobApplications.id, applicationId))
+    .limit(1);
+
+    if (!app) return { error: "Application not found." };
+
+    // Verify the job belongs to this company
+    const [job] = await db.select({ postedBy: jobPostings.postedBy }).from(jobPostings).where(eq(jobPostings.id, app.jobId)).limit(1);
+    if (!job || job.postedBy !== session.user.id) {
+      return { error: "You can only shortlist applicants for your own job postings." };
+    }
+
+    const newStatus = app.status === "shortlisted" ? "applied" : "shortlisted";
+
+    await db.update(jobApplications)
+      .set({ status: newStatus, updatedAt: new Date() })
+      .where(eq(jobApplications.id, applicationId));
+
+    // Notify the student
+    const [student] = await db.select({ firstName: users.firstName }).from(users).where(eq(users.id, app.studentId)).limit(1);
+    if (newStatus === "shortlisted") {
+      await db.insert(notifications).values({
+        userId: app.studentId,
+        type: "application_update",
+        title: "You've been shortlisted!",
+        message: `You have been shortlisted for an internship. The company will post final results soon.`,
+        linkUrl: "/dashboard/student",
+      });
+    }
+
+    revalidatePath("/applicants");
+    return { success: true, newStatus };
+  } catch (err: unknown) {
+    console.error("Shortlist error:", err);
+    return { error: err instanceof Error ? err.message : "Failed to update shortlist status." };
   }
 }
 
@@ -200,9 +234,11 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
       companyId: jobPostings.companyId
     }).from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
 
-    const [company] = await db.select({
-      name: companyRegistrations.companyLegalName
-    }).from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId as string)).limit(1);
+    const [company] = job.companyId
+      ? await db.select({
+          name: companyRegistrations.companyLegalName
+        }).from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId)).limit(1)
+      : [{ name: "Unknown Company" }];
 
     for (const studentId of selectedStudentIds) {
       // Generate 6 digit code
@@ -228,12 +264,12 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
             linkUrl: "/dashboard/student"
           });
           
-          return { email: student.email, name: `${student.firstName} ${student.lastName}` };
+          return { email: student.email, name: `${student.firstName} ${student.lastName}`, phone: student.phone, tutorId: null, pcId: null, hodId: null };
         }
         return null;
       });
 
-      // Side-effects (Email API requests) fire only if the atomic db transaction succeeds
+        // Side-effects (Email API requests) fire only if the atomic db transaction succeeds
       if (emailTask) {
         await sendCompanyResultEmail(
           emailTask.email,
@@ -242,6 +278,28 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
           job?.role || "Internship",
           code
         );
+
+        if (emailTask.phone) {
+          await sendVerificationSMS(emailTask.phone, code);
+        }
+
+        // Fetch authorities outside logic if needed
+        try {
+          const approvers = await getApproversForStudent(studentId);
+          const notifyAlerts = [];
+          const pushMessage = `A student in your section (${emailTask.name}) was just shortlisted for ${job?.role || "an internship"} by ${company?.name}. Expect an OD request soon.`;
+          
+          if (approvers.tutorId) notifyAlerts.push({ userId: approvers.tutorId, type: "application_update", title: "Student Shortlisted", message: pushMessage, linkUrl: "/approvals" });
+          if (approvers.placementCoordinatorId) notifyAlerts.push({ userId: approvers.placementCoordinatorId, type: "application_update", title: "Student Shortlisted", message: pushMessage, linkUrl: "/approvals" });
+          if (approvers.hodId) notifyAlerts.push({ userId: approvers.hodId, type: "application_update", title: "Student Shortlisted", message: pushMessage, linkUrl: "/approvals" });
+
+          if (notifyAlerts.length > 0) {
+            // We do this outside the main transaction to not fail the core selection if this fails
+            await db.insert(notifications).values(notifyAlerts as any);
+          }
+        } catch (authErr) {
+          console.error("Failed to lookup authorities for notifications, skipping...", authErr);
+        }
       }
     }
 
@@ -279,7 +337,9 @@ export async function verifyAndInitializeOD(applicationId: string, code: string,
 
     // 2. Fetch Job/Company info to seed the OD Request
     const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, app.jobId)).limit(1);
-    const [company] = await db.select().from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId as string)).limit(1);
+    const [company] = job.companyId
+      ? await db.select().from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId)).limit(1)
+      : [null];
 
     // Execute mutations within a resilient transaction boundary
     await db.transaction(async (tx) => {

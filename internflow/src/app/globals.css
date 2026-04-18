@@ -20,7 +20,7 @@
   /* Semantic Colors */
   --color-primary: #F47A2A;
   --color-primary-light: rgba(244, 122, 42, 0.6);
-  --color-primary-dark: #D45A0A;
+  --color-primary-dark: #C25006;
   --color-secondary: #9B2E87;
   --color-accent: #1E9BD7;
   --color-success: #8DC63F;
@@ -40,9 +40,9 @@
   /* Text */
   --text-primary: #1A2332;
   --text-secondary: #4E5D6E;
-  --text-muted: #8A96A3;
+  --text-muted: #64707D;
   --text-inverse: #FFFFFF;
-  --text-link: #1E9BD7;
+  --text-link: #1578A8;
 
   /* Borders */
   --border-color: #E4E9F0;

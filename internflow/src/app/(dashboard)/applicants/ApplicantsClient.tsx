@@ -1,22 +1,62 @@
 "use client";
 
 import React, { useState } from "react";
-import { UserCircle, Briefcase, Calendar, CheckCircle2, ChevronRight, CheckSquare } from "lucide-react";
+import { UserCircle, Briefcase, Calendar, CheckCircle2, ChevronRight, CheckSquare, Star, StarOff } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import Image from "next/image";
-import { postCompanyResults } from "@/app/actions/applications";
+import Link from "next/link";
+import { postCompanyResults, shortlistApplicant } from "@/app/actions/applications";
+import { fetchFullStudentProfile } from "@/app/actions/profile";
+import { X, ExternalLink, GraduationCap, Code, Award, Target, Download } from "lucide-react";
+import { exportToCSV } from "@/lib/export-utils";
 
-export default function ApplicantsClient({ initialApplicants }: { initialApplicants: any[] }) {
+export default function ApplicantsClient({ initialApplicants, currentPage = 1, totalPages = 1 }: { initialApplicants: any[], currentPage?: number, totalPages?: number }) {
   const [applicants, setApplicants] = useState(initialApplicants);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isPosting, setIsPosting] = useState(false);
+  const [viewingProfile, setViewingProfile] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState<any>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
+  const fetchProfile = async (studentId: string) => {
+    setViewingProfile(studentId);
+    setIsLoadingProfile(true);
+    try {
+      const res = await fetchFullStudentProfile(studentId);
+      if (res.success && res.data) {
+        setProfileData(res.data);
+      } else {
+        toast.error("Failed to load full profile.");
+        setViewingProfile(null);
+      }
+    } catch {
+      toast.error("Error loading profile");
+      setViewingProfile(null);
+    }
+    setIsLoadingProfile(false);
+  };
+
 
   const toggleSelect = (studentId: string) => {
     const newSet = new Set(selectedIds);
     if (newSet.has(studentId)) newSet.delete(studentId);
     else newSet.add(studentId);
     setSelectedIds(newSet);
+  };
+
+  const handleShortlist = async (applicationId: string) => {
+    try {
+      const res = await shortlistApplicant(applicationId);
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success(res.newStatus === "shortlisted" ? "Candidate shortlisted!" : "Shortlist removed.");
+        setApplicants(prev => prev.map(a => a.applicationId === applicationId ? { ...a, status: res.newStatus } : a));
+      }
+    } catch {
+      toast.error("Failed to update shortlist.");
+    }
   };
 
   const handlePostResults = async () => {
@@ -32,7 +72,7 @@ export default function ApplicantsClient({ initialApplicants }: { initialApplica
     if (!firstSelected) return;
 
     setIsPosting(true);
-    toast.loading("Sending Verification Emails...", { id: "posting-results" });
+    toast.loading("Sending Verification Emails to shortlisted candidates...", { id: "posting-results" });
     
     // Group selected students by Job ID
     const groupedByJob: Record<string, string[]> = {};
@@ -68,17 +108,28 @@ export default function ApplicantsClient({ initialApplicants }: { initialApplica
 
   return (
     <div className="animate-fade-in">
-      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <h1>Applicants Repository</h1>
-          <p>Review student applications, view their resumes, and post final shortlisting results directly to the college.</p>
+      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+        <div style={{ flex: "1 1 300px" }}>
+          <h1 style={{ margin: "0 0 8px 0" }}>Applicants Repository</h1>
+          <p style={{ margin: 0, color: "var(--text-secondary)" }}>Review student applications, view their resumes, and post final shortlisting results directly to the college.</p>
         </div>
-        {selectedIds.size > 0 && (
-          <button onClick={handlePostResults} disabled={isPosting} className="btn btn-primary" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            {isPosting ? <span className="spinner"></span> : <CheckCircle2 size={18} />}
-            Post Results ({selectedIds.size})
-          </button>
-        )}
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          {applicants.length > 0 && (
+            <button
+              onClick={() => exportToCSV("applicants.csv", applicants.map(a => ({ ID: a.id, Name: `${a.firstName} ${a.lastName}`, Email: a.email, Role: a.jobTitle, Status: a.status })))}
+              className="btn btn-outline"
+              style={{ display: "flex", gap: "8px", alignItems: "center" }}
+            >
+              <Download size={18} /> Export List
+            </button>
+          )}
+          {selectedIds.size > 0 && (
+            <button onClick={handlePostResults} disabled={isPosting} className="btn btn-primary" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              {isPosting ? <span className="spinner"></span> : <CheckCircle2 size={18} />}
+              Post Results ({selectedIds.size})
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="card">
@@ -102,7 +153,7 @@ export default function ApplicantsClient({ initialApplicants }: { initialApplica
                 </tr>
               ) : (
                 applicants.map((app) => (
-                  <tr key={`${app.id}-${app.jobId}`} style={{ borderBottom: "1px solid var(--border-color)", transition: "background-color 0.2s", backgroundColor: selectedIds.has(app.id) ? "var(--bg-elevated)" : "transparent" }}>
+                  <tr key={`${app.id}-${app.jobId}`} style={{ borderBottom: "1px solid var(--border-color)", transition: "background-color 0.2s", backgroundColor: selectedIds.has(app.id) ? "rgba(99,102,241,0.06)" : app.status === "shortlisted" ? "rgba(245,158,11,0.04)" : "transparent" }}>
                     <td style={{ padding: "var(--space-4)" }}>
                       <input 
                         type="checkbox" 
@@ -118,7 +169,9 @@ export default function ApplicantsClient({ initialApplicants }: { initialApplica
                           {app.avatarUrl ? <Image src={app.avatarUrl} alt="Avatar" width={40} height={40} style={{width: "100%", height: "100%", objectFit:"cover"}} /> : <UserCircle size={24} color="var(--text-secondary)" />}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 600 }}>{app.firstName} {app.lastName}</div>
+                          <Link href={`/portfolio/${app.id}`} style={{ fontWeight: 600, color: "var(--primary-color)", textDecoration: "none" }}>
+                            {app.firstName} {app.lastName}
+                          </Link>
                           <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{app.email}</div>
                           {app.resumeUrl && (
                             <a href={app.resumeUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.75rem", color: "var(--primary-color)", marginTop: "4px", display: "inline-block", textDecoration: "none" }}>
@@ -137,14 +190,26 @@ export default function ApplicantsClient({ initialApplicants }: { initialApplica
                       </div>
                     </td>
                     <td style={{ padding: "var(--space-4)" }}>
-                      <span className={`status-pill status-${app.status === 'selected' ? 'approved' : 'pending'}`}>
-                        {app.status === 'selected' ? 'Selected (Emails Sent)' : 'Applied'}
+                      <span className={`status-pill status-${app.status === 'selected' ? 'approved' : app.status === 'shortlisted' ? 'pending' : 'draft'}`}>
+                        {app.status === 'selected' ? '✓ Selected' : app.status === 'shortlisted' ? '★ Shortlisted' : 'Applied'}
                       </span>
                     </td>
                     <td style={{ padding: "var(--space-4)" }}>
-                       <button className="btn btn-outline" style={{ padding: "4px 8px", fontSize: "0.875rem" }} onClick={() => alert("Full Profile View Component coming soon!")}>
-                         View Details <ChevronRight size={14} />
-                       </button>
+                      <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                        {app.status !== "selected" && (
+                          <button
+                            className="btn btn-outline"
+                            style={{ padding: "4px 10px", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "4px", color: app.status === "shortlisted" ? "#f59e0b" : undefined, borderColor: app.status === "shortlisted" ? "#f59e0b" : undefined }}
+                            onClick={() => handleShortlist(app.applicationId)}
+                          >
+                            {app.status === "shortlisted" ? <StarOff size={14} /> : <Star size={14} />}
+                            {app.status === "shortlisted" ? "Undo" : "Shortlist"}
+                          </button>
+                        )}
+                        <Link href={`/portfolio/${app.id}`} className="btn btn-outline" style={{ padding: "4px 8px", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "4px", textDecoration: "none" }}>
+                          Portfolio <ChevronRight size={14} />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -153,6 +218,181 @@ export default function ApplicantsClient({ initialApplicants }: { initialApplica
           </table>
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "24px" }}>
+          <a
+             href={`?page=${currentPage - 1}`}
+             className="btn btn-outline"
+             style={{ opacity: currentPage <= 1 ? 0.5 : 1, pointerEvents: currentPage <= 1 ? "none" : "auto", display: "inline-block", textDecoration: "none" }}
+          >
+            Previous
+          </a>
+          <span style={{ display: "flex", alignItems: "center", fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>
+             Page {currentPage} of {totalPages}
+          </span>
+          <a
+             href={`?page=${currentPage + 1}`}
+             className="btn btn-outline"
+             style={{ opacity: currentPage >= totalPages ? 0.5 : 1, pointerEvents: currentPage >= totalPages ? "none" : "auto", display: "inline-block", textDecoration: "none" }}
+          >
+            Next
+          </a>
+        </div>
+      )}
+
+      {/* Full Profile Modal */}
+      {viewingProfile && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} onClick={() => setViewingProfile(null)}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: "90%", maxWidth: "800px", maxHeight: "90vh", overflowY: "auto", position: "relative", padding: "0" }}>
+            <button onClick={() => setViewingProfile(null)} style={{ position: "sticky", top: "16px", left: "calc(100% - 40px)", zIndex: 10, background: "var(--bg-elevated)", border: "none", borderRadius: "50%", padding: "8px", cursor: "pointer", boxShadow: "var(--shadow-sm)" }}>
+              <X size={20} color="var(--text-primary)" />
+            </button>
+            
+            {isLoadingProfile ? (
+              <div style={{ padding: "100px", textAlign: "center" }}><span className="spinner"></span><p style={{ marginTop: "16px", color: "var(--text-secondary)" }}>Loading full profile...</p></div>
+            ) : profileData ? (
+              <div>
+                {/* Header */}
+                <div style={{ background: "linear-gradient(135deg, var(--bg-hover) 0%, transparent 100%)", padding: "24px 32px", borderBottom: "1px solid var(--border-color)" }}>
+                  <div style={{ display: "flex", gap: "20px", alignItems: "center", flexWrap: "wrap" }}>
+                    <div style={{ width: "70px", height: "70px", borderRadius: "50%", overflow: "hidden", background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {profileData.user.avatarUrl ? <Image src={profileData.user.avatarUrl} alt="Avatar" width={70} height={70} style={{width: "100%", height: "100%", objectFit:"cover"}} /> : <UserCircle size={40} color="var(--text-secondary)" />}
+                    </div>
+                    <div>
+                      <h2 style={{ fontSize: "1.5rem", margin: 0, fontWeight: 700 }}>{profileData.user.firstName} {profileData.user.lastName}</h2>
+                      <p style={{ fontSize: "0.9375rem", color: "var(--text-secondary)", margin: "4px 0 0 0" }}>{profileData.profile.department} (Year {profileData.profile.year}, Sec {profileData.profile.section})</p>
+                      <div style={{ display: "flex", gap: "16px", marginTop: "8px", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>📧 {profileData.user.email}</span>
+                        {profileData.user.phone && <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>📱 {profileData.user.phone}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="profile-grid" style={{ padding: "32px" }}>
+                  {/* Left Column */}
+                  <div>
+                    {profileData.profile.professionalSummary && (
+                      <div style={{ marginBottom: "32px" }}>
+                        <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "1.25rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "8px", marginBottom: "16px" }}><Briefcase size={20} /> Professional Summary</h3>
+                        <p style={{ lineHeight: 1.6, color: "var(--text-secondary)", fontSize: "0.9375rem" }}>{profileData.profile.professionalSummary}</p>
+                      </div>
+                    )}
+
+                    {profileData.education.length > 0 && (
+                      <div style={{ marginBottom: "32px" }}>
+                        <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "1.25rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "8px", marginBottom: "16px" }}><GraduationCap size={20} /> Education</h3>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                          {profileData.education.map((edu: any, i: number) => (
+                            <div key={i} style={{ background: "var(--bg-elevated)", padding: "16px", borderRadius: "8px" }}>
+                              <h4 style={{ margin: "0 0 4px 0", fontSize: "1rem" }}>{edu.degree} {edu.fieldOfStudy ? `in ${edu.fieldOfStudy}` : ""}</h4>
+                              <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.875rem" }}>{edu.institution}</p>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "12px", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                                <span>{edu.startYear} - {edu.endYear || "Present"}</span>
+                                {edu.score && <span style={{ fontWeight: 600, color: "var(--primary-color)" }}>Score: {edu.score}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {profileData.projects.length > 0 && (
+                      <div style={{ marginBottom: "32px" }}>
+                        <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "1.25rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "8px", marginBottom: "16px" }}><Code size={20} /> Projects</h3>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                          {profileData.projects.map((proj: any, i: number) => (
+                            <div key={i} style={{ background: "var(--bg-elevated)", padding: "16px", borderRadius: "8px", borderLeft: "3px solid var(--primary-color)" }}>
+                              <h4 style={{ margin: "0 0 8px 0", fontSize: "1rem", display: "flex", justifyContent: "space-between" }}>
+                                {proj.title}
+                                {proj.projectUrl && <a href={proj.projectUrl} target="_blank" rel="noreferrer" style={{ color: "var(--primary-color)" }}><ExternalLink size={16} /></a>}
+                              </h4>
+                              <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.875rem", lineHeight: 1.5 }}>{proj.description}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column */}
+                  <div>
+                    <div style={{ background: "var(--bg-elevated)", padding: "20px", borderRadius: "12px", marginBottom: "24px" }}>
+                      <h4 style={{ fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-secondary)", margin: "0 0 16px 0" }}>Metrics</h4>
+                      <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: "12px", borderBottom: "1px solid var(--border-color)", marginBottom: "12px" }}>
+                        <span style={{ color: "var(--text-secondary)" }}>CGPA</span>
+                        <span style={{ fontWeight: 700, fontSize: "1.125rem", color: "var(--primary-color)" }}>{profileData.profile.cgpa || "N/A"}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ color: "var(--text-secondary)" }}>Profile Score</span>
+                        <span style={{ fontWeight: 700, fontSize: "1.125rem" }}>{profileData.profile.profileCompletionScore}/100</span>
+                      </div>
+                    </div>
+
+                    {profileData.skills.length > 0 && (
+                      <div style={{ marginBottom: "24px" }}>
+                        <h4 style={{ fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-secondary)", margin: "0 0 12px 0", display: "flex", alignItems: "center", gap: "6px" }}><Target size={16} /> Skills</h4>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                          {profileData.skills.map((skill: any, i: number) => (
+                            <span key={i} style={{ background: "var(--bg-hover)", padding: "4px 10px", borderRadius: "20px", fontSize: "0.8125rem", fontWeight: 500 }}>
+                              {skill.skillName}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {profileData.certs.length > 0 && (
+                      <div style={{ marginBottom: "24px" }}>
+                        <h4 style={{ fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-secondary)", margin: "0 0 12px 0", display: "flex", alignItems: "center", gap: "6px" }}><Award size={16} /> Certifications</h4>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          {profileData.certs.map((cert: any, i: number) => (
+                            <div key={i} style={{ fontSize: "0.875rem" }}>
+                              <div style={{ fontWeight: 500 }}>{cert.name}</div>
+                              <div style={{ color: "var(--text-secondary)", fontSize: "0.8125rem", display: "flex", justifyContent: "space-between" }}>
+                                <span>{cert.issuingOrg}</span>
+                                {cert.credentialUrl && <a href={cert.credentialUrl} target="_blank" rel="noreferrer" style={{ color: "var(--primary-color)" }}>Verify</a>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {profileData.links.length > 0 && (
+                      <div>
+                        <h4 style={{ fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-secondary)", margin: "0 0 12px 0" }}>External Links</h4>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          {profileData.links.map((link: any, i: number) => (
+                            <a key={i} href={link.url} target="_blank" rel="noreferrer" style={{ fontSize: "0.875rem", color: "var(--primary-color)", display: "flex", gap: "8px", alignItems: "center", textDecoration: "none" }}>
+                              <ExternalLink size={14} /> {link.platform}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .profile-grid {
+          display: grid;
+          grid-template-columns: 2fr 1fr;
+          gap: 32px;
+        }
+        @media (max-width: 768px) {
+          .profile-grid {
+            grid-template-columns: 1fr;
+            gap: 24px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

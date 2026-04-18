@@ -1,73 +1,55 @@
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import bcrypt from "bcryptjs";
-import { redirect } from "next/navigation";
-import { ShieldAlert } from "lucide-react";
+"use client";
 
-export default async function CreateUserPage() {
-  const session = await auth();
-  if (!session?.user?.role || !["principal", "dean", "placement_officer"].includes(session.user.role)) {
-    redirect("/");
-  }
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ShieldAlert, Loader2 } from "lucide-react";
+import { createUserAction } from "@/app/actions/admin";
 
-  async function createUserAction(formData: FormData) {
-    "use server";
-    
-    // Auth Validation Over-check
-    const session = await auth();
-    if (!session?.user?.role || !["principal", "dean", "placement_officer"].includes(session.user.role)) {
-      throw new Error("Unauthorized");
+export default function CreateUserPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const result = await createUserAction(formData);
+
+    if (result.error) {
+      setError(result.error);
+      setLoading(false);
+    } else {
+      router.push("/users");
     }
-
-    const email = formData.get("email") as string;
-    const firstName = formData.get("firstName") as string;
-    const lastName = formData.get("lastName") as string;
-    const password = formData.get("password") as string;
-    const role = formData.get("role") as string;
-
-    const validRoles = ["student", "tutor", "placement_coordinator", "hod", "dean", "placement_officer", "principal", "company", "alumni"] as const;
-    type UserRole = typeof validRoles[number];
-
-    if (!email || !firstName || !lastName || !password || !role) {
-      throw new Error("All parameters are required.");
-    }
-
-    if (!validRoles.includes(role as UserRole)) {
-      throw new Error("Invalid role selected.");
-    }
-
-    const passwordHash = await bcrypt.hash(password, 12);
-
-    try {
-      await db.insert(users).values({
-        email,
-        passwordHash,
-        firstName,
-        lastName,
-        role: role as UserRole,
-        isActive: true,
-      });
-    } catch(err) {
-      // In case of conflict like duplicate emails
-      console.error(err);
-      // To keep things simple in V1 we just redirect upon completion 
-      // or error since this relies simply on standard HTTP Post
-    }
-
-    redirect("/users");
   }
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", justifyContent: "center", paddingTop: "var(--space-8)" }}>
       <div className="card" style={{ width: "100%", maxWidth: "600px", padding: "var(--space-8)" }}>
         <div style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
-          <ShieldAlert size={48} color="var(--primary-color)" style={{ margin: "0 auto", marginBottom: "var(--space-4)" }} />
+          <ShieldAlert size={48} color="var(--color-primary)" style={{ margin: "0 auto", marginBottom: "var(--space-4)" }} />
           <h1 style={{ fontSize: "1.75rem", fontWeight: 700 }}>Create User Account</h1>
           <p style={{ color: "var(--text-secondary)", marginTop: "var(--space-2)" }}>Create a new platform user with a specific role and secure credentials.</p>
         </div>
 
-        <form action={createUserAction} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+        {error && (
+          <div style={{ 
+            color: "var(--color-danger)", 
+            padding: "16px", 
+            marginBottom: "var(--space-4)",
+            background: "rgba(239, 68, 68, 0.1)", 
+            borderRadius: "var(--radius-md)", 
+            fontSize: "0.875rem",
+            border: "1px solid rgba(239, 68, 68, 0.2)"
+          }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <label style={{ fontSize: "0.875rem", fontWeight: 500 }}>First Name</label>
@@ -94,6 +76,7 @@ export default async function CreateUserPage() {
               <option value="dean">Dean</option>
               <option value="placement_officer">Placement Officer</option>
               <option value="company">Corporate Entity (Company)</option>
+              <option value="alumni">Alumni</option>
               <option value="principal">Principal</option>
             </select>
           </div>
@@ -101,13 +84,19 @@ export default async function CreateUserPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <label style={{ fontSize: "0.875rem", fontWeight: 500 }}>System Password</label>
             <input type="password" name="password" required placeholder="Enter secure initialization password..." style={{ padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }} />
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0 }}>Required length: 8 characters minimum.</p>
           </div>
 
-          <button type="submit" className="button" style={{ marginTop: "var(--space-4)", width: "100%", justifyContent: "center", height: "45px", fontSize: "1rem" }}>
-            Create Account
+          <button type="submit" className="button" disabled={loading} style={{ marginTop: "var(--space-4)", width: "100%", justifyContent: "center", height: "45px", fontSize: "1rem", display: "flex", alignItems: "center", gap: "8px" }}>
+            {loading ? <Loader2 size={18} className="animate-spin" /> : "Create Account"}
           </button>
         </form>
       </div>
+
+      <style>{`
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }

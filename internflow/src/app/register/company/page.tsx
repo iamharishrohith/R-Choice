@@ -28,12 +28,12 @@ export default function RegisterCompanyPage() {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100dvh", alignItems: "center", justifyContent: "center", background: "var(--bg-primary)", padding: "var(--space-4)" }}>
+    <main style={{ display: "flex", minHeight: "100dvh", alignItems: "center", justifyContent: "center", background: "var(--bg-primary)", padding: "var(--space-4)" }}>
       <div className="card animate-fade-in" style={{ padding: "var(--space-6)", width: "100%", maxWidth: "600px" }}>
         
         <div style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
           <div style={{ 
-            width: "64px", height: "64px", background: "var(--primary-color)", 
+            width: "64px", height: "64px", background: "var(--color-primary)", 
             borderRadius: "16px", display: "flex", alignItems: "center", 
             justifyContent: "center", margin: "0 auto var(--space-4)",
             color: "white"
@@ -65,7 +65,7 @@ export default function RegisterCompanyPage() {
 
             <div className="input-group" style={{ gridColumn: "1 / -1" }}>
               <hr style={{ border: 0, borderTop: "1px solid var(--border-color)", margin: "var(--space-4) 0" }} />
-              <h4 style={{ margin: "0 0 var(--space-2) 0", color: "var(--text-secondary)" }}>HR POC Details</h4>
+              <h3 style={{ margin: "0 0 var(--space-2) 0", color: "var(--text-secondary)" }}>HR POC Details</h3>
             </div>
 
             <div className="input-group">
@@ -95,7 +95,7 @@ export default function RegisterCompanyPage() {
 
         <div style={{ textAlign: "center", marginTop: "var(--space-6)" }}>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-            Already a partner? <Link href="/" style={{ color: "var(--primary-color)", fontWeight: 600 }}>Sign in</Link>
+            Already a partner? <Link href="/" style={{ color: "var(--color-primary-dark)", fontWeight: 600 }}>Sign in</Link>
           </p>
         </div>
 
@@ -104,6 +104,6 @@ export default function RegisterCompanyPage() {
         .animate-spin { animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
       `}</style>
-    </div>
+    </main>
   );
 }

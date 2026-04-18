@@ -148,7 +148,7 @@
   font-family: var(--font-heading);
   font-size: 1.5rem;
   font-weight: 800;
-  color: var(--rathinam-blue);
+  color: #1578A8;
 }
 .logoText span {
   color: var(--rathinam-purple);
@@ -502,7 +502,7 @@
   font-size: 0.875rem;
 }
 .ctaText small {
-  color: var(--text-muted);
+  color: #64707D;
   font-size: 0.75rem;
   font-weight: 500;
 }
@@ -765,13 +765,13 @@
   color: var(--text-muted);
 }
 .loginFooter a {
-  color: var(--color-primary);
+  color: var(--color-primary-dark);
   font-weight: 600;
 }
 
 .smallRegisterLink {
   font-size: 0.8125rem;
-  color: var(--rathinam-orange);
+  color: var(--color-primary-dark);
   font-weight: 600;
   text-decoration: underline;
 }

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { users, internshipRequests, jobPostings, studentProfiles } from "@/lib/db/schema";
-import { BarChart, Users, FileText, CheckCircle, Clock, XCircle, Briefcase } from "lucide-react";
+import { Users, FileText, Briefcase } from "lucide-react";
 import { eq, sql } from "drizzle-orm";
 
 import { Sparkline } from "@/components/ui/charts/Sparkline";
@@ -8,17 +8,36 @@ import { DonutChart } from "@/components/ui/charts/DonutChart";
 import { LiquidGauge } from "@/components/ui/charts/LiquidGauge";
 import { Treemap } from "@/components/ui/charts/Treemap";
 
-// Helper for deterministic synthetic data traces
-const generateTrace = (base: number, length: number = 10) => {
-  return Array.from({ length }).map((_, i) => Math.max(0, base + Math.sin(i) * (base * 0.2) + (Math.random() - 0.5) * (base * 0.1)));
-};
+// Helper to bucket dates into a 12-month array
+function getMonthlyTimeline(dates: (Date | null)[]) {
+  const currentYear = new Date().getFullYear();
+  const buckets = Array(12).fill(0);
+  let total = 0;
+  
+  // Create cumulative progression through the year
+  dates.forEach(d => {
+    if (d && d.getFullYear() === currentYear) {
+      buckets[d.getMonth()]++;
+    }
+  });
+
+  // Calculate cumulative running totals for the sparkline
+  for (let i = 0; i < 12; i++) {
+    total += buckets[i];
+    buckets[i] = total;
+  }
+  
+  // If no data, return flatline
+  if (total === 0) return Array(12).fill(0);
+  return buckets;
+}
 
 export default async function AnalyticsPage() {
   // Aggregate stats via Drizzle (Parallelized for performance)
   const [totalStudentsRes, totalCompaniesRes, totalJobsRes, requestsStats] = await Promise.all([
-    db.select({ count: sql`count(*)` }).from(users).where(eq(users.role, "student")),
-    db.select({ count: sql`count(*)` }).from(users).where(eq(users.role, "company")),
-    db.select({ count: sql`count(*)` }).from(jobPostings),
+    db.select({ createdAt: users.createdAt }).from(users).where(eq(users.role, "student")),
+    db.select({ createdAt: users.createdAt }).from(users).where(eq(users.role, "company")),
+    db.select({ createdAt: jobPostings.createdAt }).from(jobPostings),
     db.select({
       status: internshipRequests.status,
       count: sql`count(*)`
@@ -27,9 +46,13 @@ export default async function AnalyticsPage() {
     .groupBy(internshipRequests.status)
   ]);
 
-  const totalStudents = Number(totalStudentsRes[0].count) || 0;
-  const totalCompanies = Number(totalCompaniesRes[0].count) || 0;
-  const totalJobs = Number(totalJobsRes[0].count) || 0;
+  const totalStudents = totalStudentsRes.length || 0;
+  const totalCompanies = totalCompaniesRes.length || 0;
+  const totalJobs = totalJobsRes.length || 0;
+
+  const studentTrace = getMonthlyTimeline(totalStudentsRes.map(u => u.createdAt));
+  const companyTrace = getMonthlyTimeline(totalCompaniesRes.map(c => c.createdAt));
+  const jobTrace = getMonthlyTimeline(totalJobsRes.map(j => j.createdAt));
 
   let approved = 0, pending = 0, rejected = 0;
   requestsStats.forEach(stat => {
@@ -38,8 +61,6 @@ export default async function AnalyticsPage() {
     else pending += Number(stat.count); // any pending tier
   });
   
-  // No synthetic fallback — display actual zeros if DB is empty
-
   const pipelineData = [
     { label: "Approved Internships", value: approved, color: "#10b981" },
     { label: "Awaiting Review", value: pending, color: "#f59e0b" },
@@ -71,7 +92,7 @@ export default async function AnalyticsPage() {
     color: deptColors[d.department] || "#6b7280",
   }));
 
-  const placementRate = Math.min(100, Math.round((approved / totalStudents) * 100)) || 0;
+  const placementRate = Math.min(100, Math.round((approved / (totalStudents || 1)) * 100)) || 0;
 
   return (
     <div className="animate-fade-in">
@@ -93,7 +114,7 @@ export default async function AnalyticsPage() {
             </div>
           </div>
           <div style={{ marginTop: "auto", position: "relative", zIndex: 0, margin: "0 calc(var(--space-4) * -1) calc(var(--space-4) * -1)" }}>
-             <Sparkline data={generateTrace(totalStudents)} color="#6366f1" height={40} />
+             <Sparkline data={studentTrace} color="#6366f1" height={40} />
           </div>
         </div>
 
@@ -108,7 +129,7 @@ export default async function AnalyticsPage() {
             </div>
           </div>
           <div style={{ marginTop: "auto", position: "relative", zIndex: 0, margin: "0 calc(var(--space-4) * -1) calc(var(--space-4) * -1)" }}>
-             <Sparkline data={generateTrace(totalCompanies)} color="#a855f7" height={40} />
+             <Sparkline data={companyTrace} color="#a855f7" height={40} />
           </div>
         </div>
 
@@ -123,7 +144,7 @@ export default async function AnalyticsPage() {
             </div>
           </div>
           <div style={{ marginTop: "auto", position: "relative", zIndex: 0, margin: "0 calc(var(--space-4) * -1) calc(var(--space-4) * -1)" }}>
-             <Sparkline data={generateTrace(totalJobs)} color="#0ea5e9" height={40} />
+             <Sparkline data={jobTrace} color="#0ea5e9" height={40} />
           </div>
         </div>
       </div>

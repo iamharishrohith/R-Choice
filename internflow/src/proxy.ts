@@ -1,6 +1,24 @@
 import NextAuth from "next-auth";
 import { authConfig } from "@/lib/auth.config";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+// ── Rate Limiter (In-Memory LRU) ──
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_POINTS = 50;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+
+function getRateLimitStatus(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  if (record.count >= RATE_LIMIT_POINTS) return false;
+  record.count += 1;
+  return true;
+}
 
 const { auth } = NextAuth(authConfig);
 
@@ -83,6 +101,19 @@ const roleRoutes: Record<string, string[]> = {
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
+
+  // ── Rate Limiting on sensitive routes ──
+  const isRateLimited = pathname.startsWith("/api/") || pathname.startsWith("/login") || pathname.includes("/submit");
+  if (isRateLimited) {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown-ip";
+    if (!getRateLimitStatus(ip)) {
+      console.warn(`[Rate Limiter] Blocked IP: ${ip} on route ${pathname}`);
+      return new NextResponse(
+        JSON.stringify({ success: false, message: "Too many requests. Please try again later." }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  }
 
   // Allow public routes
   if (publicRoutes.some((route) => route === "/" ? pathname === "/" : pathname.startsWith(route))) {

@@ -98,18 +98,18 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
             {/* Projects */}
             {profile.projects?.length > 0 && (
               <div className="card stagger-2">
-                <h3 style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "var(--space-4)" }}>
+                <h2 style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "var(--space-4)" }}>
                   <Code size={20} color="var(--color-primary)" /> Top Projects
-                </h3>
+                </h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
                   {profile.projects.map((p: any, i: number) => (
                     <div key={i} style={{ borderLeft: "2px solid var(--border-color)", paddingLeft: "16px" }}>
-                      <h4 style={{ margin: "0 0 4px 0", display: "flex", justifyContent: "space-between" }}>
+                      <h3 style={{ margin: "0 0 4px 0", display: "flex", justifyContent: "space-between" }}>
                         {p.title}
                         {p.projectUrl && (
-                          <a href={p.projectUrl} target="_blank" style={{ color: "var(--color-primary)" }}><ExternalLink size={14} /></a>
+                          <a href={p.projectUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary)" }}><ExternalLink size={14} /></a>
                         )}
-                      </h4>
+                      </h3>
                       <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{p.description}</p>
                     </div>
                   ))}
@@ -120,9 +120,9 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
             {/* Certifications */}
             {profile.certifications?.length > 0 && (
               <div className="card stagger-3">
-                <h3 style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "var(--space-4)" }}>
+                <h2 style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "var(--space-4)" }}>
                   <Award size={20} color="var(--color-warning)" /> Certifications
-                </h3>
+                </h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
                   {profile.certifications.map((c: any, i: number) => (
                     <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
@@ -130,10 +130,10 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
                         <FileText size={16} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: "0 0 2px 0" }}>{c.name}</h4>
+                        <h3 style={{ margin: "0 0 2px 0" }}>{c.name}</h3>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                           <span>{c.issuingOrg}</span>
-                          {c.credentialUrl && <a href={c.credentialUrl} target="_blank" style={{ color: "var(--color-primary)" }}>Verify</a>}
+                          {c.credentialUrl && <a href={c.credentialUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary)" }}>Verify</a>}
                         </div>
                       </div>
                     </div>
@@ -154,6 +154,7 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
                     key={i} 
                     href={link.url}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="vcard-link"
                     style={{ 
                       display: "flex", 
@@ -170,7 +171,7 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
                       <LinkIcon size={18} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <h4 style={{ margin: 0, fontSize: "1rem" }}>{link.title}</h4>
+                      <h3 style={{ margin: 0, fontSize: "1rem" }}>{link.title}</h3>
                       <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)" }}>{link.platform || "External Link"}</p>
                     </div>
                     <ExternalLink size={16} color="var(--text-muted)" />
@@ -182,7 +183,7 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
             {/* Skills */}
             {profile.skills?.length > 0 && (
               <div className="card stagger-2">
-                <h3 style={{ fontSize: "1rem", marginBottom: "var(--space-4)" }}>Core Skills</h3>
+                <h2 style={{ fontSize: "1rem", marginBottom: "var(--space-4)" }}>Core Skills</h2>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   {profile.skills.map((s: any, i: number) => (
                     <span 

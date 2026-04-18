@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { Search, MapPin, Building2, Calendar, Briefcase, Sparkles, Zap, Clock, AlertTriangle, Layers, Grid2x2, Banknote } from "lucide-react";
 import ApplyButton from "./ApplyButton";
@@ -48,8 +48,8 @@ export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: a
   const [minSalary, setMinSalary] = useState(0);
   const [activeFilter, setActiveFilter] = useState<"all" | "remote" | "onsite" | "paid" | "unpaid">("all");
 
-  // Memoize current time to avoid calling Date.now() during render (React 19 purity rule)
-  const nowMs = useMemo(() => Date.now(), []);
+  // Lazy initialize state to capture current time once without violating purity rules
+  const [nowMs] = useState(() => Date.now());
 
   const roleKeywords = useMemo(() => interests.map((i) => i.roleName.toLowerCase()), [interests]);
 
@@ -255,12 +255,23 @@ export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: a
                   >
                     {job.companyName?.[0] || <Briefcase size={24} />}
                   </div>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <h3 style={{ fontSize: "1.125rem", margin: "0 0 4px 0" }}>{job.title}</h3>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--text-secondary)", fontSize: "0.875rem", flexWrap: "wrap" }}>
                       <Building2 size={14} /> {job.companyName}
                       {isUrgent && <VelocityBadge />}
                     </div>
+                    {job.verifierName && (
+                      <div style={{
+                        display: "inline-flex", alignItems: "center", gap: "4px",
+                        marginTop: "6px", padding: "2px 10px", borderRadius: "100px",
+                        background: "rgba(16, 185, 129, 0.1)", color: "#10b981",
+                        fontSize: "0.7rem", fontWeight: 600,
+                      }}>
+                        ✓ Approved by {job.verifierName}
+                        {job.verifiedAt && <span style={{ opacity: 0.7 }}> • {new Date(job.verifiedAt).toLocaleDateString()}</span>}
+                      </div>
+                    )}
                   </div>
                 </div>
 

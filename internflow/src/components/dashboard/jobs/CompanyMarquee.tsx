@@ -24,7 +24,12 @@ export function CompanyMarquee({ jobs }: { jobs: any[] }) {
         Top Companies Hiring Now
       </p>
       
+      <span style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
+        Top companies hiring: {companies.join(", ")}
+      </span>
+      
       <motion.div 
+        aria-hidden="true"
         animate={{ x: ["0%", "-33.33%"] }}
         transition={{ ease: "linear", duration: 15 + companies.length, repeat: Infinity }}
         style={{ display: "flex", gap: "var(--space-8)", width: "max-content", alignItems: "center" }}
@@ -42,7 +47,7 @@ export function CompanyMarquee({ jobs }: { jobs: any[] }) {
             color: "var(--text-secondary)",
             boxShadow: "var(--shadow-sm)"
           }}>
-            <div style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--gradient-accent)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "0.75rem" }}>
+            <div aria-hidden="true" style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--gradient-accent)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "0.75rem" }}>
               {c.charAt(0)}
             </div>
             {c}

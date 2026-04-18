@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { advanceApproval } from "@/app/actions/approvals";
-import { CheckCircle, XCircle, Loader2, X, MessageSquare } from "lucide-react";
+import { advanceApproval, getRequestDetails } from "@/app/actions/approvals";
+import { CheckCircle, XCircle, Loader2, X, MessageSquare, Eye, Building, Calendar, GraduationCap, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ApprovalActions({ requestId }: { requestId: string }) {
@@ -11,8 +11,29 @@ export default function ApprovalActions({ requestId }: { requestId: string }) {
   const [done, setDone] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState<"approve" | "reject" | null>(null);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoData, setInfoData] = useState<any>(null);
+  const [loadingInfo, setLoadingInfo] = useState(false);
   const [comment, setComment] = useState("");
   const router = useRouter();
+
+  const handleFetchDetails = async () => {
+    setLoadingInfo(true);
+    setShowInfoModal(true);
+    try {
+      const res = await getRequestDetails(requestId);
+      if (res.success && res.data) {
+        setInfoData(res.data);
+      } else {
+        toast.error("Failed to load details.");
+        setShowInfoModal(false);
+      }
+    } catch {
+      toast.error("Error loading details");
+      setShowInfoModal(false);
+    }
+    setLoadingInfo(false);
+  };
 
   const openModal = (type: "approve" | "reject") => {
     setComment("");
@@ -65,6 +86,23 @@ export default function ApprovalActions({ requestId }: { requestId: string }) {
   return (
     <>
       <div style={{ display: "flex", gap: "8px" }}>
+        <button
+          onClick={handleFetchDetails}
+          disabled={loadingInfo}
+          className="btn btn-outline"
+          style={{
+            padding: "6px 12px",
+            fontSize: "0.8125rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+            borderRadius: "var(--border-radius-sm)",
+          }}
+          title="View comprehensive OD/Internship Request details"
+        >
+          {loadingInfo ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
+          Details
+        </button>
         <button
           onClick={() => openModal("approve")}
           disabled={loading !== null}
@@ -205,10 +243,98 @@ export default function ApprovalActions({ requestId }: { requestId: string }) {
         </div>
       )}
 
+      {/* Info Modal */}
+      {showInfoModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} onClick={() => setShowInfoModal(false)}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: "90%", maxWidth: "700px", maxHeight: "90vh", overflowY: "auto", position: "relative", padding: "32px", animation: "fadeIn 0.2s ease-out" }}>
+            <button onClick={() => setShowInfoModal(false)} style={{ position: "absolute", top: "16px", right: "16px", background: "var(--bg-elevated)", border: "none", borderRadius: "50%", padding: "8px", cursor: "pointer" }}>
+              <X size={20} color="var(--text-primary)" />
+            </button>
+            
+            {loadingInfo ? (
+              <div style={{ padding: "40px", textAlign: "center" }}><Loader2 size={32} className="animate-spin" style={{ margin: "auto", color: "var(--primary-color)" }} /><p style={{ marginTop: "16px", color: "var(--text-secondary)" }}>Loading request data...</p></div>
+            ) : infoData ? (
+              <div>
+                <h2 style={{ fontSize: "1.5rem", marginBottom: "8px", fontWeight: 700 }}>Request Overview</h2>
+                <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
+                  <span style={{ fontSize: "0.75rem", padding: "4px 8px", background: "var(--bg-hover)", borderRadius: "4px", textTransform: "capitalize", fontWeight: 600 }}>{infoData.request.applicationType} Entry</span>
+                  <span style={{ fontSize: "0.75rem", padding: "4px 8px", background: "rgba(34, 197, 94, 0.1)", color: "#22c55e", borderRadius: "4px", fontWeight: 600 }}>Status: {infoData.request.status}</span>
+                </div>
+
+                <div className="info-grid" style={{ marginBottom: "24px" }}>
+                  <div style={{ background: "var(--bg-elevated)", padding: "16px", borderRadius: "8px" }}>
+                    <h3 style={{ fontSize: "0.875rem", textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}><GraduationCap size={16} /> Student </h3>
+                    <div style={{ fontWeight: 600, fontSize: "1.125rem" }}>{infoData.student.user?.firstName} {infoData.student.user?.lastName}</div>
+                    <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>{infoData.student.profile?.department} (Yr {infoData.student.profile?.year}, Sec {infoData.student.profile?.section})</div>
+                    <div style={{ fontSize: "0.875rem", marginTop: "8px", display: "flex", justifyContent: "space-between" }}>
+                       <span style={{ color: "var(--text-secondary)" }}>CGPA:</span> <span style={{ fontWeight: 600 }}>{infoData.student.profile?.cgpa || "N/A"}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: "var(--bg-elevated)", padding: "16px", borderRadius: "8px" }}>
+                    <h3 style={{ fontSize: "0.875rem", textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}><Building size={16} /> Internship/Company</h3>
+                    <div style={{ fontWeight: 600, fontSize: "1.125rem" }}>{infoData.request.role || "Intern"}</div>
+                    <div style={{ fontSize: "0.875rem", color: "var(--primary-color)", fontWeight: 500, marginTop: "4px" }}>{infoData.request.companyName}</div>
+                    {infoData.externalDetails && (
+                      <div style={{ fontSize: "0.875rem", marginTop: "8px" }}>
+                         <span style={{ color: "var(--text-secondary)" }}>Stipend:</span> <span style={{ fontWeight: 500 }}>{infoData.externalDetails.stipend || "Not specified"}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {infoData.externalDetails && (
+                   <div style={{ background: "var(--bg-elevated)", padding: "16px", borderRadius: "8px", marginBottom: "24px" }}>
+                     <h3 style={{ fontSize: "0.875rem", textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}><Calendar size={16} /> Logistics & Contacts</h3>
+                     <div className="logistics-grid" style={{ fontSize: "0.875rem" }}>
+                       <div><span style={{ color: "var(--text-secondary)" }}>HR Name:</span> <span style={{ fontWeight: 500 }}>{infoData.externalDetails.hrName || "N/A"}</span></div>
+                       <div><span style={{ color: "var(--text-secondary)" }}>HR Contact:</span> <span style={{ fontWeight: 500 }}>{infoData.externalDetails.hrContact || "N/A"}</span></div>
+
+                       {infoData.externalDetails.offerLetterUrl && (
+                         <div style={{ gridColumn: "1 / -1", marginTop: "8px" }}>
+                           <a href={infoData.externalDetails.offerLetterUrl} target="_blank" rel="noreferrer" style={{ display: "inline-block", padding: "6px 12px", background: "var(--primary-color)", color: "white", textDecoration: "none", borderRadius: "4px", fontWeight: 600 }}>Review Offer Letter</a>
+                         </div>
+                       )}
+                     </div>
+                   </div>
+                )}
+                
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", borderTop: "1px solid var(--border-color)", paddingTop: "16px" }}>
+                   <button onClick={() => { setShowInfoModal(false); openModal("reject"); }} className="btn btn-outline" style={{ color: "#ef4444", borderColor: "#ef4444" }}>Reject Request</button>
+                   <button onClick={() => { setShowInfoModal(false); openModal("approve"); }} className="btn" style={{ background: "#22c55e", color: "white", border: "none" }}>Approve Request</button>
+                </div>
+              </div>
+            ) : <div style={{ textAlign: "center", color: "var(--text-secondary)" }}>No data found.</div>}
+          </div>
+        </div>
+      )}
+
       <style>{`
         .animate-spin { animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        .info-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+        }
+        .logistics-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        
+        @media (max-width: 600px) {
+          .info-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+          .logistics-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+        }
       `}</style>
     </>
   );

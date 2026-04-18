@@ -128,6 +128,14 @@ export default function NotificationsDropdown() {
                     <div 
                       key={notif.id}
                       onClick={() => handleNotificationClick(notif.id, notif.isRead)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          handleNotificationClick(notif.id, notif.isRead);
+                        }
+                      }}
                       style={{
                         padding: "16px",
                         borderBottom: "1px solid var(--border-color)",
