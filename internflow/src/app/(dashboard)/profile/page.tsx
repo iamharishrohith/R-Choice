@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import ProfileBuilderClient from "./ProfileBuilderClient";
 import DeanProfileClient from "./DeanProfileClient";
 import Link from "next/link";
-import { Settings, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 
 function EditProfileButton() {
   return (
@@ -94,7 +94,7 @@ export default async function ProfilePage() {
 
     const [user] = await db.select({ avatarUrl: users.avatarUrl }).from(users).where(eq(users.id, userId)).limit(1);
 
-    let links: any[] = [];
+    let links: Array<typeof studentLinks.$inferSelect> = [];
     if (profile) {
       links = await db.select().from(studentLinks).where(eq(studentLinks.studentId, profile.id)).orderBy(studentLinks.displayOrder);
     }

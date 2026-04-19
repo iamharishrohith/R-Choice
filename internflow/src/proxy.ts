@@ -1,7 +1,6 @@
 import NextAuth from "next-auth";
 import { authConfig } from "@/lib/auth.config";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
 // ── Rate Limiter (In-Memory LRU) ──
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();

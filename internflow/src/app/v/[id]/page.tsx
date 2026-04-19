@@ -5,8 +5,22 @@ import { GitHubHeatmap } from "@/components/profile/GitHubHeatmap";
 import Link from "next/link";
 import Image from "next/image";
 
+type PublicProfile = {
+  isPublic?: boolean;
+  avatarUrl?: string | null;
+  firstName: string;
+  lastName: string;
+  year?: number | string;
+  department?: string;
+  professionalSummary?: string | null;
+  links?: Array<{ platform?: string | null; url?: string | null; title?: string | null }>;
+  projects?: Array<{ title: string; projectUrl?: string | null; description?: string | null }>;
+  certifications?: Array<{ name: string; issuingOrg?: string | null; credentialUrl?: string | null }>;
+  skills?: Array<{ skillType?: string | null; proficiency?: string | null; skillName: string }>;
+};
+
 export default async function VCardPage({ params }: { params: { id: string } }) {
-  const profile = (await getPublicProfile(params.id)) as any;
+  const profile = (await getPublicProfile(params.id)) as PublicProfile | null;
 
   if (!profile) return notFound();
 
@@ -28,7 +42,7 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
   }
 
   // Find github username
-  const githubLink = profile.links?.find((l: any) => l.platform?.toLowerCase() === "github" && l.url);
+  const githubLink = profile.links?.find((l) => l.platform?.toLowerCase() === "github" && l.url);
   let githubUser = null;
   if (githubLink?.url) {
     try {
@@ -96,13 +110,13 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
             )}
 
             {/* Projects */}
-            {profile.projects?.length > 0 && (
+            {(profile.projects?.length ?? 0) > 0 && (
               <div className="card stagger-2">
                 <h2 style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "var(--space-4)" }}>
                   <Code size={20} color="var(--color-primary)" /> Top Projects
                 </h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                  {profile.projects.map((p: any, i: number) => (
+                  {profile.projects?.map((p, i: number) => (
                     <div key={i} style={{ borderLeft: "2px solid var(--border-color)", paddingLeft: "16px" }}>
                       <h3 style={{ margin: "0 0 4px 0", display: "flex", justifyContent: "space-between" }}>
                         {p.title}
@@ -118,13 +132,13 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
             )}
 
             {/* Certifications */}
-            {profile.certifications?.length > 0 && (
+            {(profile.certifications?.length ?? 0) > 0 && (
               <div className="card stagger-3">
                 <h2 style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "var(--space-4)" }}>
                   <Award size={20} color="var(--color-warning)" /> Certifications
                 </h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                  {profile.certifications.map((c: any, i: number) => (
+                  {profile.certifications?.map((c, i: number) => (
                     <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
                       <div style={{ width: 32, height: 32, background: "var(--bg-hover)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-warning)" }}>
                         <FileText size={16} />
@@ -147,12 +161,12 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
             
             {/* Links Block */}
-            {profile.links?.length > 0 && (
+            {(profile.links?.length ?? 0) > 0 && (
               <div className="card stagger-1" style={{ padding: "0" }}>
-                {profile.links.map((link: any, i: number) => (
+                {profile.links?.filter((link) => Boolean(link.url)).map((link, i: number) => (
                   <a 
                     key={i} 
-                    href={link.url}
+                    href={link.url || undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="vcard-link"
@@ -161,7 +175,7 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
                       alignItems: "center", 
                       gap: "12px", 
                       padding: "16px",
-                      borderBottom: i === profile.links.length - 1 ? "none" : "1px solid var(--border-color)",
+                      borderBottom: "1px solid var(--border-color)",
                       color: "inherit",
                       textDecoration: "none",
                       transition: "background var(--transition-fast)"
@@ -181,11 +195,11 @@ export default async function VCardPage({ params }: { params: { id: string } }) 
             )}
 
             {/* Skills */}
-            {profile.skills?.length > 0 && (
+            {(profile.skills?.length ?? 0) > 0 && (
               <div className="card stagger-2">
                 <h2 style={{ fontSize: "1rem", marginBottom: "var(--space-4)" }}>Core Skills</h2>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                  {profile.skills.map((s: any, i: number) => (
+                  {profile.skills?.map((s, i: number) => (
                     <span 
                       key={i} 
                       style={{ 

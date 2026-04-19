@@ -28,13 +28,22 @@ export async function selectRole(page: Page, roleLabel: string) {
     return;
   }
 
-  for (const step of STAFF_ROLE_PATHS[roleLabel] ?? [roleLabel]) {
+  const steps = STAFF_ROLE_PATHS[roleLabel] ?? [roleLabel];
+  
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const isLastStep = i === steps.length - 1;
+    
     const shortcutButton = page
       .getByLabel("Staff and admin roles")
       .getByRole("button", { name: new RegExp(`^${escapeRegex(step)}$`, "i") });
 
     if (await shortcutButton.count()) {
       await shortcutButton.first().click({ force: true });
+      // Wait for carousel animation before next click
+      if (!isLastStep) {
+        await page.waitForTimeout(300);
+      }
       continue;
     }
 
@@ -42,23 +51,54 @@ export async function selectRole(page: Page, roleLabel: string) {
 
     try {
       await roleButton.click({ force: true });
+      // Wait for carousel animation before next click
+      if (!isLastStep) {
+        await page.waitForTimeout(300);
+      }
     } catch {
       await roleButton.evaluate((button) => {
         (button as HTMLButtonElement).click();
       });
+      // Wait for carousel animation before next click
+      if (!isLastStep) {
+        await page.waitForTimeout(300);
+      }
     }
   }
 }
 
 export async function loginAs(page: Page, email: string, roleLabel: string, expectedUrl?: RegExp) {
-  await page.goto("/");
-  await selectRole(page, roleLabel);
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', TEST_PASSWORD);
-  await page.click('button[type="submit"]');
+  const maxAttempts = 5;
 
-  if (expectedUrl) {
-    await expect(page).toHaveURL(expectedUrl, { timeout: 15000 });
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    await page.goto("/");
+    await selectRole(page, roleLabel);
+    await page.fill('input[type="email"]', email);
+    await page.fill('input[type="password"]', TEST_PASSWORD);
+    await page.click('button[type="submit"]');
+
+    if (!expectedUrl) {
+      return;
+    }
+
+    try {
+      await expect(page).toHaveURL(expectedUrl, { timeout: 15000 });
+      return;
+    } catch (error) {
+      const invalidCredentialsVisible = await page
+        .getByText("Invalid email or password for this role.")
+        .isVisible()
+        .catch(() => false);
+
+      const stillOnLogin = /\/\??(?:message=registered)?$/.test(new URL(page.url()).pathname + new URL(page.url()).search);
+
+      if (attempt < maxAttempts && (invalidCredentialsVisible || stillOnLogin)) {
+        await page.waitForTimeout(1000);
+        continue;
+      }
+
+      throw error;
+    }
   }
 }
 

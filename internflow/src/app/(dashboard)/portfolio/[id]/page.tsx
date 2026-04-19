@@ -20,8 +20,6 @@ import {
   Award,
   FolderGit2,
   Link2,
-  FileText,
-  MapPin,
   Calendar,
   Star,
   ExternalLink,
@@ -353,8 +351,8 @@ export default async function PortfolioPage(props: { params: Promise<{ id: strin
             {links.filter(l => l.isActive).map(l => (
               <a key={l.id} href={l.url} target="_blank" rel="noopener noreferrer"
                 className="card" style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", cursor: "pointer", transition: "transform 0.15s", border: "1px solid var(--border-color)" }}
-                onMouseEnter={(e: any) => e.currentTarget.style.transform = "translateY(-2px)"}
-                onMouseLeave={(e: any) => e.currentTarget.style.transform = "translateY(0)"}
+                onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
+                onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
               >
                 <ExternalLink size={16} color="var(--color-primary)" />
                 <div>

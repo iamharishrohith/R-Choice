@@ -4,8 +4,6 @@ import { Mail, Shield, Clock, Plus } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-
-import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import DeleteUserButton from "./DeleteUserButton";
 

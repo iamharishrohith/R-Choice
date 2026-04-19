@@ -7,7 +7,7 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import bcrypt from "bcryptjs";
-import * as schema from "./schema";
+import * as schema from "../src/lib/db/schema";
 import * as dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
@@ -146,8 +146,9 @@ async function seedStudents() {
 
       console.log(`  ✅ ${student.regNo}  ${student.name.padEnd(28)}  → ${student.email}`);
       created++;
-    } catch (err: any) {
-      console.log(`  ❌ ${student.regNo}  ${student.name.padEnd(28)}  → ERROR: ${err.message?.slice(0, 80)}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.log(`  ❌ ${student.regNo}  ${student.name.padEnd(28)}  → ERROR: ${message.slice(0, 80)}`);
       errors++;
     }
   }

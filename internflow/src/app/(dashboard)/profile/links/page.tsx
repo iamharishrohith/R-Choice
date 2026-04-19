@@ -5,12 +5,14 @@ import { studentProfiles, studentLinks } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import LinksClient from "./LinksClient";
 
+type StudentLink = typeof studentLinks.$inferSelect;
+
 export default async function ProfileLinksPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/");
 
   const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
-  let links: any[] = [];
+  let links: StudentLink[] = [];
   
   if (profile) {
     links = await db.select().from(studentLinks).where(eq(studentLinks.studentId, profile.id)).orderBy(studentLinks.displayOrder);

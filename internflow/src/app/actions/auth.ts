@@ -1,9 +1,9 @@
 "use server";
 
-import { signIn, auth, signOut } from "@/lib/auth";
+import { signIn, auth } from "@/lib/auth";
 import { AuthError } from "next-auth";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { users, companyRegistrations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { sanitize, validateEmail } from "@/lib/validation";
@@ -72,7 +72,7 @@ export async function loginAction(formData: FormData) {
       role,
       redirectTo: getRedirectUrl(role),
     });
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof AuthError) {
       switch (error.type) {
         case "CredentialsSignin":
@@ -125,52 +125,55 @@ export async function registerCompany(formData: FormData) {
       return { error: "Password must be at least 8 characters long" };
     }
 
-    const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    if (existing.length > 0) {
+    const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    if (existing) {
       return { error: "An account with this email already exists" };
     }
 
     const newHash = await bcrypt.hash(password, 12);
     
-    // Wrap in transaction to prevent orphaned user without company profile
-    await db.transaction(async (tx) => {
-      const [newUser] = await tx.insert(users).values({
-        email,
-        passwordHash: newHash,
-        role: "company",
-        firstName: companyName, // For UI purposes
-        lastName: "Partner",
-        isActive: true,
-      }).returning({ id: users.id });
+    const result = await db.insert(users).values({
+      email,
+      passwordHash: newHash,
+      role: "company",
+      firstName: companyName,
+      lastName: "Partner",
+      isActive: true,
+    }).returning();
 
-      const { companyRegistrations } = await import("@/lib/db/schema");
-      await tx.insert(companyRegistrations).values({
+    if (!result || result.length === 0) {
+      return { error: "Failed to create user account" };
+    }
+
+    const newUser = result[0];
+
+    try {
+      await db.insert(companyRegistrations).values({
         userId: newUser.id,
         companyLegalName: companyName,
         companyType: "Private",
         industrySector: industry,
-        website: website,
-        hrName: hrName,
+        website,
+        hrName,
         hrEmail: email,
-        hrPhone: hrPhone,
+        hrPhone,
         address: "Please update",
         city: "Please update",
         state: "Please update",
         pinCode: "000000",
         status: "pending"
       });
-    });
+    } catch (innerError) {
+      await db.delete(users).where(eq(users.id, newUser.id));
+      throw innerError;
+    }
 
     return { success: true };
-  } catch (err: any) {
-    if (err.name === "ValidationError") {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "ValidationError") {
       return { error: err.message };
     }
-    console.error("Company registration error:", err);
+    console.error("[registerCompany] Error:", err);
     return { error: "Failed to create company account. Try again later." };
   }
-}
-
-export async function logoutAction() {
-  await signOut({ redirectTo: "/" });
 }

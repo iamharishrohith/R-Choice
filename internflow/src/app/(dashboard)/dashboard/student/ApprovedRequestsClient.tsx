@@ -3,7 +3,16 @@
 import { exportBonafidePDF, exportODFormPDF } from "@/lib/export-utils";
 import { Download, CheckCircle, FileText } from "lucide-react";
 
-export default function ApprovedRequestsClient({ requests, studentName }: { requests: any[], studentName: string }) {
+type ApprovedRequest = {
+  id: string;
+  companyName: string;
+  role: string;
+  approvedAt: string | Date | null;
+  startDate: string | Date;
+  endDate: string | Date;
+};
+
+export default function ApprovedRequestsClient({ requests, studentName }: { requests: ApprovedRequest[], studentName: string }) {
   if (!requests || requests.length === 0) return null;
 
   return (
@@ -18,7 +27,7 @@ export default function ApprovedRequestsClient({ requests, studentName }: { requ
               <p style={{ fontWeight: 600, fontSize: "1rem", margin: "0 0 8px 0" }}>{req.companyName}</p>
               <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: 0 }}>Role: {req.role}</p>
               <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "4px" }}>
-                Approved: {new Date(req.approvedAt).toLocaleDateString()}
+                Approved: {req.approvedAt ? new Date(req.approvedAt).toLocaleDateString() : "N/A"}
               </p>
             </div>
             <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>

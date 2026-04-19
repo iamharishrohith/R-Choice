@@ -6,6 +6,15 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PlusCircle, ExternalLink, Calendar, MapPin, Building2, FolderOpen, MessageSquare } from "lucide-react";
 
+type ApplicationLog = {
+  requestId: string;
+  action: string;
+  comment: string | null;
+  createdAt: Date | string | null;
+  approverName: string;
+  approverRole: string;
+};
+
 export default async function ApplicationsPage() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -22,7 +31,7 @@ export default async function ApplicationsPage() {
     .orderBy(desc(internshipRequests.createdAt));
 
   const appIds = applications.map(a => a.id);
-  let allLogs: any[] = [];
+  let allLogs: ApplicationLog[] = [];
   if (appIds.length > 0) {
     allLogs = await db
       .select({
@@ -40,7 +49,7 @@ export default async function ApplicationsPage() {
   }
 
   // Create a map to grab the latest log for each application
-  const latestLogsMap = allLogs.reduce((acc: any, log) => {
+  const latestLogsMap = allLogs.reduce<Record<string, ApplicationLog>>((acc, log) => {
     if (!acc[log.requestId]) {
       acc[log.requestId] = log;
     }
@@ -81,8 +90,8 @@ export default async function ApplicationsPage() {
             <FolderOpen size={48} />
           </div>
           <h2 style={{ marginBottom: "var(--space-2)" }}>No Applications Found</h2>
-          <p style={{ color: "var(--text-secondary)", maxWidth: "500px", margin: "0 auto" }}>
-            You haven't requested any internship approvals yet. When you secure an external opportunity or apply through the portal, it will show up here.
+            <p style={{ color: "var(--text-secondary)", maxWidth: "500px", margin: "0 auto" }}>
+            You haven&apos;t requested any internship approvals yet. When you secure an external opportunity or apply through the portal, it will show up here.
           </p>
         </div>
       ) : (

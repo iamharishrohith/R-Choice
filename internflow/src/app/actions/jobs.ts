@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { jobPostings, users, auditLogs } from "@/lib/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sanitize, sanitizeOptional, validateDate, ValidationError } from "@/lib/validation";
 
@@ -130,7 +130,7 @@ export async function fetchActiveJobs() {
     if (verifierIds.length > 0) {
       const verifiers = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
         .from(users)
-        .where(sql`${users.id} = ANY(${verifierIds})`);
+        .where(inArray(users.id, verifierIds));
       verifiers.forEach(v => { verifierMap[v.id] = `${v.firstName} ${v.lastName}`; });
     }
 

@@ -2,9 +2,15 @@
 
 import { motion } from "framer-motion";
 
-export function CompanyMarquee({ jobs }: { jobs: any[] }) {
+type MarqueeJob = {
+  companyName?: string | null;
+};
+
+export function CompanyMarquee({ jobs }: { jobs: MarqueeJob[] }) {
   // Extract unique companies from jobs
-  const companies = Array.from(new Set(jobs.map(j => j.companyName).filter(Boolean)));
+  const companies = Array.from(
+    new Set(jobs.map((j) => j.companyName).filter((name): name is string => Boolean(name)))
+  );
   
   if (companies.length < 3) return null; // Make sure we have enough for a marquee
 

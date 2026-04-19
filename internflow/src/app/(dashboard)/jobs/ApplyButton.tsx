@@ -4,13 +4,17 @@ import { useState } from "react";
 import { ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
 import { createPortalApplication } from "@/app/actions/applications";
 
-export default function ApplyButton({ job }: { job: any }) {
+type ApplyJob = {
+  id: string;
+};
+
+export default function ApplyButton({ job }: { job: ApplyJob }) {
   const [status, setStatus] = useState<"idle" | "loading" | "applied">("idle");
 
   const handleApply = async () => {
     setStatus("loading");
 
-    const result = await createPortalApplication(job.id, job.companyName, job.title);
+    const result = await createPortalApplication(job.id);
 
     if (result.error) {
       alert(result.error);

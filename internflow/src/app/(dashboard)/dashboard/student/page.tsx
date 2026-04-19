@@ -2,7 +2,7 @@ import styles from "./student.module.css";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { studentProfiles, internshipRequests, jobApplications, jobPostings, companyRegistrations, users } from "@/lib/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { Hand, FileEdit, FileText, Briefcase, Star, ShieldCheck, Clock } from "lucide-react";
 import Link from "next/link";
 import VerificationBannerClient from "./VerificationBannerClient";

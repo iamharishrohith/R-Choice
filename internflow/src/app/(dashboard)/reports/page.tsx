@@ -22,12 +22,13 @@ export default async function ReportsPage() {
   });
 
   // Fetch all schedules for this user's internships
-  const requestIds = approvedRequests.map((r: any) => r.id as string);
-  
-  let schedules: any[] = [];
+  const requestIds = approvedRequests.map((r) => r.id as string);
+
+  type WorkReportSchedule = typeof workReportSchedules.$inferSelect;
+  let schedules: WorkReportSchedule[] = [];
   if (requestIds.length > 0) {
     schedules = await db.query.workReportSchedules.findMany({
-      where: (s: any, { inArray }: any) => inArray(s.requestId, requestIds),
+      where: (s, { inArray: whereInArray }) => whereInArray(s.requestId, requestIds),
     });
   }
 
@@ -41,7 +42,7 @@ export default async function ReportsPage() {
     <div className="animate-fade-in" style={{ maxWidth: "1000px", margin: "0 auto", display: "grid", gap: "var(--space-6)" }}>
       <div className="page-header">
         <h1>Internship Logs & Reports</h1>
-        <p>Submit your periodic updates depending on your HOD's configured frequency.</p>
+        <p>Submit your periodic updates depending on your HOD&apos;s configured frequency.</p>
       </div>
 
       <div className="grid grid-2" style={{ gap: "var(--space-6)" }}>
@@ -51,7 +52,7 @@ export default async function ReportsPage() {
             <div className="card" style={{ textAlign: "center", padding: "var(--space-8)" }}>
               <Calendar size={48} style={{ color: "var(--text-tertiary)", margin: "0 auto var(--space-4)" }} />
               <h3>No Active Schedules</h3>
-              <p style={{ color: "var(--text-secondary)" }}>You don't have any internship reporting schedules assigned yet.</p>
+              <p style={{ color: "var(--text-secondary)" }}>You don&apos;t have any internship reporting schedules assigned yet.</p>
             </div>
           ) : (
             <div className="card">

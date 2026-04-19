@@ -5,7 +5,14 @@ import styles from "./profile.module.css";
 import { Save, User } from "lucide-react";
 import { saveDeanProfile } from "@/app/actions/profile";
 
-export default function DeanProfileClient({ initialData }: { initialData: any }) {
+type DeanProfile = {
+  firstName?: string;
+  lastName?: string;
+  phone?: string | null;
+  email?: string | null;
+};
+
+export default function DeanProfileClient({ initialData }: { initialData: DeanProfile }) {
   const [data, setData] = useState({
     firstName: initialData.firstName || "",
     lastName: initialData.lastName || "",
@@ -14,7 +21,7 @@ export default function DeanProfileClient({ initialData }: { initialData: any })
   });
   
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState({ text: "", type: "" });
+  const [message, setMessage] = useState<{ text: string; type: "" | "error" | "success" }>({ text: "", type: "" });
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

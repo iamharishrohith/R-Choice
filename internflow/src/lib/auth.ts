@@ -6,6 +6,8 @@ import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 
+type UserRole = (typeof users.$inferSelect)["role"];
+
 // Simple in-memory rate limiter to prevent brute force at the API level
 const rateLimitMap = new Map<string, { count: number; expiresAt: number }>();
 
@@ -37,7 +39,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const email = credentials.email as string;
         const password = credentials.password as string;
-        const role = credentials.role as string;
+        const role = credentials.role as UserRole;
 
         if (!checkRateLimit(email)) {
           console.warn(`[AUTH] Rate limit exceeded for email: ${email}`);
@@ -48,10 +50,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const [user] = await db
           .select()
           .from(users)
-          .where(and(eq(users.email, email), eq(users.role, role as any)))
+          .where(and(eq(users.email, email), eq(users.role, role)))
           .limit(1);
 
-        if (!user || !user.isActive) return null;
+        if (!user) {
+          console.warn(`[AUTH] User not found for email: ${email}, role: ${role}`);
+          return null;
+        }
+        
+        if (!user.isActive) {
+          console.warn(`[AUTH] User inactive: ${email}`);
+          return null;
+        }
 
         // Check if account is locked
         if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {

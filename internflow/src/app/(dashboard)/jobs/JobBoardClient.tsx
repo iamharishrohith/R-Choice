@@ -9,6 +9,23 @@ import { SwipeDeck } from "@/components/dashboard/jobs/SwipeDeck";
 import { CompanyMarquee } from "@/components/dashboard/jobs/CompanyMarquee";
 import { SalarySlider } from "@/components/dashboard/jobs/SalarySlider";
 
+type JobCard = {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  companyName: string | null;
+  stipendInfo: string | null;
+  stipendSalary?: string | null;
+  deadline: string;
+  verifiedAt?: string | Date | null;
+  verifierName?: string | null;
+};
+
+type Interest = {
+  roleName: string;
+};
+
 function DeadlineBadge({ deadline }: { deadline: string }) {
   const now = new Date();
   const dl = new Date(deadline);
@@ -42,7 +59,7 @@ function VelocityBadge() {
   );
 }
 
-export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: any[]; interests: any[]; isStudent: boolean }) {
+export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: JobCard[]; interests: Interest[]; isStudent: boolean }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "swipe">("grid");
   const [minSalary, setMinSalary] = useState(0);
@@ -299,7 +316,7 @@ export default function JobBoardClient({ jobs, interests, isStudent }: { jobs: a
 
                 <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "var(--space-4)", display: "flex", justifyContent: "center" }}>
                   {isStudent ? (
-                    <ApplyButton job={job as any} />
+                    <ApplyButton job={job} />
                   ) : (
                     <Link href={`/jobs/${job.id}`} className="btn btn-outline" style={{ display: "flex", width: "100%", justifyContent: "center", gap: "8px" }}>
                       View Details

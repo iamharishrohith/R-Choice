@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { signOut as clientSignOut } from "next-auth/react";
 
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -20,7 +21,6 @@ import {
   GitBranch,
 } from "lucide-react";
 import styles from "../../app/(dashboard)/layout.module.css";
-import { logoutAction } from "@/app/actions/auth";
 
 type NavItem = {
   label: string;
@@ -189,6 +189,16 @@ function getNavSections(role: string): NavSection[] {
   }
 }
 
+async function handleLogout(buttonId: string) {
+  const btn = document.getElementById(buttonId);
+  if (btn) {
+    btn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>';
+  }
+
+  await clientSignOut({ redirect: false });
+  window.location.assign("/");
+}
+
 function getMobileNavItems(role: string): NavItem[] {
   switch (role) {
     case "student":
@@ -289,19 +299,26 @@ export function DashboardShell({
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <div className={styles.userAvatar}>{initials}</div>
+          <div
+            className={styles.userAvatar}
+            style={{
+              overflow: "hidden",
+              backgroundImage: userAvatar ? `url(${userAvatar})` : undefined,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+            aria-label={userName}
+            title={userEmail}
+          >
+            {!userAvatar ? initials : null}
+          </div>
           <div className={styles.userInfo}>
             <p className={styles.userName}>{userName}</p>
-            <p className={styles.userRole}>{roleLabel}</p>
+            <p className={styles.userRole} title={userEmail}>{roleLabel}</p>
           </div>
           <button
             type="button"
-            onClick={async () => {
-              // simple visual feedback
-              const btn = document.getElementById("logout-btn");
-              if (btn) btn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>';
-              await logoutAction();
-            }}
+            onClick={() => handleLogout("logout-btn")}
             id="logout-btn"
             className={styles.logoutButton}
             aria-label="Sign out"
@@ -327,8 +344,22 @@ export function DashboardShell({
           <div className={styles.topBarRight}>
             <NotificationsDropdown />
             <Link href="/profile" style={{ textDecoration: "none" }}>
-              <div className={styles.userAvatar} style={{ width: 32, height: 32, fontSize: "0.75rem", cursor: "pointer" }}>
-                {initials}
+              <div
+                className={styles.userAvatar}
+                style={{
+                  width: 32,
+                  height: 32,
+                  fontSize: "0.75rem",
+                  cursor: "pointer",
+                  overflow: "hidden",
+                  backgroundImage: userAvatar ? `url(${userAvatar})` : undefined,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+                title={userEmail}
+                aria-label={userName}
+              >
+                {!userAvatar ? initials : null}
               </div>
             </Link>
           </div>
@@ -346,11 +377,7 @@ export function DashboardShell({
             <NotificationsDropdown />
             <button
               type="button"
-              onClick={async () => {
-                const btn = document.getElementById("mobile-logout-btn");
-                if (btn) btn.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>';
-                await logoutAction();
-              }}
+              onClick={() => handleLogout("mobile-logout-btn")}
               id="mobile-logout-btn"
               aria-label="Sign out"
               title="Sign out"

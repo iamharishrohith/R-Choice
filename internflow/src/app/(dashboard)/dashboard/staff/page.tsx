@@ -5,26 +5,28 @@ import { db } from "@/lib/db";
 import { users, internshipRequests } from "@/lib/db/schema";
 import { eq, count } from "drizzle-orm";
 
+type InternshipStatus = typeof internshipRequests.$inferSelect.status;
+
 export default async function StaffDashboard() {
   const session = await auth();
   const role = session?.user?.role;
 
   // Get pending approvals count based on role
   let pendingCount = 0;
-  const statusMap: Record<string, string> = {
+  const statusMap: Partial<Record<string, InternshipStatus>> = {
     tutor: "pending_tutor",
     placement_coordinator: "pending_coordinator",
     hod: "pending_hod",
-    dean: "pending_admin",
-    placement_officer: "pending_admin",
-    principal: "pending_admin",
+    dean: "pending_dean",
+    placement_officer: "pending_po",
+    principal: "pending_principal",
   };
   const pendingStatus = role ? statusMap[role] : null;
   if (pendingStatus) {
     const [result] = await db
       .select({ value: count() })
       .from(internshipRequests)
-      .where(eq(internshipRequests.status, pendingStatus as any));
+      .where(eq(internshipRequests.status, pendingStatus));
     pendingCount = result?.value ?? 0;
   }
 
@@ -52,7 +54,7 @@ export default async function StaffDashboard() {
           createdAt: internshipRequests.createdAt,
         })
         .from(internshipRequests)
-        .where(eq(internshipRequests.status, pendingStatus as any))
+        .where(eq(internshipRequests.status, pendingStatus))
         .orderBy(internshipRequests.createdAt)
         .limit(5)
     : [];

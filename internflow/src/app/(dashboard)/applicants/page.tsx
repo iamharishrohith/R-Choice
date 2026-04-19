@@ -4,6 +4,20 @@ import { eq, desc, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import ApplicantsClient from "./ApplicantsClient";
 
+type ApplicantRow = {
+  id: string;
+  applicationId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatarUrl: string | null;
+  status: string | null;
+  appliedAt: Date | string | null;
+  jobId: string;
+  jobTitle: string;
+  resumeUrl: string | null;
+};
+
 export default async function ApplicantsPage(props: { searchParams: Promise<{ page?: string }> }) {
   const session = await auth();
   const userId = session?.user?.id;
@@ -23,7 +37,7 @@ export default async function ApplicantsPage(props: { searchParams: Promise<{ pa
   const currentPage = parseInt(searchParams.page || "1", 10);
   const pageSize = 25;
 
-  let applicants: any[] = [];
+  let applicants: ApplicantRow[] = [];
   let totalPages = 1;
 
   if (companyId) {
@@ -63,7 +77,7 @@ export default async function ApplicantsPage(props: { searchParams: Promise<{ pa
       .offset(offsetCount);
       
       // Remap so 'id' is standard studentId for the UI
-      applicants = rawApps.map(a => ({
+      applicants = rawApps.map((a) => ({
         ...a,
         id: a.id,
         applicationId: a.appId

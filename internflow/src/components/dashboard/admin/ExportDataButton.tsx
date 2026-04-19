@@ -47,7 +47,7 @@ export function ExportDataButton() {
         setStatus("idle");
         setProgress(0);
       }, 3000);
-    } catch (err: any) {
+      } catch {
       toast.error("Failed to generate export file.");
       setStatus("idle");
       setProgress(0);
@@ -64,8 +64,8 @@ export function ExportDataButton() {
         position: "relative",
         overflow: "hidden"
       }}
-      onMouseEnter={(e: any) => { if (status==="idle") { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; } }}
-      onMouseLeave={(e: any) => { if (status==="idle") { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = ""; } }}
+      onMouseEnter={(e) => { if (status==="idle") { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "var(--shadow-card-hover)"; } }}
+      onMouseLeave={(e) => { if (status==="idle") { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = ""; } }}
     >
       {/* Progress Background */}
       <AnimatePresence>

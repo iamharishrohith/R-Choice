@@ -11,12 +11,36 @@ import { fetchFullStudentProfile } from "@/app/actions/profile";
 import { X, ExternalLink, GraduationCap, Code, Award, Target, Download } from "lucide-react";
 import { exportToCSV } from "@/lib/export-utils";
 
-export default function ApplicantsClient({ initialApplicants, currentPage = 1, totalPages = 1 }: { initialApplicants: any[], currentPage?: number, totalPages?: number }) {
-  const [applicants, setApplicants] = useState(initialApplicants);
+type ApplicantRow = {
+  id: string;
+  applicationId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatarUrl: string | null;
+  status: string | null;
+  appliedAt: string | Date | null;
+  jobId: string;
+  jobTitle: string;
+  resumeUrl: string | null;
+};
+
+type FullProfile = {
+  user: { avatarUrl?: string | null; firstName: string; lastName: string; email: string; phone?: string | null };
+  profile: { department?: string | null; year?: number | null; section?: string | null; professionalSummary?: string | null; cgpa?: string | null; profileCompletionScore?: number | null };
+  education: Array<{ degree: string; fieldOfStudy?: string | null; institution: string; startYear?: number | null; endYear?: number | null; score?: string | null }>;
+  projects: Array<{ title: string; projectUrl?: string | null; description?: string | null }>;
+  skills: Array<{ skillName: string; skillType?: string | null; proficiency?: string | null }>;
+  certs: Array<{ name: string; issuingOrg?: string | null; credentialUrl?: string | null }>;
+  links: Array<{ platform?: string | null; url?: string | null; title?: string | null }>;
+};
+
+export default function ApplicantsClient({ initialApplicants, currentPage = 1, totalPages = 1 }: { initialApplicants: ApplicantRow[], currentPage?: number, totalPages?: number }) {
+  const [applicants, setApplicants] = useState<ApplicantRow[]>(initialApplicants);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isPosting, setIsPosting] = useState(false);
   const [viewingProfile, setViewingProfile] = useState<string | null>(null);
-  const [profileData, setProfileData] = useState<any>(null);
+  const [profileData, setProfileData] = useState<FullProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   const fetchProfile = async (studentId: string) => {
@@ -52,7 +76,7 @@ export default function ApplicantsClient({ initialApplicants, currentPage = 1, t
         toast.error(res.error);
       } else {
         toast.success(res.newStatus === "shortlisted" ? "Candidate shortlisted!" : "Shortlist removed.");
-        setApplicants(prev => prev.map(a => a.applicationId === applicationId ? { ...a, status: res.newStatus } : a));
+        setApplicants(prev => prev.map(a => a.applicationId === applicationId ? { ...a, status: res.newStatus ?? null } : a));
       }
     } catch {
       toast.error("Failed to update shortlist.");
@@ -100,7 +124,7 @@ export default function ApplicantsClient({ initialApplicants, currentPage = 1, t
         setApplicants(prev => prev.map(a => selectedIds.has(a.id) ? { ...a, status: "selected" } : a));
         setSelectedIds(new Set());
       }
-    } catch (e) {
+    } catch {
       toast.error("An unexpected error occurred.", { id: "posting-results" });
     }
     setIsPosting(false);
@@ -206,6 +230,13 @@ export default function ApplicantsClient({ initialApplicants, currentPage = 1, t
                             {app.status === "shortlisted" ? "Undo" : "Shortlist"}
                           </button>
                         )}
+                        <button
+                          className="btn btn-outline"
+                          style={{ padding: "4px 8px", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "4px" }}
+                          onClick={() => fetchProfile(app.id)}
+                        >
+                          Profile <ChevronRight size={14} />
+                        </button>
                         <Link href={`/portfolio/${app.id}`} className="btn btn-outline" style={{ padding: "4px 8px", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "4px", textDecoration: "none" }}>
                           Portfolio <ChevronRight size={14} />
                         </Link>
@@ -284,7 +315,7 @@ export default function ApplicantsClient({ initialApplicants, currentPage = 1, t
                       <div style={{ marginBottom: "32px" }}>
                         <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "1.25rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "8px", marginBottom: "16px" }}><GraduationCap size={20} /> Education</h3>
                         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                          {profileData.education.map((edu: any, i: number) => (
+                          {profileData.education.map((edu, i: number) => (
                             <div key={i} style={{ background: "var(--bg-elevated)", padding: "16px", borderRadius: "8px" }}>
                               <h4 style={{ margin: "0 0 4px 0", fontSize: "1rem" }}>{edu.degree} {edu.fieldOfStudy ? `in ${edu.fieldOfStudy}` : ""}</h4>
                               <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.875rem" }}>{edu.institution}</p>
@@ -302,7 +333,7 @@ export default function ApplicantsClient({ initialApplicants, currentPage = 1, t
                       <div style={{ marginBottom: "32px" }}>
                         <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "1.25rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "8px", marginBottom: "16px" }}><Code size={20} /> Projects</h3>
                         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                          {profileData.projects.map((proj: any, i: number) => (
+                          {profileData.projects.map((proj, i: number) => (
                             <div key={i} style={{ background: "var(--bg-elevated)", padding: "16px", borderRadius: "8px", borderLeft: "3px solid var(--primary-color)" }}>
                               <h4 style={{ margin: "0 0 8px 0", fontSize: "1rem", display: "flex", justifyContent: "space-between" }}>
                                 {proj.title}
@@ -334,7 +365,7 @@ export default function ApplicantsClient({ initialApplicants, currentPage = 1, t
                       <div style={{ marginBottom: "24px" }}>
                         <h4 style={{ fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-secondary)", margin: "0 0 12px 0", display: "flex", alignItems: "center", gap: "6px" }}><Target size={16} /> Skills</h4>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                          {profileData.skills.map((skill: any, i: number) => (
+                          {profileData.skills.map((skill, i: number) => (
                             <span key={i} style={{ background: "var(--bg-hover)", padding: "4px 10px", borderRadius: "20px", fontSize: "0.8125rem", fontWeight: 500 }}>
                               {skill.skillName}
                             </span>
@@ -347,7 +378,7 @@ export default function ApplicantsClient({ initialApplicants, currentPage = 1, t
                       <div style={{ marginBottom: "24px" }}>
                         <h4 style={{ fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-secondary)", margin: "0 0 12px 0", display: "flex", alignItems: "center", gap: "6px" }}><Award size={16} /> Certifications</h4>
                         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                          {profileData.certs.map((cert: any, i: number) => (
+                          {profileData.certs.map((cert, i: number) => (
                             <div key={i} style={{ fontSize: "0.875rem" }}>
                               <div style={{ fontWeight: 500 }}>{cert.name}</div>
                               <div style={{ color: "var(--text-secondary)", fontSize: "0.8125rem", display: "flex", justifyContent: "space-between" }}>
@@ -364,11 +395,13 @@ export default function ApplicantsClient({ initialApplicants, currentPage = 1, t
                       <div>
                         <h4 style={{ fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-secondary)", margin: "0 0 12px 0" }}>External Links</h4>
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          {profileData.links.map((link: any, i: number) => (
-                            <a key={i} href={link.url} target="_blank" rel="noreferrer" style={{ fontSize: "0.875rem", color: "var(--primary-color)", display: "flex", gap: "8px", alignItems: "center", textDecoration: "none" }}>
-                              <ExternalLink size={14} /> {link.platform}
-                            </a>
-                          ))}
+                          {profileData.links
+                            .filter((link) => Boolean(link.url))
+                            .map((link, i: number) => (
+                              <a key={i} href={link.url || undefined} target="_blank" rel="noreferrer" style={{ fontSize: "0.875rem", color: "var(--primary-color)", display: "flex", gap: "8px", alignItems: "center", textDecoration: "none" }}>
+                                <ExternalLink size={14} /> {link.platform}
+                              </a>
+                            ))}
                         </div>
                       </div>
                     )}

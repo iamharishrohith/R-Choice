@@ -23,6 +23,13 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GitHubHeatmap } from "@/components/profile/GitHubHeatmap";
 
+type LinkRow = {
+  _id: string;
+  platform?: string | null;
+  title?: string | null;
+  url?: string | null;
+};
+
 const platforms = ["GitHub", "LeetCode", "HackerRank", "LinkedIn", "Portfolio", "Other"];
 
 const getIcon = (platform: string) => {
@@ -40,9 +47,9 @@ function SortableLinkRow({
   onUpdate,
   onDelete,
 }: {
-  link: any;
+  link: LinkRow;
   index: number;
-  onUpdate: (index: number, field: string, value: string) => void;
+  onUpdate: (index: number, field: "platform" | "title" | "url", value: string) => void;
   onDelete: (index: number) => void;
 }) {
   const {
@@ -111,7 +118,7 @@ function SortableLinkRow({
         <div style={{ flex: 1 }}>
           <label>URL</label>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {getIcon(link.platform)}
+            {getIcon(link.platform || "Other")}
             <input
               className="input-field"
               placeholder="https://"
@@ -142,8 +149,8 @@ function SortableLinkRow({
   );
 }
 
-export default function LinksClient({ initialLinks }: { initialLinks: any[] }) {
-  const [links, setLinks] = useState<any[]>(
+export default function LinksClient({ initialLinks }: { initialLinks: Array<Omit<LinkRow, "_id">> }) {
+  const [links, setLinks] = useState<LinkRow[]>(
     (initialLinks || []).map((l, i) => ({ ...l, _id: `link-${i}` }))
   );
   const [isSaving, setIsSaving] = useState(false);
@@ -165,7 +172,7 @@ export default function LinksClient({ initialLinks }: { initialLinks: any[] }) {
     }
   };
 
-  const handleUpdate = (index: number, field: string, value: string) => {
+  const handleUpdate = (index: number, field: "platform" | "title" | "url", value: string) => {
     const n = [...links];
     n[index][field] = value;
     setLinks(n);
@@ -180,7 +187,13 @@ export default function LinksClient({ initialLinks }: { initialLinks: any[] }) {
     e.preventDefault();
     setIsSaving(true);
     try {
-    const filtered = links.filter((l) => l.url && l.title);
+      const filtered = links
+        .filter((l) => l.url && l.title)
+        .map((l) => ({
+          platform: l.platform || "Other",
+          title: l.title || "",
+          url: l.url || "",
+        }));
       const res = await saveLinks(filtered);
       if (res.error) {
         toast.error(res.error);

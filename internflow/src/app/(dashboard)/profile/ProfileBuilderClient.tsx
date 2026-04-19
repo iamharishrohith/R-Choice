@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import styles from "./profile.module.css";
-import { CheckCircle2, Save, User, Book, Briefcase, Award, Plus, Trash2, Code, Languages, Globe, Zap, Target, Star, Link as LinkIcon, Code2, Terminal, GripVertical } from "lucide-react";
+import { Save, User, Book, Briefcase, Award, Plus, Trash2, Code, Languages, Globe, Zap, Target, Star, Link as LinkIcon, Code2, Terminal, GripVertical } from "lucide-react";
 import { saveBasicProfile, saveEducation, saveSkills, saveProjects, saveCertifications, saveLinks } from "@/app/actions/profile";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -25,6 +25,57 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GitHubHeatmap } from "@/components/profile/GitHubHeatmap";
 
+type LinkRow = {
+  _id: string;
+  platform?: string | null;
+  title?: string | null;
+  url?: string | null;
+  isActive?: boolean | null;
+};
+
+type EducationRow = {
+  institution?: string;
+  degree?: string;
+  fieldOfStudy?: string;
+  startYear?: string | number;
+  endYear?: string | number;
+  score?: string | number;
+  scoreType?: string;
+};
+
+type ProjectRow = {
+  title?: string;
+  description?: string;
+  projectUrl?: string;
+};
+
+type CertRow = {
+  name?: string;
+  issuingOrg?: string;
+  credentialUrl?: string;
+};
+
+type ProfileData = {
+  registerNo?: string | null;
+  department?: string | null;
+  year?: string | number | null;
+  section?: string | null;
+  cgpa?: string | number | null;
+  professionalSummary?: string | null;
+  dob?: string | null;
+  githubLink?: string | null;
+  linkedinLink?: string | null;
+  portfolioUrl?: string | null;
+  avatarUrl?: string | null;
+  resumeUrl?: string | null;
+  profileCompletionScore?: number | null;
+  roles?: string[];
+  education?: EducationRow[];
+  skills?: Array<{ name: string; type: string; isTop?: boolean }>;
+  projects?: ProjectRow[];
+  certifications?: CertRow[];
+};
+
 const linkPlatforms = ["GitHub", "LeetCode", "HackerRank", "LinkedIn", "Portfolio", "Other"];
 
 const getLinkIcon = (platform: string) => {
@@ -36,15 +87,24 @@ const getLinkIcon = (platform: string) => {
   }
 };
 
+const suggestedSkillsMap: Record<string, string[]> = {
+  developer: ["React", "Node.js", "TypeScript", "SQL", "Git", "Python", "Problem Solving"],
+  designer: ["Figma", "UI/UX", "Adobe XD", "Wireframing", "Prototyping", "Creativity"],
+  data: ["Python", "SQL", "Data Analysis", "Machine Learning", "Tableau", "Statistics", "R"],
+  manager: ["Leadership", "Agile", "Scrum", "Communication", "Time Management"],
+  marketing: ["SEO", "Content Creation", "Social Media", "Google Analytics", "Communication"],
+  cloud: ["AWS", "Azure", "Docker", "Kubernetes", "Linux", "DevOps"],
+};
+
 function SortableLinkRow({
   link,
   index,
   onUpdate,
   onDelete,
 }: {
-  link: any;
+  link: LinkRow;
   index: number;
-  onUpdate: (index: number, field: string, value: string) => void;
+  onUpdate: (index: number, field: "platform" | "title" | "url", value: string) => void;
   onDelete: (index: number) => void;
 }) {
   const {
@@ -113,7 +173,7 @@ function SortableLinkRow({
         <div style={{ flex: 1 }}>
           <label>URL</label>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {getLinkIcon(link.platform)}
+            {getLinkIcon(link.platform || "Other")}
             <input
               className="input-field"
               placeholder="https://"
@@ -144,8 +204,8 @@ function SortableLinkRow({
   );
 }
 
-export default function ProfileBuilderClient({ initialData, initialLinks = [] }: { initialData: any; initialLinks?: any[] }) {
-  const [data, setData] = useState(initialData);
+export default function ProfileBuilderClient({ initialData, initialLinks = [] }: { initialData: ProfileData; initialLinks?: Array<Omit<LinkRow, "_id">> }) {
+  const [data, setData] = useState<ProfileData>(initialData);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const [message, setMessage] = useState({ text: "", type: "" });
@@ -154,7 +214,7 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
   const [roles, setRoles] = useState<string[]>(initialData.roles || []);
   const [newRole, setNewRole] = useState("");
 
-  const [education, setEducation] = useState<any[]>(initialData.education?.length ? initialData.education : []);
+  const [education, setEducation] = useState<EducationRow[]>(initialData.education?.length ? initialData.education : []);
   
   // Skills mapped with isTop boolean
   const [skills, setSkills] = useState<{name: string, type: string, isTop?: boolean}[]>(initialData.skills || []);
@@ -165,8 +225,8 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
   const [newLanguage, setNewLanguage] = useState("");
 
   // Links state
-  const [links, setLinks] = useState<any[]>(
-    (initialLinks || []).map((l: any, i: number) => ({ ...l, _id: `link-${i}` }))
+  const [links, setLinks] = useState<LinkRow[]>(
+    (initialLinks || []).map((l, i: number) => ({ ...l, _id: `link-${i}` }))
   );
 
   // DnD sensors for links
@@ -187,7 +247,7 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
     }
   };
 
-  const handleLinkUpdate = (index: number, field: string, value: string) => {
+  const handleLinkUpdate = (index: number, field: "platform" | "title" | "url", value: string) => {
     const n = [...links];
     n[index][field] = value;
     setLinks(n);
@@ -214,15 +274,6 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
   // Role recommendations algorithm
   const suggestedRoles = ["Frontend Developer", "Backend Developer", "Full Stack Engineer", "UI/UX Designer", "Data Scientist", "DevOps Engineer", "Machine Learning Engineer", "Product Manager"];
 
-  const suggestedSkillsMap: Record<string, string[]> = {
-    "developer": ["React", "Node.js", "TypeScript", "SQL", "Git", "Python", "Problem Solving"],
-    "designer": ["Figma", "UI/UX", "Adobe XD", "Wireframing", "Prototyping", "Creativity"],
-    "data": ["Python", "SQL", "Data Analysis", "Machine Learning", "Tableau", "Statistics", "R"],
-    "manager": ["Leadership", "Agile", "Scrum", "Communication", "Time Management"],
-    "marketing": ["SEO", "Content Creation", "Social Media", "Google Analytics", "Communication"],
-    "cloud": ["AWS", "Azure", "Docker", "Kubernetes", "Linux", "DevOps"],
-  };
-
   const recommendedSkills = useMemo(() => {
     let recs: string[] = ["Communication", "Teamwork", "Problem Solving", "Adaptability"]; 
     roles.forEach(role => {
@@ -234,11 +285,8 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
     return Array.from(new Set(recs)).filter(r => !skills.some(s => s.name.toLowerCase() === r.toLowerCase())).slice(0, 8);
   }, [roles, skills]);
 
-  const [projects, setProjects] = useState<any[]>(initialData.projects || []);
-  const [certs, setCerts] = useState<any[]>(initialData.certifications || []);
-
-  const score = data.profileCompletionScore || 0;
-  const isComplete = score === 100;
+  const [projects, setProjects] = useState<ProjectRow[]>(initialData.projects || []);
+  const [certs, setCerts] = useState<CertRow[]>(initialData.certifications || []);
 
   const toggleTopSkill = (idx: number, isHardSkill: boolean) => {
     const updatedSkills = [...skills];
@@ -264,9 +312,9 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
     try {
       if (activeTab === "basic" || activeTab === "roles") {
         const result = await saveBasicProfile({
-          registerNo: data.registerNo,
-          department: data.department,
-          year: data.year,
+          registerNo: data.registerNo || "",
+          department: data.department || "",
+          year: data.year ? Number(data.year) : 1,
           section: data.section || "A",
           cgpa: data.cgpa?.toString() || "",
           professionalSummary: data.professionalSummary || "",
@@ -295,7 +343,13 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
         if (result.error) toast.error(result.error);
         else toast.success("Certifications updated successfully!");
       } else if (activeTab === "links") {
-        const filtered = links.filter((l) => l.url && l.title);
+        const filtered = links
+          .filter((l) => l.url && l.title)
+          .map((l) => ({
+            platform: l.platform || "Other",
+            title: l.title || "",
+            url: l.url || "",
+          }));
         const result = await saveLinks(filtered);
         if (result.error) toast.error(result.error);
         else toast.success("Links saved successfully!");

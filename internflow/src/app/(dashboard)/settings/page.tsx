@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { User, Bell, Shield, KeyRound, Smartphone } from "lucide-react";
+import { User, Bell, Shield, Smartphone } from "lucide-react";
 import { db } from "@/lib/db";
 import ChangePasswordForm from "./ChangePasswordForm";
 import { users } from "@/lib/db/schema";

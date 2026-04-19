@@ -123,7 +123,7 @@ export async function submitInternshipRequest(formData: FormData) {
   }
 }
 
-export async function createPortalApplication(jobId: string, companyName: string, roleTitle: string) {
+export async function createPortalApplication(jobId: string) {
   const session = await auth();
   if (!session?.user?.id) {
     return { error: "Not authenticated" };
@@ -151,12 +151,52 @@ export async function createPortalApplication(jobId: string, companyName: string
       return { error: "You have already applied to this internship." };
     }
 
-    // Direct apply — NO authority gate. OD request only after shortlisting + verification.
+    // Direct apply for job tracking.
     await db.insert(jobApplications).values({
       jobId,
       studentId: userId,
       status: "applied",
     });
+
+    // Initialize an OD approval request for the portal application so it appears in /applications.
+    const [existingRequest] = await db
+      .select({ id: internshipRequests.id })
+      .from(internshipRequests)
+      .where(and(eq(internshipRequests.studentId, userId), eq(internshipRequests.jobPostingId, jobId)))
+      .limit(1);
+
+    if (!existingRequest) {
+      const approvers = await getApproversForStudent(userId);
+      if (!approvers.tutorId) {
+        return { error: "No class tutor mapped to your profile. Contact administration." };
+      }
+
+      const [companyUser] = await db
+        .select({ name: users.firstName })
+        .from(users)
+        .where(eq(users.id, job.postedBy))
+        .limit(1);
+
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 90);
+
+      await db.insert(internshipRequests).values({
+        studentId: userId,
+        jobPostingId: jobId,
+        applicationType: "portal",
+        companyName: companyUser?.name || "Company",
+        companyAddress: null,
+        role: job.title,
+        startDate: startDate.toISOString().slice(0, 10),
+        endDate: endDate.toISOString().slice(0, 10),
+        stipend: job.stipendSalary || "Unpaid",
+        workMode: job.workMode || "onsite",
+        status: "pending_tutor",
+        currentTier: 1,
+        submittedAt: new Date(),
+      });
+    }
 
     revalidatePath("/jobs");
     revalidatePath("/applicants");
@@ -202,7 +242,6 @@ export async function shortlistApplicant(applicationId: string) {
       .where(eq(jobApplications.id, applicationId));
 
     // Notify the student
-    const [student] = await db.select({ firstName: users.firstName }).from(users).where(eq(users.id, app.studentId)).limit(1);
     if (newStatus === "shortlisted") {
       await db.insert(notifications).values({
         userId: app.studentId,
@@ -286,7 +325,7 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
         // Fetch authorities outside logic if needed
         try {
           const approvers = await getApproversForStudent(studentId);
-          const notifyAlerts = [];
+          const notifyAlerts: Array<typeof notifications.$inferInsert> = [];
           const pushMessage = `A student in your section (${emailTask.name}) was just shortlisted for ${job?.role || "an internship"} by ${company?.name}. Expect an OD request soon.`;
           
           if (approvers.tutorId) notifyAlerts.push({ userId: approvers.tutorId, type: "application_update", title: "Student Shortlisted", message: pushMessage, linkUrl: "/approvals" });
@@ -295,7 +334,7 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
 
           if (notifyAlerts.length > 0) {
             // We do this outside the main transaction to not fail the core selection if this fails
-            await db.insert(notifications).values(notifyAlerts as any);
+            await db.insert(notifications).values(notifyAlerts);
           }
         } catch (authErr) {
           console.error("Failed to lookup authorities for notifications, skipping...", authErr);

@@ -3,7 +3,7 @@ import { AdminKpiCards } from "./AdminKpiCards";
 import { AuditLogTypewriter } from "@/components/dashboard/admin/AuditLogTypewriter";
 import { ExportDataButton } from "@/components/dashboard/admin/ExportDataButton";
 import { db } from "@/lib/db";
-import { users, internshipRequests, companyRegistrations, auditLogs } from "@/lib/db/schema";
+import { users, internshipRequests, auditLogs } from "@/lib/db/schema";
 import { eq, count, desc, inArray } from "drizzle-orm";
 
 export default async function AdminDashboard() {

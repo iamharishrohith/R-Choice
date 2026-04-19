@@ -5,7 +5,13 @@ import { submitWorkReport } from "@/app/actions/reports";
 import { Loader2, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export default function ReportForm({ schedules }: { schedules: any[] }) {
+type ReportSchedule = {
+  id: string;
+  frequency: string;
+  nextDueDate?: string | null;
+};
+
+export default function ReportForm({ schedules }: { schedules: ReportSchedule[] }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");

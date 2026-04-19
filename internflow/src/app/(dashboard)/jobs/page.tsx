@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import JobBoardClient from "./JobBoardClient";
 import { db } from "@/lib/db";
 import { studentJobInterests, studentProfiles, jobApplications, jobPostings, companyRegistrations, users } from "@/lib/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import SelectionResultsSection from "./SelectionResultsSection";
 
 export default async function JobBoardPage() {
@@ -18,7 +18,7 @@ export default async function JobBoardPage() {
 
   const jobs = await fetchActiveJobs();
 
-  let interests: any[] = [];
+  let interests: Array<typeof studentJobInterests.$inferSelect> = [];
   if (isStudent) {
     const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
     if (profile) {

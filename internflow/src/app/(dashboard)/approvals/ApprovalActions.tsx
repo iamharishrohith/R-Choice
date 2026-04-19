@@ -3,16 +3,24 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { advanceApproval, getRequestDetails } from "@/app/actions/approvals";
-import { CheckCircle, XCircle, Loader2, X, MessageSquare, Eye, Building, Calendar, GraduationCap, MapPin } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, X, MessageSquare, Eye, Building, Calendar, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
+
+type RequestDetails = {
+  request?: { applicationType?: string | null; status?: string | null; submittedAt?: string | Date | null; role?: string | null; companyName?: string | null };
+  jobDetails?: Record<string, unknown> | null;
+  companyDetails?: Record<string, unknown> | null;
+  student?: { user?: { firstName?: string | null; lastName?: string | null }; profile?: { department?: string | null; year?: number | null; section?: string | null; cgpa?: string | null } };
+  externalDetails?: { stipend?: unknown; hrName?: unknown; hrContact?: unknown; offerLetterUrl?: unknown } | null;
+};
 
 export default function ApprovalActions({ requestId }: { requestId: string }) {
   const [loading, setLoading] = useState<"approve" | "reject" | null>(null);
   const [done, setDone] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [showModal, setShowModal] = useState<"approve" | "reject" | null>(null);
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [infoData, setInfoData] = useState<any>(null);
+  const [infoData, setInfoData] = useState<RequestDetails | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(false);
   const [comment, setComment] = useState("");
   const router = useRouter();
@@ -257,27 +265,27 @@ export default function ApprovalActions({ requestId }: { requestId: string }) {
               <div>
                 <h2 style={{ fontSize: "1.5rem", marginBottom: "8px", fontWeight: 700 }}>Request Overview</h2>
                 <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
-                  <span style={{ fontSize: "0.75rem", padding: "4px 8px", background: "var(--bg-hover)", borderRadius: "4px", textTransform: "capitalize", fontWeight: 600 }}>{infoData.request.applicationType} Entry</span>
-                  <span style={{ fontSize: "0.75rem", padding: "4px 8px", background: "rgba(34, 197, 94, 0.1)", color: "#22c55e", borderRadius: "4px", fontWeight: 600 }}>Status: {infoData.request.status}</span>
+                  <span style={{ fontSize: "0.75rem", padding: "4px 8px", background: "var(--bg-hover)", borderRadius: "4px", textTransform: "capitalize", fontWeight: 600 }}>{infoData.request?.applicationType || "unknown"} Entry</span>
+                  <span style={{ fontSize: "0.75rem", padding: "4px 8px", background: "rgba(34, 197, 94, 0.1)", color: "#22c55e", borderRadius: "4px", fontWeight: 600 }}>Status: {infoData.request?.status || "unknown"}</span>
                 </div>
 
                 <div className="info-grid" style={{ marginBottom: "24px" }}>
                   <div style={{ background: "var(--bg-elevated)", padding: "16px", borderRadius: "8px" }}>
                     <h3 style={{ fontSize: "0.875rem", textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}><GraduationCap size={16} /> Student </h3>
-                    <div style={{ fontWeight: 600, fontSize: "1.125rem" }}>{infoData.student.user?.firstName} {infoData.student.user?.lastName}</div>
-                    <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>{infoData.student.profile?.department} (Yr {infoData.student.profile?.year}, Sec {infoData.student.profile?.section})</div>
+                      <div style={{ fontWeight: 600, fontSize: "1.125rem" }}>{infoData.student?.user?.firstName} {infoData.student?.user?.lastName}</div>
+                      <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>{infoData.student?.profile?.department} (Yr {infoData.student?.profile?.year}, Sec {infoData.student?.profile?.section})</div>
                     <div style={{ fontSize: "0.875rem", marginTop: "8px", display: "flex", justifyContent: "space-between" }}>
-                       <span style={{ color: "var(--text-secondary)" }}>CGPA:</span> <span style={{ fontWeight: 600 }}>{infoData.student.profile?.cgpa || "N/A"}</span>
+                        <span style={{ color: "var(--text-secondary)" }}>CGPA:</span> <span style={{ fontWeight: 600 }}>{infoData.student?.profile?.cgpa || "N/A"}</span>
                     </div>
                   </div>
 
                   <div style={{ background: "var(--bg-elevated)", padding: "16px", borderRadius: "8px" }}>
                     <h3 style={{ fontSize: "0.875rem", textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}><Building size={16} /> Internship/Company</h3>
-                    <div style={{ fontWeight: 600, fontSize: "1.125rem" }}>{infoData.request.role || "Intern"}</div>
-                    <div style={{ fontSize: "0.875rem", color: "var(--primary-color)", fontWeight: 500, marginTop: "4px" }}>{infoData.request.companyName}</div>
+                    <div style={{ fontWeight: 600, fontSize: "1.125rem" }}>{infoData.request?.role || "Intern"}</div>
+                    <div style={{ fontSize: "0.875rem", color: "var(--primary-color)", fontWeight: 500, marginTop: "4px" }}>{infoData.request?.companyName || "N/A"}</div>
                     {infoData.externalDetails && (
                       <div style={{ fontSize: "0.875rem", marginTop: "8px" }}>
-                         <span style={{ color: "var(--text-secondary)" }}>Stipend:</span> <span style={{ fontWeight: 500 }}>{infoData.externalDetails.stipend || "Not specified"}</span>
+                         <span style={{ color: "var(--text-secondary)" }}>Stipend:</span> <span style={{ fontWeight: 500 }}>{String(infoData.externalDetails?.stipend ?? "Not specified")}</span>
                       </div>
                     )}
                   </div>
@@ -287,10 +295,10 @@ export default function ApprovalActions({ requestId }: { requestId: string }) {
                    <div style={{ background: "var(--bg-elevated)", padding: "16px", borderRadius: "8px", marginBottom: "24px" }}>
                      <h3 style={{ fontSize: "0.875rem", textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}><Calendar size={16} /> Logistics & Contacts</h3>
                      <div className="logistics-grid" style={{ fontSize: "0.875rem" }}>
-                       <div><span style={{ color: "var(--text-secondary)" }}>HR Name:</span> <span style={{ fontWeight: 500 }}>{infoData.externalDetails.hrName || "N/A"}</span></div>
-                       <div><span style={{ color: "var(--text-secondary)" }}>HR Contact:</span> <span style={{ fontWeight: 500 }}>{infoData.externalDetails.hrContact || "N/A"}</span></div>
+                       <div><span style={{ color: "var(--text-secondary)" }}>HR Name:</span> <span style={{ fontWeight: 500 }}>{String(infoData.externalDetails.hrName ?? "N/A")}</span></div>
+                       <div><span style={{ color: "var(--text-secondary)" }}>HR Contact:</span> <span style={{ fontWeight: 500 }}>{String(infoData.externalDetails.hrContact ?? "N/A")}</span></div>
 
-                       {infoData.externalDetails.offerLetterUrl && (
+                       {typeof infoData.externalDetails.offerLetterUrl === "string" && (
                          <div style={{ gridColumn: "1 / -1", marginTop: "8px" }}>
                            <a href={infoData.externalDetails.offerLetterUrl} target="_blank" rel="noreferrer" style={{ display: "inline-block", padding: "6px 12px", background: "var(--primary-color)", color: "white", textDecoration: "none", borderRadius: "4px", fontWeight: 600 }}>Review Offer Letter</a>
                          </div>

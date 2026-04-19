@@ -69,10 +69,11 @@ export function exportToCSV(filename: string, rows: object[]) {
   const csvContent =
     keys.join(separator) +
     '\n' +
-    rows.map((row: any) => {
+    rows.map((row) => {
+      const record = row as Record<string, unknown>;
       return keys.map(k => {
-        let cell = row[k] === null || row[k] === undefined ? '' : row[k];
-        cell = cell instanceof Date ? cell.toLocaleString() : cell.toString().replace(/"/g, '""');
+        const raw = record[k] === null || record[k] === undefined ? "" : record[k];
+        let cell = raw instanceof Date ? raw.toLocaleString() : String(raw).replace(/"/g, '""');
         if (cell.search(/("|,|\n)/g) >= 0) {
           cell = `"${cell}"`;
         }

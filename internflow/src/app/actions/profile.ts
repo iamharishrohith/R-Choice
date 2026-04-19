@@ -9,6 +9,10 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 
+type DbErrorWithCode = {
+  code?: string;
+};
+
 // Helper to recalculate and update score
 async function updateProfileScore(profileId: string) {
   const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.id, profileId)).limit(1);
@@ -122,7 +126,7 @@ export async function saveBasicProfile(formData: {
     revalidatePath("/profile");
     return { success: true, score };
   } catch (error: unknown) {
-    if ((error as any).code === '23505') return { error: "Register Number is already in use by another student." };
+    if ((error as DbErrorWithCode).code === "23505") return { error: "Register Number is already in use by another student." };
     return { error: "Failed to save profile. Please try again." };
   }
 }
@@ -168,7 +172,7 @@ export async function saveDeanProfile(formData: {
     return { success: true };
   } catch (error: unknown) {
     console.error("Dean profile save error:", error);
-    if ((error as any).code === '23505') { 
+    if ((error as DbErrorWithCode).code === "23505") {
       return { error: "Email is already in use by another user." };
     }
     return { error: "Failed to save profile. Please try again." };

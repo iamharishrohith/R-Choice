@@ -16,6 +16,13 @@ interface DonutChartProps {
   gap?: number;
 }
 
+type DonutSegment = DonutDataItem & {
+  dashArray: string;
+  dashOffset: number;
+  arcLength: number;
+  index: number;
+};
+
 export function DonutChart({
   data,
   size = 200,
@@ -35,7 +42,7 @@ export function DonutChart({
 
   // Calculate segment arc lengths
   const gapLength = (gap / 360) * circumference;
-  const segments = data.reduce((acc, item, index) => {
+  const segments = data.reduce<{ result: DonutSegment[]; cumulativeOffset: number }>((acc, item, index) => {
     const fraction = item.value / total;
     const arcLength = fraction * circumference;
     const adjustedArc = Math.max(0, arcLength - gapLength);
@@ -55,7 +62,7 @@ export function DonutChart({
 
     acc.cumulativeOffset += arcLength;
     return acc;
-  }, { result: [] as any[], cumulativeOffset: 0 }).result;
+  }, { result: [], cumulativeOffset: 0 }).result;
 
   return (
     <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>

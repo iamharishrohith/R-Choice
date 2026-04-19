@@ -5,7 +5,18 @@ import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-mo
 import { MapPin, Building2, Briefcase, X, Check, SearchX } from "lucide-react";
 import ApplyButton from "@/app/(dashboard)/jobs/ApplyButton";
 
-function SwipeCard({ job, index, onSwipe, isStudent }: { job: any; index: number; onSwipe: (id: string, dir: "left" | "right") => void; isStudent: boolean }) {
+type SwipeJob = {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  companyName?: string | null;
+  stipendInfo?: string | null;
+  workMode?: string | null;
+  requiredSkills?: string[] | null;
+};
+
+function SwipeCard({ job, index, onSwipe, isStudent }: { job: SwipeJob; index: number; onSwipe: (id: string, dir: "left" | "right") => void; isStudent: boolean }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
@@ -14,7 +25,7 @@ function SwipeCard({ job, index, onSwipe, isStudent }: { job: any; index: number
   const likeOpacity = useTransform(x, [0, 100], [0, 1]);
   const nopeOpacity = useTransform(x, [-100, 0], [1, 0]);
 
-  const handleDragEnd = (_: any, info: any) => {
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: { offset: { x: number } }) => {
     if (info.offset.x > 100) {
       onSwipe(job.id, "right");
     } else if (info.offset.x < -100) {
@@ -125,11 +136,11 @@ function SwipeCard({ job, index, onSwipe, isStudent }: { job: any; index: number
   );
 }
 
-export function SwipeDeck({ jobs, isStudent }: { jobs: any[]; isStudent: boolean }) {
+export function SwipeDeck({ jobs, isStudent }: { jobs: SwipeJob[]; isStudent: boolean }) {
   const [deck, setDeck] = useState(jobs);
 
 
-  const handleSwipe = (id: string, _dir: "left" | "right") => {
+  const handleSwipe = (id: string) => {
     setTimeout(() => {
       setDeck((prev) => prev.filter((j) => j.id !== id));
     }, 200);

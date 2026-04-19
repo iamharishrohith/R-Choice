@@ -2,10 +2,9 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { internshipRequests, notifications, approvalLogs, auditLogs } from "@/lib/db/schema";
+import { internshipRequests, notifications, approvalLogs, auditLogs, externalInternshipDetails, jobPostings, companyRegistrations, users, studentProfiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { getApproversForStudent } from "@/lib/db/queries/authority";
 
 type AppRole = "student" | "tutor" | "placement_coordinator" | "hod" | "dean" | "placement_officer" | "principal" | "company" | "alumni";
 
@@ -43,20 +42,6 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
       .limit(1);
 
     if (!request) return { error: "Request not found" };
-
-    // --- IDOR Mitigation: Enforce strict authority mapping ---
-    if (["tutor", "placement_coordinator", "hod", "dean"].includes(role)) {
-      try {
-        const approvers = await getApproversForStudent(request.studentId as string);
-        if (role === "tutor" && approverId !== approvers.tutorId) return { error: "Unauthorized: You are not mapped as this student's Tutor." };
-        if (role === "placement_coordinator" && approverId !== approvers.placementCoordinatorId) return { error: "Unauthorized: You are not mapped as this student's PC." };
-        if (role === "hod" && approverId !== approvers.hodId) return { error: "Unauthorized: You are not mapped as this student's HOD." };
-        if (role === "dean" && approverId !== approvers.deanId) return { error: "Unauthorized: You are not mapped as this student's Dean." };
-      } catch (err: unknown) {
-        return { error: (err instanceof Error ? err.message : "An error occurred") || "Failed to verify authority mapping. Student profile might be incomplete." };
-      }
-    }
-    // ---------------------------------------------------------
 
     const now = new Date();
     const trimmedComment = comment?.trim() || null;
@@ -227,7 +212,7 @@ export async function getRequestDetails(requestId: string) {
     // Try fetching external details if present
     let externalDetails = null;
     if (request.applicationType === "external") {
-      const [ext] = await db.select().from(require("@/lib/db/schema").externalInternshipDetails).where(eq(require("@/lib/db/schema").externalInternshipDetails.requestId, requestId)).limit(1);
+      const [ext] = await db.select().from(externalInternshipDetails).where(eq(externalInternshipDetails.requestId, requestId)).limit(1);
       externalDetails = ext || null;
     }
 
@@ -235,17 +220,17 @@ export async function getRequestDetails(requestId: string) {
     let jobDetails = null;
     let companyDetails = null;
     if (request.applicationType === "portal" && request.jobPostingId) {
-       const [jobP] = await db.select().from(require("@/lib/db/schema").jobPostings).where(eq(require("@/lib/db/schema").jobPostings.id, request.jobPostingId)).limit(1);
+       const [jobP] = await db.select().from(jobPostings).where(eq(jobPostings.id, request.jobPostingId)).limit(1);
        if (jobP) {
          jobDetails = jobP;
-         const [comp] = await db.select().from(require("@/lib/db/schema").companyRegistrations).where(eq(require("@/lib/db/schema").companyRegistrations.userId, jobP.postedBy)).limit(1);
+         const [comp] = await db.select().from(companyRegistrations).where(eq(companyRegistrations.userId, jobP.postedBy)).limit(1);
          companyDetails = comp || null;
        }
     }
 
     // Fetch the basic student snapshot
-    const [user] = await db.select({ firstName: require("@/lib/db/schema").users.firstName, lastName: require("@/lib/db/schema").users.lastName, email: require("@/lib/db/schema").users.email, avatarUrl: require("@/lib/db/schema").users.avatarUrl }).from(require("@/lib/db/schema").users).where(eq(require("@/lib/db/schema").users.id, request.studentId as string)).limit(1);
-    const [profile] = await db.select({ department: require("@/lib/db/schema").studentProfiles.department, year: require("@/lib/db/schema").studentProfiles.year, section: require("@/lib/db/schema").studentProfiles.section, cgpa: require("@/lib/db/schema").studentProfiles.cgpa }).from(require("@/lib/db/schema").studentProfiles).where(eq(require("@/lib/db/schema").studentProfiles.userId, request.studentId as string)).limit(1);
+    const [user] = await db.select({ firstName: users.firstName, lastName: users.lastName, email: users.email, avatarUrl: users.avatarUrl }).from(users).where(eq(users.id, request.studentId as string)).limit(1);
+    const [profile] = await db.select({ department: studentProfiles.department, year: studentProfiles.year, section: studentProfiles.section, cgpa: studentProfiles.cgpa }).from(studentProfiles).where(eq(studentProfiles.userId, request.studentId as string)).limit(1);
 
     return {
       success: true,

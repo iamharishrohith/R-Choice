@@ -2,9 +2,27 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GraduationCap, Award, BookOpen, CheckSquare, Square, Search, Trash2, Mail, Download, Eye, X } from "lucide-react";
+import { GraduationCap, Award, CheckSquare, Square, Search, Mail, Download, Eye, X } from "lucide-react";
 
-function StudentDetailModal({ student, onClose }: { student: any; onClose: () => void }) {
+type StudentRow = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  department?: string | null;
+  year?: number | null;
+  section?: string | null;
+  phone?: string | null;
+  registerNo?: string | null;
+  cgpa?: string | null;
+  dob?: string | null;
+  professionalSummary?: string | null;
+  githubLink?: string | null;
+  linkedinLink?: string | null;
+  portfolioUrl?: string | null;
+};
+
+function StudentDetailModal({ student, onClose }: { student: StudentRow; onClose: () => void }) {
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center",
@@ -83,10 +101,10 @@ function InfoCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function StudentsClient({ initialStudents, queryParam }: { initialStudents: any[], queryParam: string }) {
-  const [students, setStudents] = useState(initialStudents);
+export default function StudentsClient({ initialStudents, queryParam }: { initialStudents: StudentRow[], queryParam: string }) {
+  const [students] = useState<StudentRow[]>(initialStudents);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [viewingStudent, setViewingStudent] = useState<any>(null);
+  const [viewingStudent, setViewingStudent] = useState<StudentRow | null>(null);
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
@@ -107,7 +125,7 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
     const rows = data.map(s => [
       s.firstName, s.lastName, s.email, s.department || "", s.year || "", s.section || "", s.phone || "", s.registerNo || ""
     ]);
-    const csv = [headers.join(","), ...rows.map(r => r.map((c: string) => `"${c}"`).join(","))].join("\n");
+    const csv = [headers.join(","), ...rows.map(r => r.map((c: string | number) => `"${String(c)}"`).join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -125,7 +143,7 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
     "Mechanical": "#8b5cf6",
   };
 
-  const getDeptColor = (dept: string) => {
+  const getDeptColor = (dept?: string | null) => {
     for (const [key, color] of Object.entries(departmentColors)) {
       if (dept?.toLowerCase().includes(key.toLowerCase())) return color;
     }

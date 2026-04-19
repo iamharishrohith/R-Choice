@@ -72,8 +72,8 @@ export async function createUserAction(formData: FormData) {
 
     revalidatePath("/users");
     return { success: true };
-  } catch (err: any) {
-    if (err.name === "ValidationError") {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "ValidationError") {
       return { error: err.message };
     }
     console.error("Create user error:", err);
