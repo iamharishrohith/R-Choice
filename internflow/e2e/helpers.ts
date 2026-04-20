@@ -1,33 +1,33 @@
 import { expect, type Page } from "@playwright/test";
 
-export const TEST_PASSWORD = "R-Choice@2025";
+export const TEST_PASSWORD = "1234567890";
 
 export const TEST_ACCOUNTS = {
-  student: "student@rathinam.edu.in",
-  tutor: "tutor@rathinam.edu.in",
-  placementCoordinator: "pc@rathinam.edu.in",
-  hod: "hod@rathinam.edu.in",
-  dean: "dean@rathinam.edu.in",
-  placementOfficer: "po@rathinam.edu.in",
-  principal: "principal@rathinam.edu.in",
-  company: "hr@techcorp.com",
+  student: "harishrohiths.bct24@rathinam.in",
+  tutor: "tutor@rathinam.in",
+  placementCoordinator: "pc@rathinam.in",
+  hod: "hod@rathinam.in",
+  dean: "dean@rathinam.in",
+  placementOfficer: "po@rathinam.in",
+  principal: "principal@rathinam.in",
+  company: "company@rathinam.in",
 } as const;
-
-const STAFF_ROLE_PATHS: Record<string, string[]> = {
-  Tutor: ["Tutor"],
-  "Placement Coordinator": ["Placement Coordinator"],
-  HOD: ["Placement Coordinator", "HOD"],
-  Dean: ["Placement Coordinator", "HOD", "Dean"],
-  "Placement Officer": ["Placement Coordinator", "HOD", "Dean", "Placement Officer"],
-  Principal: ["Placement Coordinator", "HOD", "Dean", "Placement Officer", "Principal"],
-};
 
 export async function selectRole(page: Page, roleLabel: string) {
   if (roleLabel === "Student" || roleLabel === "Company") {
-    await page.getByRole("button", { name: new RegExp(roleLabel, "i") }).click({ force: true });
+    await page.getByRole("button", { name: new RegExp(roleLabel, "i") }).first().click({ force: true });
     return;
   }
 
+<<<<<<< HEAD
+  // Find the carousel card containing the role label
+  const roleButton = page.locator(`button:has-text("${roleLabel}")`).first();
+  
+  // Directly click the element in the DOM bypassing CSS opacity/transform occlusions
+  await roleButton.evaluate((button) => {
+    (button as HTMLButtonElement).click();
+  });
+=======
   const steps = STAFF_ROLE_PATHS[roleLabel] ?? [roleLabel];
   
   for (let i = 0; i < steps.length; i++) {
@@ -65,6 +65,7 @@ export async function selectRole(page: Page, roleLabel: string) {
       }
     }
   }
+>>>>>>> upstream/main
 }
 
 export async function loginAs(page: Page, email: string, roleLabel: string, expectedUrl?: RegExp) {

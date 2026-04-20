@@ -75,7 +75,8 @@ export async function submitInternshipRequest(formData: FormData) {
 
     // 3. Create the internship request
     // Wrap in transaction to prevent partial writes
-    await db.transaction(async (tx) => {
+    const tx = db;
+    {
       const insertedReq = await tx.insert(internshipRequests).values({
         studentId: userId,
         applicationType,
@@ -108,7 +109,7 @@ export async function submitInternshipRequest(formData: FormData) {
           discoverySource: discoverySource || "Other",
         });
       }
-    });
+    }
 
     revalidatePath("/applications");
     revalidatePath("/dashboard/student");
@@ -284,7 +285,9 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
       // Execute mutations within a resilient transaction boundary
-      const emailTask = await db.transaction(async (tx) => {
+      let emailTask: any = null;
+      const tx = db;
+      {
         // Update the application status
         await tx.update(jobApplications)
           .set({ status: "selected", verificationCode: code, updatedAt: new Date() })
@@ -303,10 +306,9 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
             linkUrl: "/dashboard/student"
           });
           
-          return { email: student.email, name: `${student.firstName} ${student.lastName}`, phone: student.phone, tutorId: null, pcId: null, hodId: null };
+          emailTask = { email: student.email, name: `${student.firstName} ${student.lastName}`, phone: student.phone, tutorId: null, pcId: null, hodId: null };
         }
-        return null;
-      });
+      }
 
         // Side-effects (Email API requests) fire only if the atomic db transaction succeeds
       if (emailTask) {
@@ -381,7 +383,8 @@ export async function verifyAndInitializeOD(applicationId: string, code: string,
       : [null];
 
     // Execute mutations within a resilient transaction boundary
-    await db.transaction(async (tx) => {
+    const tx = db;
+    {
       // 3. Mark application as verified
       await tx.update(jobApplications)
         .set({ isVerified: true, updatedAt: new Date() })
@@ -403,7 +406,7 @@ export async function verifyAndInitializeOD(applicationId: string, code: string,
         currentTier: 1, 
         submittedAt: new Date(),
       });
-    });
+    }
 
     revalidatePath("/dashboard/student");
     return { success: true };
