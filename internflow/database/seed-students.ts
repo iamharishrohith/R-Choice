@@ -131,7 +131,7 @@ async function seedStudents() {
           userId: user.id,
           registerNo: student.regNo,
           department: "Computer Science",
-          year: 2,
+          year: 3,
           section: "A",
           profileCompletionScore: 20,
         })
@@ -140,7 +140,7 @@ async function seedStudents() {
           set: {
             userId: user.id,
             department: "Computer Science",
-            year: 2,
+            year: 3,
           },
         });
 

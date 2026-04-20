@@ -1,5 +1,7 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { TEST_ACCOUNTS, TEST_PASSWORD, loginAs } from "./helpers";
+import * as dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
 
 // Ensure unique email per run
 const randomId = Date.now() % 100000000;
@@ -21,6 +23,10 @@ async function waitForApprovalRow(page: Page, companyToken: string, attempts = 6
 }
 
 async function approveRow(page: Page, row: Locator) {
+<<<<<<< HEAD
+  await row.getByRole("button", { name: /^approve$/i }).click();
+  await page.getByRole("button", { name: /confirm approval/i }).click();
+=======
   for (let attempt = 1; attempt <= 2; attempt++) {
     await row.getByRole("button", { name: /^approve$/i }).click();
     await page.getByRole("button", { name: /confirm approval/i }).click();
@@ -34,6 +40,7 @@ async function approveRow(page: Page, row: Locator) {
     }
   }
 
+>>>>>>> upstream/main
   await expect(row).not.toBeVisible({ timeout: 15000 });
 }
 
@@ -122,8 +129,51 @@ test.describe("Full Pipeline - Mega Flow", () => {
     
     // Check applications page shows the exact generated request
     await page.goto("/applications");
+<<<<<<< HEAD
+    await expect(page.locator(".card").filter({ hasText: `Mega Corp ${randomId}` }).first()).toBeVisible();
+    await page.context().clearCookies();
+
+    // --- 4a. Company Shortlists Student ---
+    await loginAs(page, companyEmail, "Company", /.*dashboard.*/);
+    await page.goto("/applicants");
+    await page.locator('input[type="checkbox"]').first().click();
+    await page.getByRole("button", { name: /Post Results/i }).click();
+    await expect(page.getByText(/Verification Emails sent/i)).toBeVisible();
+    await page.context().clearCookies();
+
+    // --- 4b. Fetch Code using PG trick since no emails in E2E ---
+    const { neon } = require("@neondatabase/serverless");
+    const sql = neon(process.env.DATABASE_URL!);
+    let dbRes;
+    for (let i = 0; i < 5; i++) {
+      try {
+        dbRes = await sql`SELECT verification_code FROM job_applications ORDER BY applied_at DESC LIMIT 1`;
+        break;
+      } catch (e) {
+        if (i === 4) throw e;
+        await page.waitForTimeout(1000);
+      }
+    }
+    const vCode = dbRes[0].verification_code;
+
+    // --- 4c. Student Verifies Application ---
+    await loginAs(page, TEST_ACCOUNTS.student, "Student", /.*dashboard.*/);
+    await page.goto("/applications");
+
+    // Fill Verification Banner
+    await page.fill('input[type="date"]', "2026-06-01"); // Assume generic dates
+    const endDateInputs = page.locator('input[type="date"]');
+    await endDateInputs.nth(1).fill("2026-12-01");
+    
+    await page.fill('input[placeholder="######"]', vCode);
+    await page.getByRole("button", { name: /Verify/i }).click();
+    
+    // Check applications page shows the exact generated request officially
+    await expect(page.getByText(/Verification successful/i)).toBeVisible();
+=======
     const studentApplicationCard = page.locator(".card").filter({ hasText: jobTitle }).first();
     await expect(studentApplicationCard).toBeVisible();
+>>>>>>> upstream/main
     await page.context().clearCookies();
 
     // --- 5. Tutor Approves ---
@@ -178,7 +228,12 @@ test.describe("Full Pipeline - Mega Flow", () => {
     await loginAs(page, TEST_ACCOUNTS.student, "Student", /.*dashboard.*/);
     await page.goto("/applications");
 
+<<<<<<< HEAD
+    const finalApplicationCard = page.locator("section").filter({ hasText: "Active OD Approvals" })
+      .locator(".card").filter({ hasText: `Mega Corp ${randomId}` }).first();
+=======
     const finalApplicationCard = page.locator(".card").filter({ hasText: jobTitle }).first();
+>>>>>>> upstream/main
     await expect(finalApplicationCard).toBeVisible();
     await expect(finalApplicationCard.locator('span.badge-success')).toBeVisible();
     await expect(finalApplicationCard.getByRole("link", { name: /print bonafide/i })).toBeVisible();
