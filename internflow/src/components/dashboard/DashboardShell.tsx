@@ -107,6 +107,8 @@ function getNavSections(role: string): NavSection[] {
         },
       ];
 
+    case "coe":
+    case "mcr":
     case "principal":
       return [
         {
@@ -174,11 +176,28 @@ function getNavSections(role: string): NavSection[] {
     case "company":
       return [
         {
-          label: "Main",
+          label: "Company Master",
           items: [
             { label: "Dashboard", href: "/dashboard/company", icon: <LayoutDashboard size={20} /> },
-            { label: "My Jobs", href: "/jobs/manage", icon: <Briefcase size={20} /> },
+            { label: "Staff Team", href: "/dashboard/company/team", icon: <User size={20} /> },
+          ],
+        },
+        {
+          label: "Recruitment",
+          items: [
+            { label: "Job Postings", href: "/jobs/manage", icon: <Briefcase size={20} /> },
             { label: "Applicants", href: "/applicants", icon: <Users size={20} /> },
+          ],
+        },
+      ];
+    case "company_staff":
+      return [
+        {
+          label: "Staff Operations",
+          items: [
+            { label: "Dashboard", href: "/dashboard/company", icon: <LayoutDashboard size={20} /> },
+            { label: "Manage Postings", href: "/jobs/manage", icon: <Briefcase size={20} /> },
+            { label: "Review Applicants", href: "/applicants", icon: <Users size={20} /> },
           ],
         },
       ];
@@ -222,12 +241,21 @@ function getMobileNavItems(role: string): NavItem[] {
     case "dean":
     case "placement_officer":
     case "principal":
+    case "coe":
+    case "mcr":
       return [
         { label: "Home", href: "/dashboard/admin", icon: <LayoutDashboard size={22} /> },
         { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={22} /> },
         { label: "Analytics", href: "/analytics", icon: <BarChart3 size={22} /> },
         { label: "Manage", href: "/users", icon: <Users size={22} /> },
         { label: "More", href: "/settings", icon: <Settings size={22} /> },
+      ];
+    case "company":
+    case "company_staff":
+      return [
+        { label: "Dashboard", href: "/dashboard/company", icon: <LayoutDashboard size={22} /> },
+        { label: "Jobs", href: "/jobs/manage", icon: <Briefcase size={22} /> },
+        { label: "Applicants", href: "/applicants", icon: <Users size={22} /> },
       ];
     default:
       return [

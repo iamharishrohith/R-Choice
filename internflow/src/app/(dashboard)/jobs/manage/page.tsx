@@ -1,8 +1,11 @@
 import { auth } from "@/lib/auth";
-import { fetchCompanyJobs } from "@/app/actions/jobs";
+import { fetchCompanyJobs, deleteJobPosting } from "@/app/actions/jobs";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { PlusCircle, Users, Edit, MapPin, Banknote, Clock } from "lucide-react";
+import { PlusCircle, Users, Edit, MapPin, Banknote, Clock, Trash2 } from "lucide-react";
 
 export default async function ManageJobsPage() {
   const session = await auth();
@@ -11,11 +14,12 @@ export default async function ManageJobsPage() {
   }
 
   const role = session.user.role;
-  if (role !== "company") {
+  if (role !== "company" && role !== "company_staff") {
     redirect("/");
   }
 
-  const jobs = await fetchCompanyJobs(session.user.id);
+  const [userRec] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+  const jobs = await fetchCompanyJobs(session.user.id, role, userRec?.companyId);
 
   return (
     <div className="animate-fade-in">
@@ -74,6 +78,13 @@ export default async function ManageJobsPage() {
                 <button className="btn btn-ghost" style={{ padding: "8px" }} title="Edit Posting">
                   <Edit size={16} />
                 </button>
+                {(job.status === "draft" || job.status === "rejected") && (
+                  <form action={deleteJobPosting.bind(null, job.id)}>
+                    <button type="submit" className="btn btn-ghost" style={{ padding: "8px", color: "var(--color-danger)" }} title="Delete Draft/Rejected Job">
+                      <Trash2 size={16} />
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
           ))}

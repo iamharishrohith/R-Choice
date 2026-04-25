@@ -38,9 +38,9 @@
   --bg-hover: rgba(161, 39, 139, 0.06);
 
   /* Text */
-  --text-primary: #1A2332;
-  --text-secondary: #4E5D6E;
-  --text-muted: #64707D;
+  --text-primary: #000000;
+  --text-secondary: #111111;
+  --text-muted: #333333;
   --text-inverse: #FFFFFF;
   --text-link: #1578A8;
 
@@ -350,6 +350,56 @@ input, select, textarea {
 }
 .input-field::placeholder {
   color: var(--text-muted);
+}
+
+/* Tables */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+  background-color: var(--bg-card);
+}
+
+.table th,
+.table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  transition: background-color var(--transition-fast);
+}
+
+.table tbody tr:hover {
+  background-color: var(--bg-hover);
+}
+
+.table td {
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Badge fix for table */
+.table td .badge {
+  display: inline-flex;
+  white-space: nowrap;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--border-radius-full);
 }
 
 /* Page Layout */

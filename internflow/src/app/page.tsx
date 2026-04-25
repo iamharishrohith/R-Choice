@@ -39,6 +39,8 @@ const ROLES: Role[] = [
   { id: "dean", label: "Dean", icon: <Star size={20} />, desc: "Full admin", category: "admin" },
   { id: "placement_officer", label: "Placement Officer", icon: <BarChart3 size={20} />, desc: "Full admin", category: "admin" },
   { id: "principal", label: "Principal", icon: <Crown size={20} />, desc: "Full admin", category: "admin" },
+  { id: "coe", label: "Controller of Examination", icon: <Crown size={20} />, desc: "Master Admin", category: "admin" },
+  { id: "mcr", label: "Management Corporation Relationship", icon: <Crown size={20} />, desc: "Master Admin", category: "admin" },
   { id: "company", label: "Company", icon: <Briefcase size={20} />, desc: "Post jobs", category: "external" },
 ];
 
@@ -76,6 +78,8 @@ export default function LoginPage() {
       case "dean":
       case "placement_officer":
       case "principal":
+      case "coe":
+      case "mcr":
         return "/dashboard/admin";
       case "company":
         return "/dashboard/company";
@@ -283,11 +287,7 @@ export default function LoginPage() {
                   {selectedRole === "company" ? "Enter your company credentials" : "Enter your institutional credentials"}
                 </p>
               </div>
-              {selectedRole === "company" && (
-                <a href="/register/company" className={styles.smallRegisterLink}>
-                  Register →
-                </a>
-              )}
+
             </div>
 
             <form className={styles.loginForm} onSubmit={handleLogin}>

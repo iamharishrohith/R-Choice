@@ -21,7 +21,7 @@ if (!DATABASE_URL) {
 const sql = neon(DATABASE_URL);
 const db = drizzle(sql, { schema });
 
-const TEST_PASSWORD = "R-Choice@2025";
+const TEST_PASSWORD = "1234567890";
 
 const seedUsers = [
   { email: "student@rathinam.edu.in", firstName: "Arun", lastName: "Kumar", role: "student" as const },

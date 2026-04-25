@@ -23,7 +23,7 @@ export async function fetchStaffByRole(role: string) {
     return await db
       .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email })
       .from(users)
-      .where(eq(users.role, role as "student" | "tutor" | "placement_coordinator" | "hod" | "dean" | "placement_officer" | "principal" | "company" | "alumni"));
+      .where(eq(users.role, role as "student" | "tutor" | "placement_coordinator" | "hod" | "dean" | "placement_officer" | "principal" | "company" | "alumni" | "coe" | "mcr"));
   } catch {
     return [];
   }

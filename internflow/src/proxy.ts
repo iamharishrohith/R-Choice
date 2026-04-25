@@ -22,7 +22,7 @@ function getRateLimitStatus(ip: string): boolean {
 const { auth } = NextAuth(authConfig);
 
 // Routes accessible without auth
-const publicRoutes = ["/", "/register/company", "/api/auth", "/v", "/team"];
+const publicRoutes = ["/", "/api/auth", "/v", "/team", "/register"];
 
 // Shared routes every authenticated role can access
 const sharedRoutes = ["/settings", "/profile"];
@@ -91,7 +91,34 @@ const roleRoutes: Record<string, string[]> = {
     "/drives",
     "/reports",
   ],
+  coe: [
+    "/dashboard/admin",
+    "/students",
+    "/approvals",
+    "/jobs",
+    "/analytics",
+    "/users",
+    "/companies",
+    "/drives",
+    "/reports",
+  ],
+  mcr: [
+    "/dashboard/admin",
+    "/students",
+    "/approvals",
+    "/jobs",
+    "/analytics",
+    "/users",
+    "/companies",
+    "/drives",
+    "/reports",
+  ],
   company: [
+    "/dashboard/company",
+    "/jobs",
+    "/applicants",
+  ],
+  company_staff: [
     "/dashboard/company",
     "/jobs",
     "/applicants",

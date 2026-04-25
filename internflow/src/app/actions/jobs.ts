@@ -9,53 +9,95 @@ import { sanitize, sanitizeOptional, validateDate, ValidationError } from "@/lib
 
 export async function createJobPosting(formData: FormData) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return { error: "Not authenticated" };
-  }
-  
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
   const role = session.user.role;
-  if (role !== "company") {
+  if (role !== "company" && role !== "company_staff") {
     return { error: "Only companies can post jobs." };
   }
 
   try {
-    const title = sanitize(formData.get("title"), "Job Title", 255);
-    const description = sanitize(formData.get("description"), "Job Description", 5000);
-    const requirements = sanitizeOptional(formData.get("requirements"), "Requirements", 3000);
-    const location = sanitize(formData.get("location"), "Location", 200);
-    const stipendInfo = sanitizeOptional(formData.get("stipendInfo"), "Stipend Info", 100);
-    const deadline = validateDate(formData.get("deadline"), "Application Deadline");
+    const rawData = Object.fromEntries(formData.entries());
 
-    // Determine the company record
-    const [company] = await db
-      .select({ id: companyRegistrations.id })
-      .from(companyRegistrations)
-      .where(eq(companyRegistrations.userId, session.user.id))
-      .limit(1);
-
-    const workMode = sanitizeOptional(formData.get("workMode"), "Work Mode", 50) || "Hybrid";
-    const duration = sanitizeOptional(formData.get("duration"), "Duration", 100) || "3 Months";
+    const title = String(rawData.title || "");
+    const domain = String(rawData.domain || "");
+    const jobType = String(rawData.jobType || "Internship");
+    const internshipType = String(rawData.internshipType || "");
+    const mode = String(rawData.mode || "");
+    const location = String(rawData.location || "");
+    const duration = String(rawData.duration || "");
+    const description = String(rawData.description || "");
+    const rolesAndResp = String(rawData.rolesAndResponsibilities || "");
+    const learnings = String(rawData.learnings || "");
     
+    const requiredSkills = String(rawData.requiredSkills || "").split(',').map(s => s.trim()).filter(Boolean);
+    const preferredQualifications = String(rawData.preferredQualifications || "");
+    const tools = String(rawData.tools || "").split(',').map(s => s.trim()).filter(Boolean);
+    
+    const eligibilityDegree = String(rawData.eligibilityDegree || "").split(',').map(s => s.trim()).filter(Boolean);
+    const departmentEligibility = String(rawData.departmentEligibility || "").split(',').map(s => s.trim()).filter(Boolean);
+    const yearEligibility = String(rawData.yearEligibility || "").split(',').map(s => parseInt(s.trim())).filter(y => !isNaN(y));
+    const minCgpaString = String(rawData.minCgpa || "");
+    const minCgpa = minCgpaString ? parseFloat(minCgpaString) : null;
+
+    const applicationDeadline = String(rawData.applicationDeadline || "");
+    const startDate = rawData.startDate ? String(rawData.startDate) : null;
+
+    const isPaid = rawData.isPaid === "true";
+    const stipendSalary = String(rawData.stipendSalary || "Unpaid");
+
+    const perksBenefits = formData.getAll("perksBenefits").map(String);
+    const selectionProcess = formData.getAll("selectionProcess").map(String);
+    
+    let faq = [];
+    try { faq = JSON.parse(String(rawData.faq || "[]")); } catch {}
+    
+    let contactPersons = [];
+    try { contactPersons = JSON.parse(String(rawData.contactPersons || "[]")); } catch {}
+
+    const openingsCount = parseInt(String(rawData.openingsCount || "1"), 10);
+
+    const [user] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+    const companyId = user?.companyId || null;
+
     await db.insert(jobPostings).values({
       postedBy: session.user.id,
-      postedByRole: "company",
-      companyId: company?.id || null,
+      postedByRole: role,
+      companyId,
       title,
-      jobType: "Internship",
-      description,
+      domain,
+      jobType,
+      internshipType,
+      mode,
       location,
-      workMode,
       duration,
-      stipendSalary: stipendInfo || "Unpaid",
-      openingsCount: isNaN(parseInt(formData.get("openingsCount") as string, 10)) ? 1 : parseInt(formData.get("openingsCount") as string, 10),
-      applicationDeadline: deadline,
-      requiredSkills: requirements ? requirements.split(",").map(s => s.trim()).filter(Boolean) : [],
-      status: "pending_review", // Jobs now go through staff review before being visible
+      description,
+      rolesAndResponsibilities: rolesAndResp,
+      learnings,
+      requiredSkills,
+      preferredQualifications,
+      tools,
+      departmentEligibility,
+      eligibilityDegree,
+      minCgpa: minCgpa ? String(minCgpa) : null,
+      yearEligibility,
+      applicationDeadline,
+      startDate,
+      isPaid,
+      stipendSalary,
+      openingsCount,
+      perksBenefits,
+      selectionProcess,
+      faq,
+      contactPersons,
+      workMode: internshipType || "Hybrid",
+      status: "pending_review",
     });
 
     revalidatePath("/jobs");
     revalidatePath("/jobs/manage");
-    
+    revalidatePath("/approvals/jobs");
+
     return { success: true };
   } catch (error: unknown) {
     if (error instanceof ValidationError) {
@@ -66,35 +108,69 @@ export async function createJobPosting(formData: FormData) {
   }
 }
 
+
+import { notifications } from "@/lib/db/schema";
+import { sendMobilePush } from "@/lib/notifications";
+
 export async function updateJobStatus(jobId: string, action: "approve" | "reject") {
   const session = await auth();
-  if (!session?.user?.id) {
-    return { error: "Not authenticated" };
-  }
+  if (!session?.user?.id) return { error: "Not authenticated" };
   
   const role = session.user.role;
-  if (role !== "placement_officer") {
-    return { error: "Only placement officers can approve company jobs." };
+  if (!["placement_officer", "dean", "coe", "principal", "mcr"].includes(role)) {
+    return { error: "Only admins and MCR can approve company jobs." };
   }
 
   try {
     const newStatus = action === "approve" ? "approved" : "rejected";
     
-    await db.update(jobPostings)
-      .set({ 
-        status: newStatus,
-        verifiedBy: session.user.id,
-        verifiedByRole: role,
-        verifiedAt: new Date()
-      })
-      .where(eq(jobPostings.id, jobId));
+    await db.transaction(async (tx) => {
+      await tx.update(jobPostings)
+        .set({ 
+          status: newStatus,
+          verifiedBy: session.user.id,
+          verifiedByRole: role,
+          verifiedAt: new Date()
+        })
+        .where(eq(jobPostings.id, jobId));
 
-    await db.insert(auditLogs).values({
-      userId: session.user.id,
-      action: `review_job_${action}`,
-      entityType: "job_posting",
-      entityId: jobId,
-      details: { newStatus },
+      if (newStatus === "approved") {
+        const [job] = await tx.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
+        
+        // 1. Notify Admins
+        const notifyRoles = ["placement_officer", "dean", "hod", "coe", "principal"] as const;
+        const targetAdmins = await tx.select().from(users).where(inArray(users.role, notifyRoles));
+        
+        if (targetAdmins.length > 0) {
+          await tx.insert(notifications).values(
+            targetAdmins.map(admin => ({
+              userId: admin.id,
+              type: "system",
+              title: "New Job Approved",
+              message: `Job ${job?.title} is now active.`,
+              linkUrl: `/jobs`,
+            }))
+          );
+        }
+
+        // 2. Notify ALL Active Students via Push
+        const students = await tx.select({ id: users.id }).from(users).where(eq(users.role, "student"));
+        if (students.length > 0) {
+           await sendMobilePush(
+             "New Internship Available!",
+             `${job?.title} is now accepting applications. Check your dashboard!`,
+             students.map(s => s.id)
+           );
+        }
+      }
+
+      await tx.insert(auditLogs).values({
+        userId: session.user.id,
+        action: `review_job_${action}`,
+        entityType: "job_posting",
+        entityId: jobId,
+        details: { newStatus },
+      });
     });
 
     revalidatePath("/approvals/jobs");
@@ -151,18 +227,59 @@ export async function fetchActiveJobs() {
   }
 }
 
-export async function fetchCompanyJobs(companyId: string) {
+export async function fetchCompanyJobs(userId: string, role: string, companyId?: string | null) {
   try {
-    const jobs = await db
-      .select()
-      .from(jobPostings)
-      .where(eq(jobPostings.postedBy, companyId))
-      .orderBy(desc(jobPostings.createdAt));
-      
-    return jobs;
+    if (role === "company_staff") {
+      return await db
+        .select()
+        .from(jobPostings)
+        .where(eq(jobPostings.postedBy, userId))
+        .orderBy(desc(jobPostings.createdAt));
+    } else if (role === "company" && companyId) {
+      return await db
+        .select()
+        .from(jobPostings)
+        .where(eq(jobPostings.companyId, companyId))
+        .orderBy(desc(jobPostings.createdAt));
+    } else {
+      return [];
+    }
   } catch (err) {
     console.error("Failed to fetch company jobs:", err);
     return [];
+  }
+}
+
+export async function deleteJobPosting(jobId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  try {
+    const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
+    if (!job) return { error: "Job not found" };
+
+    const role = session.user.role;
+    const isOwner = job.postedBy === session.user.id;
+    const [ceo] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+
+    // CEO can delete any job of their company, staff can only delete their own
+    if (role === "company_staff" && !isOwner) {
+      return { error: "You can only delete your own jobs" };
+    }
+    if (role === "company" && job.companyId !== ceo?.companyId) {
+       return { error: "You can only delete jobs belonging to your company" };
+    }
+    
+    if (job.status !== "draft" && job.status !== "rejected") {
+      return { error: "Only draft or rejected jobs can be deleted" };
+    }
+
+    await db.delete(jobPostings).where(eq(jobPostings.id, jobId));
+    revalidatePath("/jobs/manage");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete job:", error);
+    return { error: "Failed to delete job" };
   }
 }
 

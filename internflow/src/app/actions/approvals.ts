@@ -241,7 +241,7 @@ export async function getRequestDetails(requestId: string) {
         companyDetails,
         student: { user, profile }
       }
-    };
+    }
 
   } catch (err) {
     console.error("Failed to fetch request details:", err);

@@ -21,12 +21,21 @@ export default async function DashboardCompanyPage() {
   const companyId = companyRecord[0]?.id;
 
   // Company specific stats
-  // 1. Total jobs posted by this user
-  const jobsRes = await db
-    .select({ count: sql`count(*)` })
-    .from(jobPostings)
-    .where(eq(jobPostings.postedBy, userId));
-  const activeJobs = Number(jobsRes[0].count);
+  // 1. Total jobs posted by this user/company
+  let activeJobs = 0;
+  if (companyId) {
+    const jobsRes = await db
+      .select({ count: sql`count(*)` })
+      .from(jobPostings)
+      .where(eq(jobPostings.companyId, companyId));
+    activeJobs = Number(jobsRes[0].count);
+  } else {
+    const jobsRes = await db
+      .select({ count: sql`count(*)` })
+      .from(jobPostings)
+      .where(eq(jobPostings.postedBy, userId));
+    activeJobs = Number(jobsRes[0].count);
+  }
 
   let totalApplicants = 0;
   let recentApplicants: { id: string; firstName: string; lastName: string; role: string; status: string | null; submittedAt: Date | null }[] = [];
