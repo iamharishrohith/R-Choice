@@ -11,6 +11,7 @@ export const TEST_ACCOUNTS = {
   placementOfficer: "po@rathinam.edu.in",
   coe: "coe@rathinam.edu.in",
   principal: "principal@rathinam.edu.in",
+  mcr: "mcr@rathinam.edu.in",
   company: "hr@techcorp.com",
 } as const;
 
