@@ -1,17 +1,17 @@
 import { expect, type Page } from "@playwright/test";
 
-export const TEST_PASSWORD = "1234567890";
+export const TEST_PASSWORD = "R-Choice@2025";
 
 export const TEST_ACCOUNTS = {
-  student: "harishrohiths.bct24@rathinam.in",
-  tutor: "tutor@rathinam.in",
-  placementCoordinator: "pc@rathinam.in",
-  hod: "hod@rathinam.in",
-  dean: "dean@rathinam.in",
-  placementOfficer: "po@rathinam.in",
-  coe: "coe@rathinam.in",
-  principal: "principal@rathinam.in",
-  company: "company@rathinam.in",
+  student: "student@rathinam.edu.in",
+  tutor: "tutor@rathinam.edu.in",
+  placementCoordinator: "pc@rathinam.edu.in",
+  hod: "hod@rathinam.edu.in",
+  dean: "dean@rathinam.edu.in",
+  placementOfficer: "po@rathinam.edu.in",
+  coe: "coe@rathinam.edu.in",
+  principal: "principal@rathinam.edu.in",
+  company: "hr@techcorp.com",
 } as const;
 
 export async function selectRole(page: Page, roleLabel: string) {
