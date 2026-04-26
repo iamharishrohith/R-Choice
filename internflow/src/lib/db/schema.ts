@@ -24,6 +24,9 @@ export const userRoleEnum = pgEnum("user_role", [
   "principal",
   "company",
   "alumni",
+  "coe",
+  "placement_head",
+  "management_corporation",
 ]);
 
 export const requestStatusEnum = pgEnum("request_status", [
@@ -33,6 +36,7 @@ export const requestStatusEnum = pgEnum("request_status", [
   "pending_hod",
   "pending_dean",
   "pending_po",
+  "pending_coe",
   "pending_principal",
   "approved",
   "rejected",
@@ -54,6 +58,7 @@ export const companyStatusEnum = pgEnum("company_status", [
 export const jobStatusEnum = pgEnum("job_status", [
   "draft",
   "pending_review",
+  "pending_mcr_approval",
   "approved",
   "rejected",
   "revision_needed",
@@ -102,6 +107,7 @@ export const users = pgTable("users", {
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   failedLoginAttempts: integer("failed_login_attempts").default(0),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  employeeId: varchar("employee_id", { length: 30 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -114,8 +120,13 @@ export const studentProfiles = pgTable("student_profiles", {
     .notNull()
     .unique(),
   registerNo: varchar("register_no", { length: 20 }).notNull().unique(),
+  school: varchar("school", { length: 100 }),
+  program: varchar("program", { length: 100 }),
   department: varchar("department", { length: 50 }).notNull(),
   year: integer("year").notNull(),
+  batchStartYear: integer("batch_start_year"),
+  batchEndYear: integer("batch_end_year"),
+  course: varchar("course", { length: 100 }),
   section: varchar("section", { length: 5 }),
   cgpa: decimal("cgpa", { precision: 3, scale: 2 }),
   dob: date("dob"),
@@ -232,8 +243,9 @@ export const placementReadiness = pgTable("placement_readiness", {
 /* ── Authority Mapping ── */
 export const authorityMappings = pgTable("authority_mappings", {
   id: uuid("id").defaultRandom().primaryKey(),
+  school: varchar("school", { length: 100 }),
   department: varchar("department", { length: 50 }).notNull(),
-  section: varchar("section", { length: 5 }).notNull(),
+  section: varchar("section", { length: 50 }).notNull(),
   year: integer("year").notNull(),
   tutorId: uuid("tutor_id").references(() => users.id),
   placementCoordinatorId: uuid("placement_coordinator_id").references(() => users.id),
@@ -364,6 +376,7 @@ export const companyRegistrations = pgTable("company_registrations", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyLegalName: varchar("company_legal_name", { length: 255 }).notNull(),
   brandName: varchar("brand_name", { length: 255 }),
+  companyDescription: text("company_description"),
   companyType: varchar("company_type", { length: 50 }).notNull(),
   industrySector: varchar("industry_sector", { length: 100 }).notNull(),
   yearEstablished: integer("year_established"),
@@ -381,8 +394,21 @@ export const companyRegistrations = pgTable("company_registrations", {
   gstNumber: varchar("gst_number", { length: 20 }),
   panNumber: varchar("pan_number", { length: 15 }),
   cinLlpin: varchar("cin_llpin", { length: 25 }),
+  coi: text("coi"),
   registrationCertUrl: text("registration_cert_url"),
   mouUrl: text("mou_url"),
+  ceoName: varchar("ceo_name", { length: 100 }),
+  ceoDesignation: varchar("ceo_designation", { length: 100 }),
+  ceoEmail: varchar("ceo_email", { length: 255 }),
+  ceoPhone: varchar("ceo_phone", { length: 15 }),
+  ceoLinkedin: text("ceo_linkedin"),
+  ceoPortfolio: text("ceo_portfolio"),
+  idProof: text("id_proof"),
+  internshipType: varchar("internship_type", { length: 50 }),
+  domains: text("domains").array(),
+  duration: varchar("duration", { length: 50 }),
+  stipendRange: varchar("stipend_range", { length: 100 }),
+  hiringIntention: varchar("hiring_intention", { length: 100 }),
   generalTcAccepted: boolean("general_tc_accepted").default(false),
   generalTcAcceptedAt: timestamp("general_tc_accepted_at", { withTimezone: true }),
   status: companyStatusEnum("status").default("pending"),
@@ -403,9 +429,21 @@ export const jobPostings = pgTable("job_postings", {
   postedByRole: userRoleEnum("posted_by_role").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   jobType: varchar("job_type", { length: 50 }).notNull(),
+  domain: varchar("domain", { length: 100 }),
+  isPpoAvailable: boolean("is_ppo_available").default(false),
+  isCampusHiring: boolean("is_campus_hiring").default(false),
+  expectedJoiningDate: date("expected_joining_date"),
+  interviewMode: varchar("interview_mode", { length: 50 }),
+  selectionProcessSteps: jsonb("selection_process_steps"),
   description: text("description").notNull(),
+  responsibilities: text("responsibilities"),
+  learnings: text("learnings"),
+  mandatorySkills: text("mandatory_skills").array(),
+  preferredSkills: text("preferred_skills").array(),
+  tools: text("tools").array(),
   requiredSkills: text("required_skills").array(),
   preferredQualifications: text("preferred_qualifications"),
+  eligibilityDegree: text("eligibility_degree").array(),
   departmentEligibility: text("department_eligibility").array(),
   minCgpa: decimal("min_cgpa", { precision: 3, scale: 2 }),
   yearEligibility: integer("year_eligibility").array(),
@@ -418,11 +456,15 @@ export const jobPostings = pgTable("job_postings", {
   startDate: date("start_date"),
   selectionProcess: text("selection_process"),
   perksBenefits: text("perks_benefits").array(),
+  perks: text("perks").array(),
+  faq: jsonb("faq"),
+  contactPersons: jsonb("contact_persons"),
   jdPdfUrl: text("jd_pdf_url"),
   status: jobStatusEnum("status").default("draft"),
   verifiedBy: uuid("verified_by").references(() => users.id),
   verifiedByRole: varchar("verified_by_role", { length: 30 }),
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  selectionRounds: jsonb("selection_rounds"),
   companyId: uuid("company_id").references(() => companyRegistrations.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
@@ -552,6 +594,49 @@ export const driveRegistrations = pgTable("drive_registrations", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+/* ── Company Registration Links ── */
+export const companyRegistrationLinks = pgTable("company_registration_links", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  token: varchar("token", { length: 100 }).notNull().unique(),
+  generatedBy: uuid("generated_by").references(() => users.id).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  isUsed: boolean("is_used").default(false),
+  usedByCompanyId: uuid("used_by_company_id").references(() => companyRegistrations.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+/* ── Company Staff ── */
+export const companyStaff = pgTable("company_staff", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").references(() => companyRegistrations.id, { onDelete: "cascade" }).notNull(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull().unique(),
+  roleInCompany: varchar("role_in_company", { length: 100 }).notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+/* ── Selection Process Rounds ── */
+export const selectionProcessRounds = pgTable("selection_process_rounds", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  jobId: uuid("job_id").references(() => jobPostings.id, { onDelete: "cascade" }).notNull(),
+  roundNumber: integer("round_number").notNull(),
+  roundName: varchar("round_name", { length: 100 }).notNull(),
+  roundType: varchar("round_type", { length: 50 }),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+/* ── Approval Escalations ── */
+export const approvalEscalations = pgTable("approval_escalations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  requestId: uuid("request_id").references(() => internshipRequests.id, { onDelete: "cascade" }).notNull(),
+  escalatedFromTier: integer("escalated_from_tier").notNull(),
+  escalatedToTier: integer("escalated_to_tier").notNull(),
+  escalationReason: text("escalation_reason"),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 /* ── Relations ── */
 export const usersRelations = relations(users, ({ one, many }) => ({
   studentProfile: one(studentProfiles, {
@@ -575,4 +660,56 @@ export const studentProfilesRelations = relations(studentProfiles, ({ one, many 
     references: [placementReadiness.studentId],
   }),
 }));
+
+/* ── Surveys ── */
+export const surveys = pgTable("surveys", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  targetAudience: varchar("target_audience", { length: 50 }).notNull(),
+  createdByRole: userRoleEnum("created_by_role").notNull(),
+  createdById: uuid("created_by_id").references(() => users.id),
+  formSchema: jsonb("form_schema").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+/* ── Calendar Events ── */
+export const calendarEvents = pgTable("calendar_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  eventType: varchar("event_type", { length: 50 }).notNull(),
+  startDate: timestamp("start_date", { withTimezone: true }).notNull(),
+  endDate: timestamp("end_date", { withTimezone: true }),
+  meetLink: text("meet_link"),
+  relatedEntityId: uuid("related_entity_id"),
+  relatedEntityType: varchar("related_entity_type", { length: 50 }),
+  isAllDay: boolean("is_all_day").default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+/* ── Device Tokens (FCM Push Notifications) ── */
+export const deviceTokens = pgTable("device_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  token: text("token").notNull(),
+  platform: varchar("platform", { length: 20 }).notNull(), // 'android', 'ios', 'web'
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }).defaultNow(),
+});
+
+export const surveyResponses = pgTable("survey_responses", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  surveyId: uuid("survey_id").references(() => surveys.id).notNull(),
+  respondentId: uuid("respondent_id").references(() => users.id).notNull(),
+  responseData: jsonb("response_data").notNull(),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow(),
+});
 
