@@ -2,6 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import { signOut as clientSignOut } from "next-auth/react";
+import { useEffect } from "react";
+import { initPushNotifications } from "@/lib/pushNotifications";
 
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -61,6 +63,10 @@ export function DashboardShell({
     .slice(0, 2);
 
   const roleLabel = userRole.replace(/_/g, " ");
+
+  useEffect(() => {
+    initPushNotifications();
+  }, []);
 
   return (
     <div className={styles.dashboardLayout}>

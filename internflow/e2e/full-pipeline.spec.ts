@@ -41,7 +41,7 @@ async function approveRow(page: Page, row: Locator) {
 test.describe("Full Pipeline - Mega Flow", () => {
 
   test("Company Registers -> PO Approves Job -> Student Applies -> Full Hierarchy Approves", async ({ page }) => {
-    test.setTimeout(180000); // 3 minutes timeout due to many context switches
+    test.setTimeout(300000); // 5 minutes timeout due to many context switches
     let companyLoginEmail = companyEmail;
 
     // --- 1. Company Registration ---
@@ -202,6 +202,14 @@ test.describe("Full Pipeline - Mega Flow", () => {
     await page.goto("/approvals");
     const poRow = await waitForApprovalRow(page, jobTitle);
     await approveRow(page, poRow);
+    await page.waitForTimeout(500);
+    await page.context().clearCookies();
+
+    // --- 9.5 COE Approves ---
+    await loginAs(page, TEST_ACCOUNTS.coe, "COE", /.*dashboard.*/);
+    await page.goto("/approvals");
+    const coeRow = await waitForApprovalRow(page, jobTitle);
+    await approveRow(page, coeRow);
     await page.waitForTimeout(500);
     await page.context().clearCookies();
 

@@ -4,13 +4,14 @@ import { companyRegistrations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Building, CheckCircle, XCircle, Clock, Globe, Mail, Phone, RotateCcw, FileText, Users } from "lucide-react";
+import { Building, CheckCircle, XCircle, Clock, Globe, Mail, Phone, RotateCcw, FileText, Users, Download } from "lucide-react";
+import { ExportCompanyDocs } from "./ExportButtons";
 
 export default async function CompanyReviewPage() {
   const session = await auth();
   const role = session?.user?.role;
   
-  if (!role || !["dean", "placement_officer", "principal"].includes(role)) {
+  if (!role || !["dean", "placement_officer", "principal", "management_corporation", "placement_head"].includes(role)) {
     redirect("/");
   }
 
@@ -21,7 +22,7 @@ export default async function CompanyReviewPage() {
     const session = await auth();
     if (!session?.user?.id) return;
     const role = session.user.role;
-    if (!["dean", "placement_officer", "principal"].includes(role)) return;
+    if (!["dean", "placement_officer", "principal", "management_corporation", "placement_head"].includes(role)) return;
 
     const id = formData.get("id") as string;
     const action = formData.get("action") as string;
@@ -173,6 +174,9 @@ export default async function CompanyReviewPage() {
                   <div style={{ marginTop: "var(--space-2)", padding: "var(--space-2) var(--space-3)", background: "var(--bg-secondary)", borderRadius: "6px", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
                     <strong>Review Note:</strong> {reg.reviewComment}
                   </div>
+                )}
+                {reg.status === "approved" && (
+                  <ExportCompanyDocs companyName={reg.companyLegalName} date={reg.reviewedAt?.toLocaleDateString() || new Date().toLocaleDateString()} />
                 )}
               </div>
             ))}

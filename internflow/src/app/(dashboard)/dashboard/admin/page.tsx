@@ -1,17 +1,21 @@
 import Link from "next/link";
 import { AdminKpiCards } from "./AdminKpiCards";
-import { AuditLogTypewriter } from "@/components/dashboard/admin/AuditLogTypewriter";
 import { ExportDataButton } from "@/components/dashboard/admin/ExportDataButton";
+import { GenerateLinkButton } from "@/components/dashboard/admin/GenerateLinkButton";
 import { db } from "@/lib/db";
-import { users, internshipRequests, auditLogs } from "@/lib/db/schema";
-import { eq, count, desc, inArray } from "drizzle-orm";
+import { users, internshipRequests, companyRegistrations } from "@/lib/db/schema";
+import { eq, count, inArray } from "drizzle-orm";
+import { auth } from "@/lib/auth";
 
 export default async function AdminDashboard() {
+  const session = await auth();
+  const userRole = session?.user?.role || "";
+
   // Fetch real KPI data
   const [pendingResult] = await db
     .select({ value: count() })
     .from(internshipRequests)
-    .where(inArray(internshipRequests.status, ["pending_dean", "pending_po", "pending_principal"]));
+    .where(inArray(internshipRequests.status, ["pending_dean", "pending_po", "pending_principal", "pending_coe"]));
   const pendingApprovals = pendingResult?.value ?? 0;
 
   const [studentsResult] = await db
@@ -34,20 +38,12 @@ export default async function AdminDashboard() {
   const approvedCount = approvedResult?.value ?? 0;
   const placementRate = activeStudents > 0 ? Math.round((approvedCount / activeStudents) * 100) : 0;
 
-  // Fetch real audit logs
-  const recentLogs = await db
-    .select({
-      id: auditLogs.id,
-      action: auditLogs.action,
-      entityType: auditLogs.entityType,
-      entityId: auditLogs.entityId,
-      ipAddress: auditLogs.ipAddress,
-      createdAt: auditLogs.createdAt,
-      userId: auditLogs.userId,
-    })
-    .from(auditLogs)
-    .orderBy(desc(auditLogs.createdAt))
-    .limit(10);
+  // Pending company registrations count (for MCR badge)
+  const [pendingCompaniesResult] = await db
+    .select({ value: count() })
+    .from(companyRegistrations)
+    .where(eq(companyRegistrations.status, "pending"));
+  const pendingCompanies = pendingCompaniesResult?.value ?? 0;
 
   return (
     <div>
@@ -77,7 +73,23 @@ export default async function AdminDashboard() {
             </Link>
             <Link href="/companies/review" style={{ textDecoration: "none", color: "inherit" }}>
               <div className="card action-card">
-                <p style={{ fontWeight: 600 }}>Review Companies</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <p style={{ fontWeight: 600 }}>Review Companies</p>
+                  {pendingCompanies > 0 && (
+                    <span style={{
+                      background: "var(--status-pending)",
+                      color: "white",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      padding: "2px 8px",
+                      borderRadius: "12px",
+                      minWidth: "20px",
+                      textAlign: "center",
+                    }}>
+                      {pendingCompanies}
+                    </span>
+                  )}
+                </div>
                 <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
                   Approve pending company registrations
                 </p>
@@ -85,18 +97,34 @@ export default async function AdminDashboard() {
             </Link>
             <ExportDataButton />
           </div>
+
+          {/* MCR-specific: Generate company onboarding links */}
+          {userRole === "management_corporation" && (
+            <div style={{ marginTop: "var(--space-6)" }}>
+              <h2 style={{ marginBottom: "var(--space-4)" }}>Company Onboarding</h2>
+              <div className="card" style={{ padding: "var(--space-5)" }}>
+                <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "var(--space-3)" }}>
+                  Generate a secure, time-limited registration link to send to a company for onboarding.
+                </p>
+                <GenerateLinkButton />
+              </div>
+            </div>
+          )}
         </div>
 
         <div>
-          <h2 style={{ marginBottom: "var(--space-4)" }}>Recent Activity</h2>
-          <AuditLogTypewriter initialLogs={recentLogs.map(log => ({
-            id: log.id,
-            action: log.action,
-            entityType: log.entityType || "system",
-            ipAddress: log.ipAddress || "Internal",
-            createdAt: log.createdAt ? new Date(log.createdAt).toISOString() : new Date().toISOString(),
-            userId: log.userId || "system",
-          }))} />
+          <h2 style={{ marginBottom: "var(--space-4)" }}>Ongoing Internships</h2>
+          <div className="card" style={{ padding: "var(--space-6)", textAlign: "center" }}>
+            <p style={{ fontFamily: "var(--font-heading)", fontSize: "2.5rem", fontWeight: 700, color: "var(--rathinam-green)" }}>
+              {approvedCount}
+            </p>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "var(--space-4)" }}>
+              Active approved internships across all departments
+            </p>
+            <Link href="/reports/admin" className="btn btn-outline" style={{ display: "inline-flex", gap: "8px" }}>
+              View Detailed Reports
+            </Link>
+          </div>
         </div>
       </div>
     </div>

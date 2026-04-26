@@ -4,7 +4,7 @@ import { eq, desc, and, sql } from "drizzle-orm";
 
 export async function getFilteredRequestsForStaff(userId: string, role: string, filterStatus: string = "pending", page: number = 1, pageSize: number = 25) {
   let targetStatus = "none";
-  
+
   if (filterStatus === "approved") targetStatus = "approved";
   else if (filterStatus === "rejected") targetStatus = "rejected";
   else {
@@ -13,6 +13,7 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
     else if (role === "hod") targetStatus = "pending_hod";
     else if (role === "dean") targetStatus = "pending_dean";
     else if (role === "placement_officer") targetStatus = "pending_po";
+    else if (role === "coe") targetStatus = "pending_coe";
     else if (role === "principal") targetStatus = "pending_principal";
   }
 
@@ -21,11 +22,12 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
   let condition = undefined;
 
   if (filterStatus === "pending") {
-    const baseConditions = [eq(internshipRequests.status, targetStatus as "draft" | "pending_tutor" | "pending_coordinator" | "pending_hod" | "pending_dean" | "pending_po" | "pending_principal" | "approved" | "rejected" | "returned")];
-    if (role === "dean" || role === "placement_officer" || role === "principal") {
+    const baseConditions = [eq(internshipRequests.status, targetStatus as "draft" | "pending_tutor" | "pending_coordinator" | "pending_hod" | "pending_dean" | "pending_po" | "pending_coe" | "pending_principal" | "approved" | "rejected" | "returned")];
+    if (role === "dean" || role === "placement_officer" || role === "coe" || role === "principal") {
       if (role === "dean") baseConditions.push(eq(internshipRequests.currentTier, 4));
       else if (role === "placement_officer") baseConditions.push(eq(internshipRequests.currentTier, 5));
-      else if (role === "principal") baseConditions.push(eq(internshipRequests.currentTier, 6));
+      else if (role === "coe") baseConditions.push(eq(internshipRequests.currentTier, 6));
+      else if (role === "principal") baseConditions.push(eq(internshipRequests.currentTier, 7));
     }
     condition = and(...baseConditions);
   } else if (filterStatus === "approved") {

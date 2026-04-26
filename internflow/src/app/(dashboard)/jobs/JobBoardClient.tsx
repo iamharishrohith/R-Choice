@@ -20,6 +20,8 @@ type JobCard = {
   deadline: string;
   verifiedAt?: string | Date | null;
   verifierName?: string | null;
+  jobType?: string;
+  isPpoAvailable?: boolean;
 };
 
 type Interest = {
@@ -38,7 +40,7 @@ function DeadlineBadge({ deadline }: { deadline: string }) {
     </span>
   );
   if (daysLeft <= 7) return <span className="job-tag" style={{ color: "var(--color-warning)", background: "rgba(244, 122, 42, 0.08)" }}><Clock size={12} /> {daysLeft}d left</span>;
-  return <span className="job-tag" suppressHydrationWarning><Calendar size={12} /> {dl.toLocaleDateString()}</span>;
+  return <span className="job-tag" suppressHydrationWarning><Calendar size={12} /> {dl.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}</span>;
 }
 
 function VelocityBadge() {
@@ -57,6 +59,21 @@ function VelocityBadge() {
       <Zap size={11} /> Urgently Hiring
     </span>
   );
+}
+
+function OpportunityBadge({ type, ppo }: { type?: string, ppo?: boolean }) {
+  if (!type) return null;
+  
+  if (type === "internship_to_full_time" || (type === "internship" && ppo)) {
+    return <span className="job-tag" style={{ background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6", border: "1px solid rgba(139, 92, 246, 0.2)" }}><Briefcase size={12} /> Intern + Full Time</span>;
+  }
+  if (type === "full_time" || type === "fulltime") {
+    return <span className="job-tag" style={{ background: "rgba(16, 185, 129, 0.1)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.2)" }}><Briefcase size={12} /> Full Time</span>;
+  }
+  if (type === "part_time" || type === "parttime") {
+    return <span className="job-tag" style={{ background: "rgba(245, 158, 11, 0.1)", color: "#f59e0b", border: "1px solid rgba(245, 158, 11, 0.2)" }}><Briefcase size={12} /> Part Time</span>;
+  }
+  return <span className="job-tag" style={{ background: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", border: "1px solid rgba(59, 130, 246, 0.2)" }}><Briefcase size={12} /> Internship</span>;
 }
 
 export default function JobBoardClient({ jobs, interests, isStudent, appliedJobIds = [] }: { jobs: JobCard[]; interests: Interest[]; isStudent: boolean; appliedJobIds?: string[] }) {
@@ -286,7 +303,7 @@ export default function JobBoardClient({ jobs, interests, isStudent, appliedJobI
                         fontSize: "0.7rem", fontWeight: 600,
                       }}>
                         ✓ Approved by {job.verifierName}
-                        {job.verifiedAt && <span style={{ opacity: 0.7 }}> • {new Date(job.verifiedAt).toLocaleDateString()}</span>}
+                        {job.verifiedAt && <span style={{ opacity: 0.7 }} suppressHydrationWarning> • {new Date(job.verifiedAt).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}</span>}
                       </div>
                     )}
                   </div>
@@ -311,6 +328,7 @@ export default function JobBoardClient({ jobs, interests, isStudent, appliedJobI
                     <span className="job-tag"><MapPin size={12} /> {job.location}</span>
                     {job.deadline && <DeadlineBadge deadline={job.deadline} />}
                     <span className="job-tag"><Banknote size={12} /> {job.stipendInfo || "Unpaid"}</span>
+                    <OpportunityBadge type={job.jobType} ppo={job.isPpoAvailable} />
                   </div>
                 </div>
 

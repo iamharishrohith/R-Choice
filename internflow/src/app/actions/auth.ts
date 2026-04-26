@@ -96,6 +96,9 @@ function getRedirectUrl(role: string): string {
     case "dean":
     case "placement_officer":
     case "principal":
+    case "coe":
+    case "placement_head":
+    case "management_corporation":
       return "/dashboard/admin";
     case "company":
       return "/dashboard/company";

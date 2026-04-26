@@ -74,6 +74,7 @@ type ProfileData = {
   skills?: Array<{ name: string; type: string; isTop?: boolean }>;
   projects?: ProjectRow[];
   certifications?: CertRow[];
+  firstName?: string;
 };
 
 const linkPlatforms = ["GitHub", "LeetCode", "HackerRank", "LinkedIn", "Portfolio", "Other"];
@@ -382,7 +383,9 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
             {data.avatarUrl ? (
               <Image src={data.avatarUrl} alt="Profile Picture" width={120} height={120} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
-              <User size={48} color="var(--text-muted)" />
+              <div style={{ fontSize: "3rem", fontWeight: "bold", color: "var(--color-primary)" }}>
+                {data.firstName ? data.firstName.charAt(0).toUpperCase() : "U"}
+              </div>
             )}
           </div>
           <label className="btn btn-outline" style={{ fontSize: "0.8125rem", padding: "6px 12px", cursor: "pointer", borderRadius: "100px" }}>

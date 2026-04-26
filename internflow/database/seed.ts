@@ -1,7 +1,7 @@
 /**
  * R-Choice — Database Seed Script
- * Creates test users for all roles with password "R-Choice@2025"
- * Run with: npx tsx src/lib/db/seed.ts
+ * Creates test users for all 12 roles with password "R-Choice@2025"
+ * Run with: npm run db:seed
  */
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
@@ -9,8 +9,12 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import * as schema from "../src/lib/db/schema";
 import * as dotenv from "dotenv";
+import dns from "node:dns";
+import tls from "node:tls";
 
 dotenv.config({ path: ".env.local" });
+dns.setDefaultResultOrder("ipv4first");
+tls.DEFAULT_MAX_VERSION = 'TLSv1.2';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -21,6 +25,22 @@ if (!DATABASE_URL) {
 const sql = neon(DATABASE_URL);
 const db = drizzle(sql, { schema });
 
+async function warmupConnection() {
+  let retries = 5;
+  while (retries > 0) {
+    try {
+      await sql`SELECT 1`;
+      console.log("Database connected!");
+      return;
+    } catch (e) {
+      console.log(`Database cold start, retrying in 3 seconds... (${retries} attempts left)`);
+      retries--;
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+  }
+  throw new Error("Failed to connect to database after multiple retries.");
+}
+
 const TEST_PASSWORD = "R-Choice@2025";
 
 const seedUsers = [
@@ -30,12 +50,18 @@ const seedUsers = [
   { email: "hod@rathinam.edu.in", firstName: "Dr. Meena", lastName: "Nair", role: "hod" as const },
   { email: "dean@rathinam.edu.in", firstName: "Dr. Suresh", lastName: "Iyer", role: "dean" as const },
   { email: "po@rathinam.edu.in", firstName: "Lakshmi", lastName: "Raj", role: "placement_officer" as const },
+  { email: "coe@rathinam.edu.in", firstName: "Dr. Anand", lastName: "Krishnan", role: "coe" as const },
   { email: "principal@rathinam.edu.in", firstName: "Dr. Venkat", lastName: "Raman", role: "principal" as const },
+  { email: "ph@rathinam.edu.in", firstName: "Sridhar", lastName: "Balaji", role: "placement_head" as const },
+  { email: "mcr@rathinam.edu.in", firstName: "Rajesh", lastName: "Govindaraj", role: "management_corporation" as const },
   { email: "hr@techcorp.com", firstName: "Deepak", lastName: "Menon", role: "company" as const },
+  { email: "alumni@rathinam.edu.in", firstName: "Karthik", lastName: "Sundaram", role: "alumni" as const },
 ];
 
 async function seed() {
   console.log("🌱 Seeding R-Choice database...\n");
+
+  await warmupConnection();
 
   const passwordHash = await bcrypt.hash(TEST_PASSWORD, 12);
 

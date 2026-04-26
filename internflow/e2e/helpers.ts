@@ -9,6 +9,7 @@ export const TEST_ACCOUNTS = {
   hod: "hod@rathinam.in",
   dean: "dean@rathinam.in",
   placementOfficer: "po@rathinam.in",
+  coe: "coe@rathinam.in",
   principal: "principal@rathinam.in",
   company: "company@rathinam.in",
 } as const;
@@ -29,37 +30,43 @@ export async function selectRole(page: Page, roleLabel: string) {
 }
 
 export async function loginAs(page: Page, email: string, roleLabel: string, expectedUrl?: RegExp) {
-  const maxAttempts = 5;
+  await page.goto("/");
+  await page.waitForLoadState("domcontentloaded");
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    await page.goto("/");
-    await selectRole(page, roleLabel);
-    await page.fill('input[type="email"]', email);
-    await page.fill('input[type="password"]', TEST_PASSWORD);
-    await page.click('button[type="submit"]');
+  await selectRole(page, roleLabel);
 
-    if (!expectedUrl) {
-      return;
-    }
+  // Fill credentials
+  await page.fill('input[type="email"]', email);
+  await page.fill('input[type="password"]', TEST_PASSWORD);
 
-    try {
-      await expect(page).toHaveURL(expectedUrl, { timeout: 15000 });
-      return;
-    } catch (error) {
-      const invalidCredentialsVisible = await page
-        .getByText("Invalid email or password for this role.")
-        .isVisible()
-        .catch(() => false);
+  // Submit and wait for navigation or error
+  await Promise.all([
+    page.waitForLoadState("networkidle"),
+    page.click('button[type="submit"]'),
+  ]);
 
-      const stillOnLogin = /\/\??(?:message=registered)?$/.test(new URL(page.url()).pathname + new URL(page.url()).search);
+  if (!expectedUrl) {
+    return;
+  }
 
-      if (attempt < maxAttempts && (invalidCredentialsVisible || stillOnLogin)) {
-        await page.waitForTimeout(1000);
-        continue;
-      }
+  // Wait for redirect with generous timeout — auth + SSR can be slow in dev mode
+  try {
+    await expect(page).toHaveURL(expectedUrl, { timeout: 20000 });
+  } catch {
+    // Collect diagnostic info before failing
+    const currentUrl = page.url();
+    const bodyText = await page.locator("body").innerText().catch(() => "(could not read body)");
+    const hasError = bodyText.includes("Invalid email or password");
+    const hasDbError = bodyText.toLowerCase().includes("error") || bodyText.toLowerCase().includes("neondb");
 
-      throw error;
-    }
+    throw new Error(
+      `Login failed for ${email} (${roleLabel}).\n` +
+      `  Current URL: ${currentUrl}\n` +
+      `  Expected URL pattern: ${expectedUrl}\n` +
+      `  Invalid credentials shown: ${hasError}\n` +
+      `  DB/server error detected: ${hasDbError}\n` +
+      `  Body snippet: ${bodyText.slice(0, 300)}`
+    );
   }
 }
 

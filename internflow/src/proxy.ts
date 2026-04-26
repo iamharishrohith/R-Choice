@@ -22,10 +22,10 @@ function getRateLimitStatus(ip: string): boolean {
 const { auth } = NextAuth(authConfig);
 
 // Routes accessible without auth
-const publicRoutes = ["/", "/register/company", "/api/auth", "/v", "/team"];
+const publicRoutes = ["/", "/register/company", "/company/register", "/api/auth", "/v", "/team"];
 
 // Shared routes every authenticated role can access
-const sharedRoutes = ["/settings", "/profile"];
+const sharedRoutes = ["/settings", "/profile", "/export", "/calendar"];
 
 // Role-based route mapping — must cover every sidebar/nav link the role can reach
 const roleRoutes: Record<string, string[]> = {
@@ -134,7 +134,7 @@ const roleRoutes: Record<string, string[]> = {
   ],
 };
 
-export default auth((req) => {
+export const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
 
   // ── Rate Limiting on sensitive routes ──
@@ -188,5 +188,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\..*).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\..*).*)" ],
 };

@@ -2,10 +2,11 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { jobPostings, users, auditLogs, companyRegistrations } from "@/lib/db/schema";
+import { jobPostings, users, auditLogs, deviceTokens, companyRegistrations } from "@/lib/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sanitize, sanitizeOptional, validateDate, ValidationError } from "@/lib/validation";
+import { sendPushToMultiple } from "@/lib/firebase";
 
 export async function createJobPosting(formData: FormData) {
   const session = await auth();
@@ -13,9 +14,13 @@ export async function createJobPosting(formData: FormData) {
     return { error: "Not authenticated" };
   }
   
+  const allowedRoles = [
+    "company", "tutor", "placement_coordinator", "hod", "dean", 
+    "placement_officer", "principal", "coe", "placement_head", "management_corporation"
+  ];
   const role = session.user.role;
-  if (role !== "company") {
-    return { error: "Only companies can post jobs." };
+  if (!allowedRoles.includes(role)) {
+    return { error: "You do not have permission to post jobs." };
   }
 
   try {
@@ -36,12 +41,27 @@ export async function createJobPosting(formData: FormData) {
     const workMode = sanitizeOptional(formData.get("workMode"), "Work Mode", 50) || "Hybrid";
     const duration = sanitizeOptional(formData.get("duration"), "Duration", 100) || "3 Months";
     
+    let companyIdToInsert = null;
+    if (role === "company") {
+      const compReg = await db
+        .select({ id: companyRegistrations.id })
+        .from(companyRegistrations)
+        .where(eq(companyRegistrations.userId, session.user.id))
+        .limit(1);
+      
+      if (compReg.length > 0) {
+        companyIdToInsert = compReg[0].id;
+      }
+    }
+
     await db.insert(jobPostings).values({
       postedBy: session.user.id,
-      postedByRole: "company",
-      companyId: company?.id || null,
+      postedByRole: role as typeof jobPostings.$inferInsert.postedByRole,
+      companyId: company?.id || companyIdToInsert || null,
       title,
-      jobType: "Internship",
+      jobType: formData.get("jobType") as string || "internship",
+      isPpoAvailable: formData.get("isPpoAvailable") === "true",
+      isCampusHiring: formData.get("isCampusHiring") === "true",
       description,
       location,
       workMode,
@@ -50,7 +70,9 @@ export async function createJobPosting(formData: FormData) {
       openingsCount: isNaN(parseInt(formData.get("openingsCount") as string, 10)) ? 1 : parseInt(formData.get("openingsCount") as string, 10),
       applicationDeadline: deadline,
       requiredSkills: requirements ? requirements.split(",").map(s => s.trim()).filter(Boolean) : [],
-      status: "pending_review", // Jobs now go through staff review before being visible
+      status: (role === "management_corporation" || role === "dean") ? "approved" 
+            : (role === "placement_officer") ? "pending_mcr_approval" 
+            : "pending_review",
     });
 
     revalidatePath("/jobs");
@@ -73,16 +95,35 @@ export async function updateJobStatus(jobId: string, action: "approve" | "reject
   }
   
   const role = session.user.role;
-  if (role !== "placement_officer") {
-    return { error: "Only placement officers can approve company jobs." };
-  }
-
+  
   try {
-    const newStatus = action === "approve" ? "approved" : "rejected";
+    const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
+    if (!job) return { error: "Job not found" };
+
+    let newStatus = job.status;
+    let shouldNotify = false;
+    
+    if (role === "management_corporation" && job.status === "pending_mcr_approval") {
+       // MCR approving Company job -> goes to approved directly and notifies others
+       if (action === "approve") {
+          newStatus = "approved";
+          shouldNotify = true;
+       } else {
+          newStatus = "rejected";
+       }
+    } else if (role === "placement_officer" && job.status === "pending_review") {
+       if (action === "approve") {
+          newStatus = "approved";
+       } else {
+          newStatus = "rejected";
+       }
+    } else {
+       return { error: "You do not have permission to approve this job at its current stage." };
+    }
     
     await db.update(jobPostings)
       .set({ 
-        status: newStatus,
+        status: newStatus as any,
         verifiedBy: session.user.id,
         verifiedByRole: role,
         verifiedAt: new Date()
@@ -96,6 +137,44 @@ export async function updateJobStatus(jobId: string, action: "approve" | "reject
       entityId: jobId,
       details: { newStatus },
     });
+
+    if (shouldNotify) {
+      // Find devices for authorities (po, dean, ph, coe, principal)
+      const authorityTokens = await db
+        .select({ token: deviceTokens.token })
+        .from(deviceTokens)
+        .innerJoin(users, eq(deviceTokens.userId, users.id))
+        .where(
+          inArray(users.role, ["placement_officer", "dean", "placement_head", "coe", "principal"])
+        );
+      
+      const authorityTokenList = authorityTokens.map(t => t.token);
+      if (authorityTokenList.length > 0) {
+        await sendPushToMultiple(
+          authorityTokenList,
+          "New Internship Approved",
+          `A new internship '${job.title}' has been approved by MCR.`,
+          { type: "job_approved", jobId }
+        );
+      }
+
+      // Notify all active students
+      const studentTokens = await db
+        .select({ token: deviceTokens.token })
+        .from(deviceTokens)
+        .innerJoin(users, eq(deviceTokens.userId, users.id))
+        .where(eq(users.role, "student"));
+      
+      const studentTokenList = studentTokens.map(t => t.token);
+      if (studentTokenList.length > 0) {
+        await sendPushToMultiple(
+          studentTokenList,
+          "New Internship Opportunity",
+          `Check out the newly added internship: ${job.title}`,
+          { type: "new_job", jobId }
+        );
+      }
+    }
 
     revalidatePath("/approvals/jobs");
     revalidatePath("/jobs");
@@ -125,6 +204,8 @@ export async function fetchActiveJobs() {
         verifiedBy: jobPostings.verifiedBy,
         verifiedByRole: jobPostings.verifiedByRole,
         verifiedAt: jobPostings.verifiedAt,
+        jobType: jobPostings.jobType,
+        isPpoAvailable: jobPostings.isPpoAvailable,
       })
       .from(jobPostings)
       .innerJoin(users, eq(jobPostings.postedBy, users.id))

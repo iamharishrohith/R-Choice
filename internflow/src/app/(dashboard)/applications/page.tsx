@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { internshipRequests, approvalLogs, users } from "@/lib/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
+import { format } from "date-fns";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PlusCircle, ExternalLink, Calendar, MapPin, Building2, FolderOpen, MessageSquare } from "lucide-react";
@@ -144,6 +145,19 @@ export default async function ApplicationsPage() {
                     let dotStyle = {};
                     let labelColor = "var(--text-muted)";
                     let labelWeight = "600";
+                    let timestampStr = "";
+                    
+                    // The first step "Applied" corresponds to submittedAt
+                    if (tier === 1 && app.submittedAt) {
+                      timestampStr = format(new Date(app.submittedAt), "MMM d, yyyy");
+                    } else if (tier > 1) {
+                      // Find log for this tier (the tier when it was approved is tier - 1)
+                      // e.g. Tutor approved when tier was 1, so log.tier === 1
+                      const logForTier = allLogs.find(l => l.requestId === app.id && (l as any).tier === (tier - 1));
+                      if (logForTier && logForTier.createdAt) {
+                        timestampStr = format(new Date(logForTier.createdAt), "MMM d, yyyy");
+                      }
+                    }
                     
                     if (tier < currentTier || statusStr === "approved") {
                       // Passed stages
@@ -172,6 +186,11 @@ export default async function ApplicationsPage() {
                       <div key={label} className="progress-step" style={{ flexBasis: "14%" }}>
                         <div className="step-dot" style={dotStyle}></div>
                         <span className="step-label" style={{ color: labelColor, fontWeight: labelWeight }}>{label}</span>
+                        {timestampStr && (
+                          <span style={{ fontSize: "0.55rem", color: "var(--text-muted)", textAlign: "center", marginTop: "2px" }}>
+                            {timestampStr}
+                          </span>
+                        )}
                       </div>
                     );
                   })}

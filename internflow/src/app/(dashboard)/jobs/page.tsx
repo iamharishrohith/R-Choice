@@ -49,7 +49,7 @@ export default async function JobBoardPage() {
     .from(jobApplications)
     .innerJoin(users, eq(jobApplications.studentId, users.id))
     .innerJoin(jobPostings, eq(jobApplications.jobId, jobPostings.id))
-    .leftJoin(companyRegistrations, eq(jobPostings.companyId, companyRegistrations.id))
+    .leftJoin(companyRegistrations, eq(jobPostings.postedBy, companyRegistrations.userId))
     .where(eq(jobApplications.status, "selected"))
     .orderBy(desc(jobApplications.updatedAt));
 
@@ -60,7 +60,7 @@ export default async function JobBoardPage() {
         <p>Browse and apply for verified internships from our corporate partners.</p>
       </div>
 
-      <JobBoardClient jobs={jobs} interests={interests} isStudent={isStudent} appliedJobIds={appliedJobIds} />
+      <JobBoardClient jobs={jobs.map(j => ({ ...j, isPpoAvailable: j.isPpoAvailable ?? undefined }))} interests={interests} isStudent={isStudent} appliedJobIds={appliedJobIds} />
 
       {/* Selection Results — permanent record visible to all */}
       <SelectionResultsSection results={selectionResults} />

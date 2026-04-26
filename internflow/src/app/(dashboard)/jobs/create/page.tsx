@@ -56,13 +56,34 @@ export default function CreateJobPage() {
             </div>
             
             <div className="input-group">
+              <label>Job Type *</label>
+              <select name="jobType" className="input-field" required>
+                <option value="internship">Internship</option>
+                <option value="full_time">Full Time</option>
+                <option value="part_time">Part Time</option>
+              </select>
+            </div>
+
+            <div className="input-group">
               <label>Location / Work Mode *</label>
               <input name="location" className="input-field" required placeholder="e.g. Remote, Bangalore, Hybrid" />
             </div>
             
             <div className="input-group">
-              <label>Stipend Info</label>
-              <input name="stipendInfo" className="input-field" placeholder="e.g. ₹20,000/month" />
+              <label>Stipend / Salary Info</label>
+              <input name="stipendInfo" className="input-field" placeholder="e.g. ₹20,000/month or 5 LPA" />
+            </div>
+          </div>
+          
+          <div className="grid grid-2" style={{ gap: "var(--space-4)", background: "var(--bg-secondary)", padding: "16px", borderRadius: "8px" }}>
+            <div className="input-group" style={{ display: "flex", alignItems: "center", gap: "8px", flexDirection: "row" }}>
+              <input type="checkbox" name="isPpoAvailable" id="isPpoAvailable" value="true" style={{ width: "20px", height: "20px" }} />
+              <label htmlFor="isPpoAvailable" style={{ margin: 0 }}>PPO Available (Pre-Placement Offer)?</label>
+            </div>
+            
+            <div className="input-group" style={{ display: "flex", alignItems: "center", gap: "8px", flexDirection: "row" }}>
+              <input type="checkbox" name="isCampusHiring" id="isCampusHiring" value="true" style={{ width: "20px", height: "20px" }} />
+              <label htmlFor="isCampusHiring" style={{ margin: 0 }}>Campus Hiring?</label>
             </div>
           </div>
 

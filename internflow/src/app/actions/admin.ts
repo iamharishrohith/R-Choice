@@ -132,15 +132,13 @@ export async function deleteJob(jobId: string) {
       return { error: `Cannot delete: ${appCount.value} student(s) have already applied to this job.` };
     }
 
-    await db.transaction(async (tx) => {
-      await tx.delete(jobPostings).where(eq(jobPostings.id, jobId));
-      await tx.insert(auditLogs).values({
-        userId: session.user.id,
-        action: "delete_job",
-        entityType: "job_posting",
-        entityId: jobId,
-        details: { deletedTitle: job.title },
-      });
+    await db.delete(jobPostings).where(eq(jobPostings.id, jobId));
+    await db.insert(auditLogs).values({
+      userId: session.user.id,
+      action: "delete_job",
+      entityType: "job_posting",
+      entityId: jobId,
+      details: { deletedTitle: job.title },
     });
 
     revalidatePath("/jobs");
@@ -163,23 +161,21 @@ export async function deleteCompany(companyRegId: string) {
       .limit(1);
     if (!reg) return { error: "Company registration not found." };
 
-    // Wrap in transaction: audit first, then delete
-    await db.transaction(async (tx) => {
-      await tx.insert(auditLogs).values({
-        userId: session.user.id,
-        action: "delete_company",
-        entityType: "company_registration",
-        entityId: companyRegId,
-        details: { deletedCompany: reg.companyLegalName },
-      });
-
-      await tx.delete(companyRegistrations).where(eq(companyRegistrations.id, companyRegId));
-
-      // If a user account exists for this company, delete it too
-      if (reg.userId) {
-        await tx.delete(users).where(eq(users.id, reg.userId));
-      }
+    // Audit then delete
+    await db.insert(auditLogs).values({
+      userId: session.user.id,
+      action: "delete_company",
+      entityType: "company_registration",
+      entityId: companyRegId,
+      details: { deletedCompany: reg.companyLegalName },
     });
+
+    await db.delete(companyRegistrations).where(eq(companyRegistrations.id, companyRegId));
+
+    // If a user account exists for this company, delete it too
+    if (reg.userId) {
+      await db.delete(users).where(eq(users.id, reg.userId));
+    }
 
     revalidatePath("/companies/review");
     revalidatePath("/users");

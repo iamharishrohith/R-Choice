@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { companyRegistrationLinks, companyRegistrations, users, notifications } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { randomBytes } from "crypto";
+import bcrypt from "bcryptjs";
+import { sendCompanyApprovalEmail } from "@/lib/mail";
 import { revalidatePath } from "next/cache";
 
 export async function generateCompanyRegistrationLink() {
@@ -54,51 +56,55 @@ export async function approveCompanyRegistration(companyId: string) {
       return { error: "Company is already approved" };
     }
 
-    await db.transaction(async (tx) => {
-      // 1. Create CEO user credentials
-      const tempPassword = randomBytes(8).toString("hex");
-      const passwordHash = `mock-bcrypt-hash-${tempPassword}`; // Replace with actual hashing in prod
+    // 1. Create CEO user credentials with proper bcrypt hashing
+    const tempPassword = randomBytes(8).toString("hex");
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-      const [newCeo] = await tx
-        .insert(users)
-        .values({
-          email: company.ceoEmail || company.hrEmail,
-          passwordHash,
-          role: "company",
-          firstName: company.ceoName || "CEO",
-          lastName: company.companyLegalName,
-        })
-        .returning({ id: users.id });
+    const [newCeo] = await db
+      .insert(users)
+      .values({
+        email: company.ceoEmail || company.hrEmail,
+        passwordHash,
+        role: "company",
+        firstName: company.ceoName || "CEO",
+        lastName: company.companyLegalName,
+      })
+      .returning({ id: users.id });
 
-      // 2. Mark company as approved
-      await tx
-        .update(companyRegistrations)
-        .set({
-          status: "approved",
-          userId: newCeo.id,
-          reviewedBy: session.user.id,
-          reviewedByRole: "management_corporation",
-          reviewedAt: new Date(),
-        })
-        .where(eq(companyRegistrations.id, companyId));
+    // 2. Mark company as approved
+    await db
+      .update(companyRegistrations)
+      .set({
+        status: "approved",
+        userId: newCeo.id,
+        reviewedBy: session.user.id,
+        reviewedByRole: "management_corporation",
+        reviewedAt: new Date(),
+      })
+      .where(eq(companyRegistrations.id, companyId));
 
-      // 3. Notify authorities
-      const authUsers = await tx
-        .select({ id: users.id })
-        .from(users)
-        .where(inArray(users.role, ["placement_officer", "dean", "placement_head", "coe", "principal"]));
+    // 3. Notify authorities
+    const authUsers = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(inArray(users.role, ["placement_officer", "dean", "placement_head", "coe", "principal"]));
 
-      if (authUsers.length > 0) {
-        const notifs = authUsers.map(u => ({
-          userId: u.id,
-          type: "company_onboarded",
-          title: "New Company Onboarded",
-          message: `${company.companyLegalName} has been approved and onboarded to the platform.`,
-          linkUrl: `/companies/${company.id}`,
-        }));
-        await tx.insert(notifications).values(notifs);
-      }
-    });
+    if (authUsers.length > 0) {
+      const notifs = authUsers.map(u => ({
+        userId: u.id,
+        type: "company_onboarded",
+        title: "New Company Onboarded",
+        message: `${company.companyLegalName} has been approved and onboarded to the platform.`,
+        linkUrl: `/companies/${company.id}`,
+      }));
+      await db.insert(notifications).values(notifs);
+    }
+
+    // 4. Email CEO the temp password
+    const emailTo = company.ceoEmail || company.hrEmail;
+    await sendCompanyApprovalEmail(emailTo, company.companyLegalName, tempPassword);
+    
+    console.log(`[MCR] CEO credentials created for ${emailTo}, temp password: ${tempPassword}`);
 
     revalidatePath("/dashboard/mcr");
     revalidatePath("/companies");

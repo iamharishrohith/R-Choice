@@ -92,7 +92,7 @@ export default async function ProfilePage() {
       .where(eq(studentProfiles.userId, userId))
       .limit(1);
 
-    const [user] = await db.select({ avatarUrl: users.avatarUrl }).from(users).where(eq(users.id, userId)).limit(1);
+    const [user] = await db.select({ avatarUrl: users.avatarUrl, firstName: users.firstName }).from(users).where(eq(users.id, userId)).limit(1);
 
     let links: Array<typeof studentLinks.$inferSelect> = [];
     if (profile) {
@@ -116,7 +116,7 @@ export default async function ProfilePage() {
       profileCompletionScore: 0,
     };
     
-    const dataWithAvatar = { ...initialData, avatarUrl: user?.avatarUrl || null };
+    const dataWithAvatar = { ...initialData, avatarUrl: user?.avatarUrl || null, firstName: user?.firstName };
 
     return (
       <div>
