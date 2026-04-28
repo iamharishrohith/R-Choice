@@ -151,6 +151,7 @@ export const studentSkills = pgTable("student_skills", {
   skillName: varchar("skill_name", { length: 100 }).notNull(),
   skillType: skillTypeEnum("skill_type").notNull(),
   proficiency: varchar("proficiency", { length: 50 }),
+  isTop: boolean("is_top").default(false),
 });
 
 /* ── Student Certifications ── */

@@ -35,6 +35,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Check if student profile exists FIRST
+    // It's required because resumeUrl is stored in the studentProfiles table
+    const [profile] = await db
+      .select()
+      .from(studentProfiles)
+      .where(eq(studentProfiles.userId, session.user.id));
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: "Please save your Basic Info first before uploading a resume" },
+        { status: 400 }
+      );
+    }
+
     // Convert to base64 data URI for Cloudinary upload
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -49,17 +63,10 @@ export async function POST(req: Request) {
     });
 
     // Update student profile with resume URL
-    const [profile] = await db
-      .select()
-      .from(studentProfiles)
+    await db
+      .update(studentProfiles)
+      .set({ resumeUrl: result.secure_url, updatedAt: new Date() })
       .where(eq(studentProfiles.userId, session.user.id));
-
-    if (profile) {
-      await db
-        .update(studentProfiles)
-        .set({ resumeUrl: result.secure_url, updatedAt: new Date() })
-        .where(eq(studentProfiles.userId, session.user.id));
-    }
 
     return NextResponse.json({ url: result.secure_url });
   } catch (error) {

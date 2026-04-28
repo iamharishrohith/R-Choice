@@ -12,7 +12,7 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
   const searchParams = await props.searchParams;
   const queryParam = searchParams.q || "";
   const session = await auth();
-  const isAdmin = session?.user?.role && ["dean", "placement_officer", "principal"].includes(session.user.role);
+  const isAdmin = session?.user?.role && ["placement_officer", "principal"].includes(session.user.role);
 
   const page = parseInt(searchParams.page || "1", 10);
   const pageSize = 20;
@@ -162,6 +162,26 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
                     </div>
                   )}
                 </div>
+
+                <Link href={`/companies/${company.id}`} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  marginTop: "var(--space-3)",
+                  padding: "10px 16px",
+                  background: "var(--primary-color)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "var(--radius-md)",
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                  cursor: "pointer",
+                  transition: "opacity 0.2s ease",
+                }}>
+                  <Building size={14} /> View Full Profile
+                </Link>
               </div>
             ))
           )}

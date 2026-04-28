@@ -30,6 +30,17 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
       else if (role === "principal") baseConditions.push(eq(internshipRequests.currentTier, 7));
     }
     condition = and(...baseConditions);
+  } else if (filterStatus === "downward") {
+    const activeStatuses = ["pending_tutor", "pending_coordinator", "pending_hod", "pending_dean", "pending_po", "pending_coe", "pending_principal"];
+    const baseConditions = [sql`${internshipRequests.status} IN (${sql.join(activeStatuses.map(s => sql`${s}`), sql`, `)})`];
+    
+    if (role === "dean") baseConditions.push(sql`${internshipRequests.currentTier} < 4`);
+    else if (role === "placement_officer") baseConditions.push(sql`${internshipRequests.currentTier} < 5`);
+    else if (role === "coe") baseConditions.push(sql`${internshipRequests.currentTier} < 6`);
+    else if (role === "principal") baseConditions.push(sql`${internshipRequests.currentTier} < 7`);
+    else baseConditions.push(sql`1=0`); // Should not be accessible for lower roles
+
+    condition = and(...baseConditions);
   } else if (filterStatus === "approved") {
     condition = eq(internshipRequests.status, "approved");
   } else if (filterStatus === "rejected") {
@@ -56,6 +67,8 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
       applicationType: internshipRequests.applicationType,
       status: internshipRequests.status,
       submittedAt: internshipRequests.submittedAt,
+      updatedAt: internshipRequests.updatedAt,
+      currentTier: internshipRequests.currentTier,
       studentName: users.firstName,
     })
     .from(internshipRequests)

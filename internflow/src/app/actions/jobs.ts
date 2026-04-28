@@ -26,50 +26,104 @@ export async function createJobPosting(formData: FormData) {
   try {
     const title = sanitize(formData.get("title"), "Job Title", 255);
     const description = sanitize(formData.get("description"), "Job Description", 5000);
-    const requirements = sanitizeOptional(formData.get("requirements"), "Requirements", 3000);
     const location = sanitize(formData.get("location"), "Location", 200);
-    const stipendInfo = sanitizeOptional(formData.get("stipendInfo"), "Stipend Info", 100);
+    const stipendInfo = sanitize(formData.get("stipendInfo"), "Stipend Info", 200);
     const deadline = validateDate(formData.get("deadline"), "Application Deadline");
 
-    // Determine the company record
-    const [company] = await db
-      .select({ id: companyRegistrations.id })
-      .from(companyRegistrations)
-      .where(eq(companyRegistrations.userId, session.user.id))
-      .limit(1);
-
+    // Optional text fields
+    const responsibilities = sanitizeOptional(formData.get("responsibilities"), "Responsibilities", 5000);
+    const learnings = sanitizeOptional(formData.get("learnings"), "Learnings", 3000);
+    const domain = sanitizeOptional(formData.get("domain"), "Domain", 100);
     const workMode = sanitizeOptional(formData.get("workMode"), "Work Mode", 50) || "Hybrid";
     const duration = sanitizeOptional(formData.get("duration"), "Duration", 100) || "3 Months";
-    
+    const interviewMode = sanitizeOptional(formData.get("interviewMode"), "Interview Mode", 50);
+    const selectionProcess = sanitizeOptional(formData.get("selectionProcess"), "Selection Process", 3000);
+    const preferredQualifications = sanitizeOptional(formData.get("preferredQualifications"), "Preferred Qualifications", 3000);
+
+    // Date fields
+    const startDate = sanitizeOptional(formData.get("startDate"), "Start Date", 10);
+    const expectedJoiningDate = sanitizeOptional(formData.get("expectedJoiningDate"), "Joining Date", 10);
+
+    // Numeric
+    const minCgpaStr = formData.get("minCgpa") as string;
+    const minCgpa = minCgpaStr && minCgpaStr.trim() ? minCgpaStr.trim() : null;
+
+    // Array fields (multiple values with same key)
+    const mandatorySkills = formData.getAll("mandatorySkills").map(s => String(s).trim()).filter(Boolean);
+    const preferredSkills = formData.getAll("preferredSkills").map(s => String(s).trim()).filter(Boolean);
+    const toolsList = formData.getAll("tools").map(s => String(s).trim()).filter(Boolean);
+    const perksList = formData.getAll("perks").map(s => String(s).trim()).filter(Boolean);
+    const selectionSteps = formData.getAll("selectionSteps").map(s => String(s).trim()).filter(Boolean);
+
+    // JSON fields
+    let faq = null;
+    try {
+      const faqStr = formData.get("faq") as string;
+      if (faqStr) {
+        const parsed = JSON.parse(faqStr);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].question) faq = parsed;
+      }
+    } catch { /* ignore */ }
+
+    let contactPersons = null;
+    try {
+      const cpStr = formData.get("contactPersons") as string;
+      if (cpStr) {
+        const parsed = JSON.parse(cpStr);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].name) contactPersons = parsed;
+      }
+    } catch { /* ignore */ }
+
+    // Determine the company record
     let companyIdToInsert = null;
     if (role === "company") {
-      const compReg = await db
+      const [compReg] = await db
         .select({ id: companyRegistrations.id })
         .from(companyRegistrations)
         .where(eq(companyRegistrations.userId, session.user.id))
         .limit(1);
-      
-      if (compReg.length > 0) {
-        companyIdToInsert = compReg[0].id;
-      }
+      if (compReg) companyIdToInsert = compReg.id;
+    } else {
+      const [company] = await db
+        .select({ id: companyRegistrations.id })
+        .from(companyRegistrations)
+        .where(eq(companyRegistrations.userId, session.user.id))
+        .limit(1);
+      if (company) companyIdToInsert = company.id;
     }
 
     await db.insert(jobPostings).values({
       postedBy: session.user.id,
       postedByRole: role as typeof jobPostings.$inferInsert.postedByRole,
-      companyId: company?.id || companyIdToInsert || null,
+      companyId: companyIdToInsert,
       title,
       jobType: formData.get("jobType") as string || "internship",
+      domain: domain || null,
       isPpoAvailable: formData.get("isPpoAvailable") === "true",
       isCampusHiring: formData.get("isCampusHiring") === "true",
       description,
+      responsibilities: responsibilities || null,
+      learnings: learnings || null,
       location,
       workMode,
       duration,
-      stipendSalary: stipendInfo || "Unpaid",
+      stipendSalary: stipendInfo,
       openingsCount: isNaN(parseInt(formData.get("openingsCount") as string, 10)) ? 1 : parseInt(formData.get("openingsCount") as string, 10),
       applicationDeadline: deadline,
-      requiredSkills: requirements ? requirements.split(",").map(s => s.trim()).filter(Boolean) : [],
+      startDate: startDate || null,
+      expectedJoiningDate: expectedJoiningDate || null,
+      interviewMode: interviewMode || null,
+      minCgpa: minCgpa,
+      preferredQualifications: preferredQualifications || null,
+      selectionProcess: selectionProcess || null,
+      mandatorySkills: mandatorySkills.length > 0 ? mandatorySkills : null,
+      preferredSkills: preferredSkills.length > 0 ? preferredSkills : null,
+      tools: toolsList.length > 0 ? toolsList : null,
+      perks: perksList.length > 0 ? perksList : null,
+      selectionProcessSteps: selectionSteps.length > 0 ? selectionSteps : null,
+      faq: faq,
+      contactPersons: contactPersons,
+      requiredSkills: mandatorySkills.length > 0 ? mandatorySkills : [],
       status: (role === "management_corporation" || role === "dean") ? "approved" 
             : (role === "placement_officer") ? "pending_mcr_approval" 
             : "pending_review",

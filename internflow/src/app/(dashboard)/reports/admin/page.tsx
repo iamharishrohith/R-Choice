@@ -9,7 +9,7 @@ export default async function AdminReportsPage() {
     redirect("/");
   }
 
-  const allowedRoles = ["dean", "placement_officer", "coe", "placement_head", "management_corporation", "principal"];
+  const allowedRoles = ["dean", "placement_officer", "coe", "placement_head", "management_corporation", "principal", "hod", "placement_coordinator"];
   if (!allowedRoles.includes(session.user.role)) {
     redirect("/");
   }

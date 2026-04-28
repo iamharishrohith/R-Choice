@@ -63,38 +63,42 @@ export default async function AdminDashboard() {
         <div>
           <h2 style={{ marginBottom: "var(--space-4)" }}>Quick Actions</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-            <Link href="/users/create" style={{ textDecoration: "none", color: "inherit" }}>
-              <div className="card action-card">
-                <p style={{ fontWeight: 600 }}>Create User Account</p>
-                <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                  Add students, staff, or admin accounts
-                </p>
-              </div>
-            </Link>
-            <Link href="/companies/review" style={{ textDecoration: "none", color: "inherit" }}>
-              <div className="card action-card">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <p style={{ fontWeight: 600 }}>Review Companies</p>
-                  {pendingCompanies > 0 && (
-                    <span style={{
-                      background: "var(--status-pending)",
-                      color: "white",
-                      fontSize: "0.75rem",
-                      fontWeight: 700,
-                      padding: "2px 8px",
-                      borderRadius: "12px",
-                      minWidth: "20px",
-                      textAlign: "center",
-                    }}>
-                      {pendingCompanies}
-                    </span>
-                  )}
+            {["placement_officer", "management_corporation", "placement_head"].includes(userRole) && (
+              <Link href="/users/create" style={{ textDecoration: "none", color: "inherit" }}>
+                <div className="card action-card">
+                  <p style={{ fontWeight: 600 }}>Create User Account</p>
+                  <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                    Add students, staff, or admin accounts
+                  </p>
                 </div>
-                <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                  Approve pending company registrations
-                </p>
-              </div>
-            </Link>
+              </Link>
+            )}
+            {["placement_officer", "management_corporation", "placement_head"].includes(userRole) && (
+              <Link href="/companies/review" style={{ textDecoration: "none", color: "inherit" }}>
+                <div className="card action-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <p style={{ fontWeight: 600 }}>Review Companies</p>
+                    {pendingCompanies > 0 && (
+                      <span style={{
+                        background: "var(--status-pending)",
+                        color: "white",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        minWidth: "20px",
+                        textAlign: "center",
+                      }}>
+                        {pendingCompanies}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                    Approve pending company registrations
+                  </p>
+                </div>
+              </Link>
+            )}
             <ExportDataButton />
           </div>
 

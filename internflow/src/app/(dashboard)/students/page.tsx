@@ -9,12 +9,18 @@ export default async function StudentsPage(props: { searchParams: Promise<{ [key
 
   let students = await db
     .select({
-      id: studentProfiles.id,
+      id: users.id, // using users.id as id instead of studentProfiles.id which might be null
       firstName: users.firstName,
       lastName: users.lastName,
       email: users.email,
       department: studentProfiles.department,
       year: studentProfiles.year,
+      section: studentProfiles.section,
+      school: studentProfiles.school,
+      program: studentProfiles.program,
+      course: studentProfiles.course,
+      batchStartYear: studentProfiles.batchStartYear,
+      batchEndYear: studentProfiles.batchEndYear,
       phone: users.phone,
       registerNo: studentProfiles.registerNo,
       cgpa: studentProfiles.cgpa,
@@ -24,8 +30,9 @@ export default async function StudentsPage(props: { searchParams: Promise<{ [key
       linkedinLink: studentProfiles.linkedinLink,
       portfolioUrl: studentProfiles.portfolioUrl
     })
-    .from(studentProfiles)
-    .innerJoin(users, eq(users.id, studentProfiles.userId));
+    .from(users)
+    .leftJoin(studentProfiles, eq(studentProfiles.userId, users.id))
+    .where(eq(users.role, "student"));
 
   if (queryParam) {
     students = students.filter(s => 

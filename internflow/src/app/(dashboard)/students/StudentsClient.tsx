@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GraduationCap, Award, CheckSquare, Square, Search, Mail, Download, Eye, X } from "lucide-react";
+import Link from "next/link";
 
 type StudentRow = {
   id: string;
@@ -12,6 +13,11 @@ type StudentRow = {
   department?: string | null;
   year?: number | null;
   section?: string | null;
+  school?: string | null;
+  program?: string | null;
+  course?: string | null;
+  batchStartYear?: number | null;
+  batchEndYear?: number | null;
   phone?: string | null;
   registerNo?: string | null;
   cgpa?: string | null;
@@ -22,89 +28,11 @@ type StudentRow = {
   portfolioUrl?: string | null;
 };
 
-function StudentDetailModal({ student, onClose }: { student: StudentRow; onClose: () => void }) {
-  return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center",
-      background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)"
-    }} onClick={onClose}>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        onClick={e => e.stopPropagation()}
-        className="card"
-        style={{ width: "90%", maxWidth: "600px", padding: "var(--space-6)", position: "relative", maxHeight: "85vh", overflowY: "auto" }}
-      >
-        <button onClick={onClose} style={{ position: "absolute", top: "12px", right: "12px", background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
-          <X size={20} />
-        </button>
-        
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "var(--space-4)" }}>
-          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--gradient-accent)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", fontWeight: 700, margin: "0 auto var(--space-3)" }}>
-            {student.firstName[0]}{student.lastName[0]}
-          </div>
-          <h2 style={{ fontSize: "1.25rem", marginBottom: "4px" }}>{student.firstName} {student.lastName}</h2>
-          <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{student.email}</div>
-        </div>
 
-        {/* Academic Info */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
-          <InfoCell label="Department" value={student.department || "Unassigned"} />
-          <InfoCell label="Academic Year" value={`Year ${student.year || "-"}`} />
-          <InfoCell label="Register No" value={student.registerNo || "N/A"} />
-          <InfoCell label="Phone" value={student.phone || "Not provided"} />
-          <InfoCell label="CGPA" value={student.cgpa || "N/A"} />
-          <InfoCell label="Date of Birth" value={student.dob ? new Date(student.dob).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "N/A"} />
-        </div>
-
-        {/* Professional Summary */}
-        {student.professionalSummary && (
-          <div style={{ marginTop: "var(--space-4)", padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600 }}>Professional Summary</div>
-            <div style={{ fontSize: "0.8125rem", lineHeight: 1.6, color: "var(--text-primary)" }}>{student.professionalSummary}</div>
-          </div>
-        )}
-
-        {/* External Links */}
-        {(student.githubLink || student.linkedinLink || student.portfolioUrl) && (
-          <div style={{ display: "flex", gap: "var(--space-3)", marginTop: "var(--space-4)", flexWrap: "wrap" }}>
-            {student.githubLink && (
-              <a href={student.githubLink} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ flex: 1, padding: "8px", fontSize: "0.8125rem", textAlign: "center", textDecoration: "none", minWidth: "100px" }}>
-                GitHub
-              </a>
-            )}
-            {student.linkedinLink && (
-              <a href={student.linkedinLink} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ flex: 1, padding: "8px", fontSize: "0.8125rem", textAlign: "center", textDecoration: "none", minWidth: "100px" }}>
-                LinkedIn
-              </a>
-            )}
-            {student.portfolioUrl && (
-              <a href={student.portfolioUrl} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ flex: 1, padding: "8px", fontSize: "0.8125rem", textAlign: "center", textDecoration: "none", minWidth: "100px" }}>
-                Portfolio
-              </a>
-            )}
-          </div>
-        )}
-      </motion.div>
-    </div>
-  );
-}
-
-function InfoCell({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ padding: "var(--space-3)", background: "var(--bg-secondary)", borderRadius: "8px" }}>
-      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "2px" }}>{label}</div>
-      <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{value}</div>
-    </div>
-  );
-}
 
 export default function StudentsClient({ initialStudents, queryParam }: { initialStudents: StudentRow[], queryParam: string }) {
   const [students] = useState<StudentRow[]>(initialStudents);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [viewingStudent, setViewingStudent] = useState<StudentRow | null>(null);
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
@@ -295,14 +223,15 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
                           </div>
                         </td>
                         <td style={{ padding: "var(--space-4)", textAlign: "center" }}>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setViewingStudent(student); }}
+                          <Link
+                            href={`/students/${student.id}`}
                             className="btn btn-ghost"
-                            style={{ padding: "6px 10px", minHeight: "auto", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.8125rem" }}
+                            style={{ padding: "6px 10px", minHeight: "auto", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.8125rem", textDecoration: "none" }}
                             title="View student details"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <Eye size={16} /> View
-                          </button>
+                          </Link>
                         </td>
                       </motion.tr>
                     );
@@ -313,13 +242,6 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
           </table>
         </div>
       </div>
-
-      {/* Student Detail Modal */}
-      <AnimatePresence>
-        {viewingStudent && (
-          <StudentDetailModal student={viewingStudent} onClose={() => setViewingStudent(null)} />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

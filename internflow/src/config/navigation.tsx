@@ -109,16 +109,13 @@ export function getNavSections(role: string): NavSection[] {
         { label: "Main", items: [
           { label: "Dashboard", href: "/dashboard/admin", icon: <LayoutDashboard size={20} /> },
           { label: "Approvals", href: "/approvals", icon: <ClipboardCheck size={20} /> },
-          { label: "Job Approvals", href: "/approvals/jobs", icon: <ClipboardCheck size={20} /> },
           { label: "Reports", href: "/reports/admin", icon: <FileText size={20} /> },
           { label: "Analytics", href: "/analytics", icon: <BarChart3 size={20} /> },
         ]},
         { label: "Manage", items: [
           { label: "All Students", href: "/students", icon: <GraduationCap size={20} /> },
           { label: "Shortlisted", href: "/students/shortlisted", icon: <Trophy size={20} /> },
-          { label: "User Accounts", href: "/users", icon: <Users size={20} /> },
           { label: "Companies", href: "/companies", icon: <Building2 size={20} /> },
-          { label: "Hierarchy Manager", href: "/settings/hierarchy", icon: <GitBranch size={20} /> },
         ]},
         { label: "Opportunities", items: [
           { label: "Job Postings", href: "/jobs", icon: <Briefcase size={20} /> },

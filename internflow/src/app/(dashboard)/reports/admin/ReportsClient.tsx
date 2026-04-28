@@ -131,50 +131,50 @@ export default function ReportsClient({
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-4)" }}>
-          <div className="form-group">
+          <div className="input-group">
             <label>Report Type</label>
-            <select className="form-control" value={type} onChange={e => setType(e.target.value as any)}>
+            <select className="input-field" value={type} onChange={e => setType(e.target.value as any)}>
               <option value="all">All Placements</option>
               <option value="internship">Internships</option>
               <option value="full-time">Full-Time Employment</option>
             </select>
           </div>
 
-          <div className="form-group">
+          <div className="input-group">
             <label>School</label>
-            <select className="form-control" value={school} onChange={e => setSchool(e.target.value)}>
+            <select className="input-field" value={school} onChange={e => setSchool(e.target.value)}>
               <option value="">All Schools</option>
               {filterOptions.schools.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
-          <div className="form-group">
+          <div className="input-group">
             <label>Department</label>
-            <select className="form-control" value={department} onChange={e => setDepartment(e.target.value)}>
+            <select className="input-field" value={department} onChange={e => setDepartment(e.target.value)}>
               <option value="">All Departments</option>
               {filterOptions.departments.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
 
-          <div className="form-group">
+          <div className="input-group">
             <label>Course</label>
-            <select className="form-control" value={course} onChange={e => setCourse(e.target.value)}>
+            <select className="input-field" value={course} onChange={e => setCourse(e.target.value)}>
               <option value="">All Courses</option>
               {filterOptions.courses.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
 
-          <div className="form-group">
+          <div className="input-group">
             <label>Section</label>
-            <select className="form-control" value={section} onChange={e => setSection(e.target.value)}>
+            <select className="input-field" value={section} onChange={e => setSection(e.target.value)}>
               <option value="">All Sections</option>
               {filterOptions.sections.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
-          <div className="form-group">
+          <div className="input-group">
             <label>Batch Year</label>
-            <select className="form-control" value={batch} onChange={e => setBatch(e.target.value)}>
+            <select className="input-field" value={batch} onChange={e => setBatch(e.target.value)}>
               <option value="">All Batches</option>
               {filterOptions.batches.map(b => (
                 <option key={`${b.start}-${b.end}`} value={`${b.start}-${b.end}`}>
