@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Download, Filter, Search, Loader2 } from "lucide-react";
 import { fetchPlacementReport, ReportFilterParams } from "@/app/actions/analyticsReports";
+import { COLLEGE_HIERARCHY } from "@/lib/constants/hierarchy";
 
 type ReportData = Awaited<ReturnType<typeof fetchPlacementReport>>;
 
@@ -120,17 +121,26 @@ export default function ReportsClient({
           <h2 style={{ fontSize: "1.1rem", display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
             <Filter size={18} className="text-primary" /> Report Filters
           </h2>
-          <button 
-            onClick={handleExportCsv}
-            disabled={loading || data.length === 0}
-            className="btn btn-primary" 
-            style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px" }}
-          >
-            <Download size={16} /> Export to CSV
-          </button>
+          <div style={{ display: "flex", gap: "var(--space-3)" }}>
+            <button 
+              onClick={() => { setType("all"); setSchool(""); setDepartment(""); setSection(""); setCourse(""); setBatch(""); }}
+              className="btn btn-secondary" 
+              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px" }}
+            >
+              Clear Filters
+            </button>
+            <button 
+              onClick={handleExportCsv}
+              disabled={loading || data.length === 0}
+              className="btn btn-primary" 
+              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px" }}
+            >
+              <Download size={16} /> Export to CSV
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-4)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "var(--space-4)", alignItems: "end", backgroundColor: "var(--bg-secondary)", padding: "var(--space-4)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)" }}>
           <div className="input-group">
             <label>Report Type</label>
             <select className="input-field" value={type} onChange={e => setType(e.target.value as any)}>
@@ -142,9 +152,25 @@ export default function ReportsClient({
 
           <div className="input-group">
             <label>School</label>
-            <select className="input-field" value={school} onChange={e => setSchool(e.target.value)}>
+            <select className="input-field" value={school} onChange={e => { setSchool(e.target.value); setSection(""); setCourse(""); setDepartment(""); }}>
               <option value="">All Schools</option>
-              {filterOptions.schools.map(s => <option key={s} value={s}>{s}</option>)}
+              {COLLEGE_HIERARCHY.map(s => <option key={s.school} value={s.school}>{s.school}</option>)}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label>Section</label>
+            <select className="input-field" value={section} onChange={e => { setSection(e.target.value); setCourse(""); setDepartment(""); }}>
+              <option value="">All Sections</option>
+              {school ? COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.map(sec => <option key={sec.section} value={sec.section}>{sec.section}</option>) : filterOptions.sections.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label>Course</label>
+            <select className="input-field" value={course} onChange={e => { setCourse(e.target.value); setDepartment(""); }}>
+              <option value="">All Courses</option>
+              {section && school ? Array.from(new Set(COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.map(c => c.course) || [])).map(c => <option key={c} value={c}>{c}</option>) : filterOptions.courses.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
 
@@ -152,23 +178,7 @@ export default function ReportsClient({
             <label>Department</label>
             <select className="input-field" value={department} onChange={e => setDepartment(e.target.value)}>
               <option value="">All Departments</option>
-              {filterOptions.departments.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-
-          <div className="input-group">
-            <label>Course</label>
-            <select className="input-field" value={course} onChange={e => setCourse(e.target.value)}>
-              <option value="">All Courses</option>
-              {filterOptions.courses.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-
-          <div className="input-group">
-            <label>Section</label>
-            <select className="input-field" value={section} onChange={e => setSection(e.target.value)}>
-              <option value="">All Sections</option>
-              {filterOptions.sections.map(s => <option key={s} value={s}>{s}</option>)}
+              {course && section && school ? COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.find(c => c.course === course)?.departments.map(d => <option key={d.name} value={d.name}>{d.name}</option>) : filterOptions.departments.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
 

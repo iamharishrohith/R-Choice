@@ -72,7 +72,7 @@ export default async function CompanyTeamPage() {
                     </td>
                     <td>
                        {staff.isActive && (
-                         <form action={revokeCompanyStaff.bind(null, staff.id)}>
+                         <form action={revokeCompanyStaff.bind(null, staff.id) as any}>
                            <button type="submit" className="btn btn-ghost" style={{ padding: "4px 8px", color: "var(--color-danger)" }}>
                              <XCircle size={16} /> Revoke
                            </button>

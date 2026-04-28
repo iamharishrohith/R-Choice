@@ -105,6 +105,7 @@ export async function createJobPosting(formData: FormData) {
       responsibilities: responsibilities || null,
       learnings: learnings || null,
       location,
+      workMode,
       duration,
       stipendSalary: stipendInfo,
       openingsCount: isNaN(parseInt(formData.get("openingsCount") as string, 10)) ? 1 : parseInt(formData.get("openingsCount") as string, 10),
@@ -123,7 +124,7 @@ export async function createJobPosting(formData: FormData) {
       faq: faq,
       contactPersons: contactPersons,
       requiredSkills: mandatorySkills.length > 0 ? mandatorySkills : [],
-      status: (role === "management_corporation" || role === "dean") ? "approved" 
+      status: (role === "management_corporation") ? "approved" 
             : (role === "placement_officer") ? "pending_mcr_approval" 
             : "pending_review",
     });
@@ -151,7 +152,7 @@ export async function updateJobStatus(jobId: string, action: "approve" | "reject
   if (!session?.user?.id) return { error: "Not authenticated" };
   
   const role = session.user.role;
-  if (!["placement_officer", "dean", "coe", "principal", "management_corporation", "placement_head"].includes(role)) {
+  if (!["placement_officer", "coe", "principal", "management_corporation", "placement_head"].includes(role)) {
     return { error: "Only admins and MCR can approve company jobs." };
   }
   try {
@@ -193,7 +194,7 @@ export async function updateJobStatus(jobId: string, action: "approve" | "reject
         const [job] = await tx.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
         
         // 1. Notify Admins
-        const notifyRoles = ["placement_officer", "dean", "hod", "coe", "principal"] as const;
+        const notifyRoles = ["placement_officer", "hod", "coe", "principal"] as const;
         const targetAdmins = await tx.select().from(users).where(inArray(users.role, notifyRoles));
         
         if (targetAdmins.length > 0) {
@@ -229,13 +230,13 @@ export async function updateJobStatus(jobId: string, action: "approve" | "reject
     });
 
     if (shouldNotify) {
-      // Find devices for authorities (po, dean, ph, coe, principal)
+      // Find devices for authorities (po, ph, coe, principal)
       const authorityTokens = await db
         .select({ token: deviceTokens.token })
         .from(deviceTokens)
         .innerJoin(users, eq(deviceTokens.userId, users.id))
         .where(
-          inArray(users.role, ["placement_officer", "dean", "placement_head", "coe", "principal"])
+          inArray(users.role, ["placement_officer", "placement_head", "coe", "principal"])
         );
       
       const authorityTokenList = authorityTokens.map(t => t.token);
@@ -392,7 +393,7 @@ export async function updateJobPosting(jobId: string, formData: FormData) {
 
     // Only the posting company or admin roles can edit
     const isOwner = job.postedBy === session.user.id;
-    const isAdmin = ["dean", "placement_officer", "principal"].includes(role);
+    const isAdmin = ["placement_officer", "principal"].includes(role);
 
     if (!isOwner && !isAdmin) {
       return { error: "You do not have permission to edit this job." };

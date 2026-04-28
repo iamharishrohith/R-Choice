@@ -42,7 +42,7 @@ export default async function ApplicantsPage(props: { searchParams: Promise<{ pa
 
   const condition = role === "company_staff" 
     ? eq(jobPostings.postedBy, userId) 
-    : eq(jobPostings.companyId, companyId);
+    : eq(jobPostings.companyId, companyId as string);
 
   // Count
   const countResult = await db

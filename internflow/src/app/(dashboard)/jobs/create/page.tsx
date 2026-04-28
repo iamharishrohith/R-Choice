@@ -202,7 +202,7 @@ export default function CreateJobPage() {
               <label>Stipend / Salary Info *</label>
               <input name="stipendInfo" className="input-field" required placeholder="e.g. ₹20,000/month or 5 LPA" />
             </div>
-          </section>
+          </div>
 
           <div className="grid grid-2" style={{ gap: "var(--space-4)", background: "var(--bg-secondary)", padding: "16px", borderRadius: "8px" }}>
             <div className="input-group" style={{ display: "flex", alignItems: "center", gap: "8px", flexDirection: "row" }}>

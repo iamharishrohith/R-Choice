@@ -79,7 +79,7 @@ export default async function ManageJobsPage() {
                   <Edit size={16} />
                 </button>
                 {(job.status === "draft" || job.status === "rejected") && (
-                  <form action={deleteJobPosting.bind(null, job.id)}>
+                  <form action={deleteJobPosting.bind(null, job.id) as any}>
                     <button type="submit" className="btn btn-ghost" style={{ padding: "8px", color: "var(--color-danger)" }} title="Delete Draft/Rejected Job">
                       <Trash2 size={16} />
                     </button>

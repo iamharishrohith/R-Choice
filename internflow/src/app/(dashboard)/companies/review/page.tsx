@@ -74,7 +74,7 @@ export default async function CompanyReviewPage() {
                 )}
 
                 {/* Action form with comment box */}
-                <form action={reviewCompany} style={{ marginTop: "var(--space-2)" }}>
+                <form action={reviewCompany as any} style={{ marginTop: "var(--space-2)" }}>
                   <input type="hidden" name="id" value={reg.id} />
                   <div style={{ marginBottom: "var(--space-3)" }}>
                     <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>
@@ -126,7 +126,7 @@ export default async function CompanyReviewPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
                     <span className={`status-pill ${reg.status === "approved" ? "status-approved" : "status-rejected"}`}>{reg.status}</span>
                     {/* Reconsider button for reviewed items */}
-                    <form action={reviewCompany} style={{ display: "inline" }}>
+                    <form action={reviewCompany as any} style={{ display: "inline" }}>
                       <input type="hidden" name="id" value={reg.id} />
                       <input type="hidden" name="action" value="reconsider" />
                       <input type="hidden" name="comment" value="Moved back for re-review" />

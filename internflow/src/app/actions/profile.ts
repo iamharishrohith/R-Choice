@@ -56,6 +56,7 @@ export async function saveBasicProfile(formData: {
   school?: string;
   course?: string;
   program?: string;
+  programType?: string;
   batchStartYear?: number;
   batchEndYear?: number;
   cgpa: string;
@@ -94,6 +95,7 @@ export async function saveBasicProfile(formData: {
         school: formData.school || null,
         course: formData.course || null,
         program: formData.program || null,
+        programType: formData.program || null,
         batchStartYear: formData.batchStartYear || null,
         batchEndYear: formData.batchEndYear || null,
         cgpa: cgpaVal,
@@ -114,6 +116,7 @@ export async function saveBasicProfile(formData: {
         school: formData.school || null,
         course: formData.course || null,
         program: formData.program || null,
+        programType: formData.program || null,
         batchStartYear: formData.batchStartYear || null,
         batchEndYear: formData.batchEndYear || null,
         cgpa: cgpaVal,

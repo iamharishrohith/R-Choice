@@ -12,7 +12,7 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
   const searchParams = await props.searchParams;
   const queryParam = searchParams.q || "";
   const session = await auth();
-  const isAdmin = session?.user?.role && ["placement_officer", "principal"].includes(session.user.role);
+  const canManageCompanies = session?.user?.role && ["placement_officer", "placement_head", "management_corporation", "mcr"].includes(session.user.role);
 
   const page = parseInt(searchParams.page || "1", 10);
   const pageSize = 20;
@@ -47,7 +47,7 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
     "use server";
     const session = await auth();
     if (!session?.user?.id) return;
-    if (!["placement_officer", "principal"].includes(session.user.role)) return;
+    if (!["placement_officer", "placement_head", "management_corporation", "mcr"].includes(session.user.role)) return;
 
     const companyId = formData.get("companyId") as string;
     if (!companyId) return;
@@ -89,7 +89,7 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
             />
             <button type="submit" className="button">Search</button>
           </form>
-          {isAdmin && (
+          {canManageCompanies && (
             <Link href="/companies/review" style={{ textDecoration: "none" }}>
               <button className="btn btn-outline" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 Review Registrations
@@ -137,8 +137,8 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
                     </span>
                   </div>
 
-                  {/* Delete button for PO/Principal */}
-                  {isAdmin && (
+                  {/* Delete button */}
+                  {canManageCompanies && (
                     <DeleteCompanyButton
                       companyId={company.id}
                       companyName={`${company.firstName} ${company.lastName}`}

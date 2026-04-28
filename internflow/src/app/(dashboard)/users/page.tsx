@@ -23,7 +23,7 @@ export default async function UsersPage(props: { searchParams: Promise<{ [key: s
     "use server";
     const session = await auth();
     if (!session?.user?.id) return;
-    if (!["principal", "dean", "placement_officer"].includes(session.user.role)) return;
+    if (!["placement_officer", "placement_head", "management_corporation", "mcr"].includes(session.user.role)) return;
 
     const targetUserId = formData.get("userId") as string;
     if (!targetUserId) return;
@@ -155,7 +155,7 @@ export default async function UsersPage(props: { searchParams: Promise<{ [key: s
                       </div>
                     </td>
                     <td style={{ padding: "var(--space-4)", textAlign: "center" }}>
-                      {["principal", "dean", "placement_officer"].includes(userRole) && user.id !== session?.user?.id && (
+                      {["placement_officer", "placement_head", "management_corporation", "mcr"].includes(userRole) && user.id !== session?.user?.id && (
                         <DeleteUserButton userId={user.id} userName={`${user.firstName} ${user.lastName}`} deleteAction={deleteUser} />
                       )}
                     </td>
