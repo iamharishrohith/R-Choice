@@ -13,9 +13,11 @@ export default async function JobApprovalsPage() {
   }
 
   const role = session.user.role;
-  if (role !== "placement_officer") {
+  if (role !== "placement_officer" && role !== "management_corporation") {
     redirect("/");
   }
+
+  const targetStatus = role === "management_corporation" ? "pending_mcr_approval" : "pending_review";
 
   const jobs = await db
     .select({
@@ -31,14 +33,18 @@ export default async function JobApprovalsPage() {
     })
     .from(jobPostings)
     .innerJoin(users, eq(jobPostings.postedBy, users.id))
-    .where(eq(jobPostings.status, "pending_review"))
+    .where(eq(jobPostings.status, targetStatus))
     .orderBy(desc(jobPostings.createdAt));
 
   return (
     <div className="animate-fade-in">
       <div className="page-header" style={{ marginBottom: "var(--space-6)" }}>
         <h1>Job Postings Review</h1>
-        <p>Review and verify internship opportunities posted by companies before making them visible to students.</p>
+        <p>
+          {role === "management_corporation" 
+            ? "Review and approve internship/job opportunities posted by companies before they are sent to the Placement Officer."
+            : "Review and verify internship opportunities before making them visible to students."}
+        </p>
       </div>
 
       {jobs.length === 0 ? (

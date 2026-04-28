@@ -53,6 +53,11 @@ export async function saveBasicProfile(formData: {
   department: string;
   year: number;
   section: string;
+  school?: string;
+  course?: string;
+  program?: string;
+  batchStartYear?: number;
+  batchEndYear?: number;
   cgpa: string;
   professionalSummary: string;
   roles?: string[];
@@ -86,6 +91,11 @@ export async function saveBasicProfile(formData: {
         department: formData.department,
         year: formData.year,
         section: formData.section,
+        school: formData.school || null,
+        course: formData.course || null,
+        program: formData.program || null,
+        batchStartYear: formData.batchStartYear || null,
+        batchEndYear: formData.batchEndYear || null,
         cgpa: cgpaVal,
         professionalSummary: formData.professionalSummary,
         dob: formData.dob || null,
@@ -101,6 +111,11 @@ export async function saveBasicProfile(formData: {
         department: formData.department,
         year: formData.year,
         section: formData.section,
+        school: formData.school || null,
+        course: formData.course || null,
+        program: formData.program || null,
+        batchStartYear: formData.batchStartYear || null,
+        batchEndYear: formData.batchEndYear || null,
         cgpa: cgpaVal,
         professionalSummary: formData.professionalSummary,
         dob: formData.dob || null,
@@ -206,7 +221,7 @@ export async function saveEducation(educationData: { institution?: string; degre
   } catch (err) { console.error("Education save error:", err); return { error: "Failed to save education." }; }
 }
 
-export async function saveSkills(skillsData: {name: string, type: string}[]) {
+export async function saveSkills(skillsData: {name: string, type: string, isTop?: boolean}[]) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
   const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
@@ -219,6 +234,7 @@ export async function saveSkills(skillsData: {name: string, type: string}[]) {
         studentId: profile.id,
         skillName: skill.name,
         skillType: (skill.type === "language" ? "language" : skill.type === "hard" ? "hard" : "soft") as "hard" | "soft" | "language",
+        isTop: skill.isTop || false,
       });
     }
     await updateProfileScore(profile.id);

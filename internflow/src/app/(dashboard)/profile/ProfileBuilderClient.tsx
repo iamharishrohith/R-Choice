@@ -60,6 +60,11 @@ type ProfileData = {
   department?: string | null;
   year?: string | number | null;
   section?: string | null;
+  school?: string | null;
+  course?: string | null;
+  program?: string | null;
+  batchStartYear?: string | number | null;
+  batchEndYear?: string | number | null;
   cgpa?: string | number | null;
   professionalSummary?: string | null;
   dob?: string | null;
@@ -74,6 +79,7 @@ type ProfileData = {
   skills?: Array<{ name: string; type: string; isTop?: boolean }>;
   projects?: ProjectRow[];
   certifications?: CertRow[];
+  firstName?: string;
 };
 
 const linkPlatforms = ["GitHub", "LeetCode", "HackerRank", "LinkedIn", "Portfolio", "Other"];
@@ -316,6 +322,11 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
           department: data.department || "",
           year: data.year ? Number(data.year) : 1,
           section: data.section || "A",
+          school: data.school || "",
+          course: data.course || "",
+          program: data.program || "",
+          batchStartYear: data.batchStartYear ? Number(data.batchStartYear) : undefined,
+          batchEndYear: data.batchEndYear ? Number(data.batchEndYear) : undefined,
           cgpa: data.cgpa?.toString() || "",
           professionalSummary: data.professionalSummary || "",
           roles: roles,
@@ -382,7 +393,9 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
             {data.avatarUrl ? (
               <Image src={data.avatarUrl} alt="Profile Picture" width={120} height={120} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
-              <User size={48} color="var(--text-muted)" />
+              <div style={{ fontSize: "3rem", fontWeight: "bold", color: "var(--color-primary)" }}>
+                {data.firstName ? data.firstName.charAt(0).toUpperCase() : "U"}
+              </div>
             )}
           </div>
           <label className="btn btn-outline" style={{ fontSize: "0.8125rem", padding: "6px 12px", cursor: "pointer", borderRadius: "100px" }}>
@@ -491,12 +504,24 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
                     <input className="input-field" value={data.registerNo || ""} onChange={(e) => setData({ ...data, registerNo: e.target.value })} required />
                   </div>
                   <div className="input-group">
-                    <label>Department *</label>
-                    <input className="input-field" value={data.department || ""} onChange={(e) => setData({ ...data, department: e.target.value })} required />
+                    <label>School *</label>
+                    <input className="input-field" placeholder="e.g. School of Computer Science" value={data.school || ""} onChange={(e) => setData({ ...data, school: e.target.value })} required />
                   </div>
                   <div className="input-group">
-                    <label>Current CGPA</label>
-                    <input className="input-field" type="number" step="0.01" value={data.cgpa || ""} onChange={(e) => setData({ ...data, cgpa: e.target.value })} />
+                    <label>Department *</label>
+                    <input className="input-field" placeholder="e.g. CS, CSAI, CT FSD" value={data.department || ""} onChange={(e) => setData({ ...data, department: e.target.value })} required />
+                  </div>
+                  <div className="input-group">
+                    <label>Program (UG/PG) *</label>
+                    <select className="input-field" value={data.program || ""} onChange={(e) => setData({ ...data, program: e.target.value })} required>
+                      <option value="" disabled>Select Program...</option>
+                      <option value="UG">Undergraduate (UG)</option>
+                      <option value="PG">Postgraduate (PG)</option>
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label>Course *</label>
+                    <input className="input-field" placeholder="e.g. B.Sc., B.Com, B.Tech" value={data.course || ""} onChange={(e) => setData({ ...data, course: e.target.value })} required />
                   </div>
                   <div className="input-group">
                     <label>Year of Study</label>
@@ -505,7 +530,24 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
                       <option value="2">2nd Year</option>
                       <option value="3">3rd Year</option>
                       <option value="4">4th Year</option>
+                      <option value="5">5th Year</option>
                     </select>
+                  </div>
+                  <div className="input-group">
+                    <label>Section</label>
+                    <input className="input-field" placeholder="e.g. A, B, Raise Smart 1" value={data.section || ""} onChange={(e) => setData({ ...data, section: e.target.value })} />
+                  </div>
+                  <div className="input-group">
+                    <label>Batch Start Year</label>
+                    <input className="input-field" type="number" placeholder="2020" value={data.batchStartYear || ""} onChange={(e) => setData({ ...data, batchStartYear: e.target.value })} />
+                  </div>
+                  <div className="input-group">
+                    <label>Batch End Year</label>
+                    <input className="input-field" type="number" placeholder="2024" value={data.batchEndYear || ""} onChange={(e) => setData({ ...data, batchEndYear: e.target.value })} />
+                  </div>
+                  <div className="input-group">
+                    <label>Current CGPA</label>
+                    <input className="input-field" type="number" step="0.01" value={data.cgpa || ""} onChange={(e) => setData({ ...data, cgpa: e.target.value })} />
                   </div>
                 </div>
 

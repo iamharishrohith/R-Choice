@@ -34,6 +34,9 @@ export default async function ApprovalsPage(props: { searchParams: Promise<{ sta
         <form method="GET" style={{ display: "flex", gap: "10px" }}>
           <select name="status" defaultValue={filterStatus} style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)", fontWeight: 500 }}>
             <option value="pending">Pending Approvals</option>
+            {(role === "dean" || role === "placement_officer" || role === "coe" || role === "principal") && (
+              <option value="downward">Pending at Lower Tiers</option>
+            )}
             <option value="approved">Successfully Approved</option>
             <option value="rejected">Rejected Approvals</option>
           </select>
@@ -59,34 +62,51 @@ export default async function ApprovalsPage(props: { searchParams: Promise<{ sta
                 <th>Student</th>
                 <th>Company</th>
                 <th>Role</th>
-                <th>Type</th>
+                <th>Status / Latency</th>
                 <th>Date Submitted</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {requests.map((req) => (
-                <tr key={req.id}>
-                  <td style={{ fontWeight: 600 }}>{req.studentName}</td>
-                  <td>{req.companyName}</td>
-                  <td>{req.role}</td>
-                  <td>
-                    <span className="badge">
-                      {req.applicationType}
-                    </span>
-                  </td>
-                  <td>{new Date(req.submittedAt!).toLocaleDateString()}</td>
-                  <td>
-                    {req.status === "approved" || req.status === "rejected" ? (
-                      <span style={{ color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>
-                        {req.status === "approved" ? "Processed" : "Declined"}
-                      </span>
-                    ) : (
-                      <ApprovalActions requestId={req.id} />
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {requests.map((req) => {
+                const lastActionDate = new Date(req.updatedAt || req.submittedAt!);
+                const daysPending = Math.floor((Date.now() - lastActionDate.getTime()) / (1000 * 60 * 60 * 24));
+                const isDelayed = daysPending >= 3;
+                
+                return (
+                  <tr key={req.id}>
+                    <td style={{ fontWeight: 600 }}>{req.studentName}</td>
+                    <td>{req.companyName}</td>
+                    <td>{req.role}</td>
+                    <td>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <span className="badge">
+                          {req.status.replace("pending_", "").replace("_", " ")}
+                        </span>
+                        {filterStatus === "pending" || filterStatus === "downward" ? (
+                          <span style={{ fontSize: "0.75rem", color: isDelayed ? "var(--color-danger)" : "var(--text-secondary)", fontWeight: isDelayed ? 600 : 400 }}>
+                            {daysPending === 0 ? "Pending since today" : `Pending for ${daysPending} day${daysPending === 1 ? '' : 's'}`}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td>{new Date(req.submittedAt!).toLocaleDateString()}</td>
+                    <td>
+                      {req.status === "approved" || req.status === "rejected" ? (
+                        <span style={{ color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>
+                          {req.status === "approved" ? "Processed" : "Declined"}
+                        </span>
+                      ) : filterStatus === "downward" ? (
+                        <span style={{ color: "var(--text-secondary)", fontWeight: 500, fontSize: "0.875rem" }}>
+                          Awaiting lower tier
+                        </span>
+                      ) : (
+                        <ApprovalActions requestId={req.id} />
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

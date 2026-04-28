@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Sparkles, AlertTriangle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -65,6 +65,32 @@ export default async function StaffDashboard() {
         <h1>Staff Dashboard</h1>
         <p>Manage approvals, view students, and track placement progress.</p>
       </div>
+
+      {pendingCount > 0 && (
+        <div style={{
+          background: "rgba(234, 179, 8, 0.1)",
+          borderLeft: "4px solid #eab308",
+          padding: "var(--space-4)",
+          borderRadius: "var(--border-radius-md)",
+          marginBottom: "var(--space-6)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <AlertTriangle color="#eab308" size={24} />
+            <div>
+              <h3 style={{ margin: 0, fontSize: "1.125rem", color: "var(--text-primary)" }}>Action Required: Pending Approvals</h3>
+              <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--text-secondary)", marginTop: "4px" }}>
+                You have {pendingCount} application{pendingCount === 1 ? '' : 's'} waiting for your approval. Please review them promptly to avoid delaying student timelines.
+              </p>
+            </div>
+          </div>
+          <Link href="/approvals" className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+            Review Now <ArrowRight size={16} />
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-3" style={{ marginBottom: "var(--space-6)" }}>
         {[

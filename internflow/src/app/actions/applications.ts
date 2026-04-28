@@ -274,30 +274,26 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
       // Generate 6 digit code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // Execute mutations within a resilient transaction boundary
-      let emailTask: any = null;
-      const tx = db;
-      {
-        // Update the application status
-        await tx.update(jobApplications)
-          .set({ status: "selected", verificationCode: code, updatedAt: new Date() })
-          .where(and(eq(jobApplications.jobId, jobId), eq(jobApplications.studentId, studentId)));
+      // Update the application status
+      await db.update(jobApplications)
+        .set({ status: "selected", verificationCode: code, updatedAt: new Date() })
+        .where(and(eq(jobApplications.jobId, jobId), eq(jobApplications.studentId, studentId)));
 
-        // Build email
-        const [student] = await tx.select().from(users).where(eq(users.id, studentId)).limit(1);
+      // Build email
+      const [student] = await db.select().from(users).where(eq(users.id, studentId)).limit(1);
+      
+      let emailTask: { email: string; name: string; phone: string | null; tutorId: null; pcId: null; hodId: null } | null = null;
+      if (student && student.email) {
+        // Notify Student Directly
+        await db.insert(notifications).values({
+          userId: student.id,
+          type: "selection",
+          title: "Internship Selection Result",
+          message: `Congratulations! You have been selected by ${company?.name}. Please check your email for the verification code to start your OD request.`,
+          linkUrl: "/dashboard/student"
+        });
         
-        if (student && student.email) {
-          // Notify Student Directly
-          await tx.insert(notifications).values({
-            userId: student.id,
-            type: "selection",
-            title: "Internship Selection Result",
-            message: `Congratulations! You have been selected by ${company?.name}. Please check your email for the verification code to start your OD request.`,
-            linkUrl: "/dashboard/student"
-          });
-          
-          emailTask = { email: student.email, name: `${student.firstName} ${student.lastName}`, phone: student.phone, tutorId: null, pcId: null, hodId: null };
-        }
+        emailTask = { email: student.email, name: `${student.firstName} ${student.lastName}`, phone: student.phone, tutorId: null, pcId: null, hodId: null };
       }
 
         // Side-effects (Email API requests) fire only if the atomic db transaction succeeds
@@ -372,31 +368,27 @@ export async function verifyAndInitializeOD(applicationId: string, code: string,
       ? await db.select().from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId)).limit(1)
       : [null];
 
-    // Execute mutations within a resilient transaction boundary
-    const tx = db;
-    {
-      // 3. Mark application as verified
-      await tx.update(jobApplications)
-        .set({ isVerified: true, updatedAt: new Date() })
-        .where(eq(jobApplications.id, applicationId));
+    // 3. Mark application as verified
+    await db.update(jobApplications)
+      .set({ isVerified: true, updatedAt: new Date() })
+      .where(eq(jobApplications.id, applicationId));
 
-      // 4. Create the final rigorous OD Request mapping
-      await tx.insert(internshipRequests).values({
-        studentId: session.user.id,
-        jobPostingId: app.jobId,
-        applicationType: "portal",
-        companyName: company?.companyLegalName || "External Company",
-        companyAddress: String(company?.address || "Registered Address"),
-        role: job?.title || "Intern",
-        startDate: validateDate(startDate, "Start Date"),
-        endDate: validateDate(endDate, "End Date"),
-        stipend: job?.stipendSalary || "Unpaid",
-        workMode: job?.workMode || "onsite",
-        status: "pending_tutor", // Begins hierarchical approval
-        currentTier: 1, 
-        submittedAt: new Date(),
-      });
-    }
+    // 4. Create the final rigorous OD Request mapping
+    await db.insert(internshipRequests).values({
+      studentId: session.user.id,
+      jobPostingId: app.jobId,
+      applicationType: "portal",
+      companyName: company?.companyLegalName || "External Company",
+      companyAddress: String(company?.address || "Registered Address"),
+      role: job?.title || "Intern",
+      startDate: validateDate(startDate, "Start Date"),
+      endDate: validateDate(endDate, "End Date"),
+      stipend: job?.stipendSalary || "Unpaid",
+      workMode: job?.workMode || "onsite",
+      status: "pending_tutor", // Begins hierarchical approval
+      currentTier: 1, 
+      submittedAt: new Date(),
+    });
 
     revalidatePath("/dashboard/student");
     return { success: true };

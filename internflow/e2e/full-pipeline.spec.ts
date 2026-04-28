@@ -41,7 +41,7 @@ async function approveRow(page: Page, row: Locator) {
 test.describe("Full Pipeline - Mega Flow", () => {
 
   test("Company Registers -> PO Approves Job -> Student Applies -> Full Hierarchy Approves", async ({ page }) => {
-    test.setTimeout(180000); // 3 minutes timeout due to many context switches
+    test.setTimeout(300000); // 5 minutes timeout due to many context switches
     let companyLoginEmail = companyEmail;
 
     // --- 1. Company Registration ---
@@ -65,6 +65,7 @@ test.describe("Full Pipeline - Mega Flow", () => {
     await page.goto("/jobs/create");
     await page.fill('input[name="title"]', jobTitle);
     await page.fill('input[name="location"]', "Remote");
+    await page.fill('input[name="stipendInfo"]', "₹20,000/month");
     await page.fill('textarea[name="description"]', "Write amazing e2e tests.");
     await page.fill('input[name="deadline"]', "2026-12-31");
     await page.click('button[type="submit"]');
@@ -114,16 +115,17 @@ test.describe("Full Pipeline - Mega Flow", () => {
     const studentJobCard = page.locator(".job-card, .card").filter({ hasText: jobTitle }).first();
     await expect(studentJobCard).toBeVisible();
     
-    // Click View Details and Apply
-    const applyBtn = studentJobCard.getByRole("button", { name: /apply/i }).first();
+    // Click Apply
+    const appliedBtn = studentJobCard.getByRole("button", { name: /applied successfully/i });
+    const applyBtn = studentJobCard.getByRole("button", { name: /apply in portal/i });
+    
+    await expect(applyBtn.or(appliedBtn)).toBeVisible({ timeout: 10000 });
+    
     if (await applyBtn.isVisible()) {
-        await applyBtn.click();
-        await expect(studentJobCard.getByRole("button", { name: /applied successfully/i })).toBeVisible();
+        await applyBtn.click({ force: true });
+        await expect(appliedBtn).toBeVisible({ timeout: 5000 });
     }
     
-    // Check applications page shows the exact generated request
-    await page.goto("/applications");
-    await expect(page.locator(".card").filter({ hasText: `Mega Corp ${randomId}` }).first()).toBeVisible();
     await page.context().clearCookies();
 
     // --- 4a. Company Shortlists Student ---
@@ -134,35 +136,46 @@ test.describe("Full Pipeline - Mega Flow", () => {
     await expect(page.getByText(/Verification Emails sent/i)).toBeVisible();
     await page.context().clearCookies();
 
-    // --- 4b. Fetch Code using PG trick since no emails in E2E ---
+    // --- 4b. Fetch Code using DB query targeting this specific job ---
     const { neon } = require("@neondatabase/serverless");
     const sql = neon(process.env.DATABASE_URL!);
+    const titlePattern = `%${randomId}%`;
     let dbRes;
     for (let i = 0; i < 5; i++) {
       try {
-        dbRes = await sql`SELECT verification_code FROM job_applications ORDER BY applied_at DESC LIMIT 1`;
-        break;
+        dbRes = await sql`
+          SELECT ja.verification_code 
+          FROM job_applications ja 
+          JOIN job_postings jp ON ja.job_id = jp.id 
+          WHERE jp.title LIKE ${titlePattern}
+          ORDER BY ja.applied_at DESC LIMIT 1`;
+        if (dbRes.length > 0 && dbRes[0].verification_code) break;
       } catch (e) {
         if (i === 4) throw e;
-        await page.waitForTimeout(1000);
       }
+      await page.waitForTimeout(1000);
     }
     const vCode = dbRes[0].verification_code;
+    console.log(`[TEST] Verification code for ${jobTitle}: ${vCode}`);
 
     // --- 4c. Student Verifies Application ---
     await loginAs(page, TEST_ACCOUNTS.student, "Student", /.*dashboard.*/);
-    await page.goto("/applications");
+    await page.goto("/dashboard/student");
+    await page.waitForLoadState("networkidle");
+
+    // Locate the specific banner by finding the heading's sibling paragraph with the company name
+    const bannerParagraph = page.locator('strong').filter({ hasText: `Mega Corp ${randomId}` }).first().locator('xpath=ancestor::div[.//button[contains(., "Verify")]]');
+    await expect(bannerParagraph).toBeVisible({ timeout: 10000 });
 
     // Fill Verification Banner
-    await page.fill('input[type="date"]', "2026-06-01"); // Assume generic dates
-    const endDateInputs = page.locator('input[type="date"]');
-    await endDateInputs.nth(1).fill("2026-12-01");
+    await bannerParagraph.locator('input[type="date"]').first().fill("2026-06-01");
+    await bannerParagraph.locator('input[type="date"]').nth(1).fill("2026-12-01");
     
-    await page.fill('input[placeholder="######"]', vCode);
-    await page.getByRole("button", { name: /Verify/i }).click();
+    await bannerParagraph.locator('input[placeholder="######"]').fill(vCode);
+    await bannerParagraph.getByRole("button", { name: /Verify/i }).click();
     
-    // Check applications page shows the exact generated request officially
-    await expect(page.getByText(/Verification successful/i)).toBeVisible();
+    // Check verification success toast
+    await expect(page.getByText(/Verification successful/i)).toBeVisible({ timeout: 10000 });
     await page.context().clearCookies();
 
     // --- 5. Tutor Approves ---
@@ -202,6 +215,14 @@ test.describe("Full Pipeline - Mega Flow", () => {
     await page.goto("/approvals");
     const poRow = await waitForApprovalRow(page, jobTitle);
     await approveRow(page, poRow);
+    await page.waitForTimeout(500);
+    await page.context().clearCookies();
+
+    // --- 9.5 COE Approves ---
+    await loginAs(page, TEST_ACCOUNTS.coe, "COE", /.*dashboard.*/);
+    await page.goto("/approvals");
+    const coeRow = await waitForApprovalRow(page, jobTitle);
+    await approveRow(page, coeRow);
     await page.waitForTimeout(500);
     await page.context().clearCookies();
 

@@ -22,10 +22,10 @@ function getRateLimitStatus(ip: string): boolean {
 const { auth } = NextAuth(authConfig);
 
 // Routes accessible without auth
-const publicRoutes = ["/", "/api/auth", "/v", "/team", "/register"];
+const publicRoutes = ["/", "/register/company", "/company/register", "/register", "/api/auth", "/v", "/team"];
 
 // Shared routes every authenticated role can access
-const sharedRoutes = ["/settings", "/profile"];
+const sharedRoutes = ["/settings", "/profile", "/export", "/calendar"];
 
 // Role-based route mapping — must cover every sidebar/nav link the role can reach
 const roleRoutes: Record<string, string[]> = {
@@ -113,6 +113,28 @@ const roleRoutes: Record<string, string[]> = {
     "/drives",
     "/reports",
   ],
+  placement_head: [
+    "/dashboard/admin",
+    "/students",
+    "/approvals",
+    "/jobs",
+    "/analytics",
+    "/users",
+    "/companies",
+    "/drives",
+    "/reports",
+  ],
+  management_corporation: [
+    "/dashboard/admin",
+    "/students",
+    "/approvals",
+    "/jobs",
+    "/analytics",
+    "/users",
+    "/companies",
+    "/drives",
+    "/reports",
+  ],
   company: [
     "/dashboard/company",
     "/jobs",
@@ -123,9 +145,12 @@ const roleRoutes: Record<string, string[]> = {
     "/jobs",
     "/applicants",
   ],
+  alumni: [
+    "/dashboard/alumni",
+  ],
 };
 
-export default auth((req) => {
+export const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
 
   // ── Rate Limiting on sensitive routes ──
@@ -179,5 +204,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\..*).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\..*).*)" ],
 };

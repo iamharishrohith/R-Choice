@@ -2,96 +2,130 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { jobPostings, users, auditLogs, companyRegistrations } from "@/lib/db/schema";
+import { jobPostings, users, auditLogs, deviceTokens, companyRegistrations } from "@/lib/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sanitize, sanitizeOptional, validateDate, ValidationError } from "@/lib/validation";
+import { sendPushToMultiple } from "@/lib/firebase";
 
 export async function createJobPosting(formData: FormData) {
   const session = await auth();
-  if (!session?.user?.id) return { error: "Not authenticated" };
-
+  if (!session?.user?.id) {
+    return { error: "Not authenticated" };
+  }
+  
+  const allowedRoles = [
+    "company", "tutor", "placement_coordinator", "hod", "dean", 
+    "placement_officer", "principal", "coe", "placement_head", "management_corporation"
+  ];
   const role = session.user.role;
-  if (role !== "company" && role !== "company_staff") {
-    return { error: "Only companies can post jobs." };
+  if (!allowedRoles.includes(role)) {
+    return { error: "You do not have permission to post jobs." };
   }
 
   try {
-    const rawData = Object.fromEntries(formData.entries());
+    const title = sanitize(formData.get("title"), "Job Title", 255);
+    const description = sanitize(formData.get("description"), "Job Description", 5000);
+    const location = sanitize(formData.get("location"), "Location", 200);
+    const stipendInfo = sanitize(formData.get("stipendInfo"), "Stipend Info", 200);
+    const deadline = validateDate(formData.get("deadline"), "Application Deadline");
 
-    const title = String(rawData.title || "");
-    const domain = String(rawData.domain || "");
-    const jobType = String(rawData.jobType || "Internship");
-    const internshipType = String(rawData.internshipType || "");
-    const mode = String(rawData.mode || "");
-    const location = String(rawData.location || "");
-    const duration = String(rawData.duration || "");
-    const description = String(rawData.description || "");
-    const rolesAndResp = String(rawData.rolesAndResponsibilities || "");
-    const learnings = String(rawData.learnings || "");
-    
-    const requiredSkills = String(rawData.requiredSkills || "").split(',').map(s => s.trim()).filter(Boolean);
-    const preferredQualifications = String(rawData.preferredQualifications || "");
-    const tools = String(rawData.tools || "").split(',').map(s => s.trim()).filter(Boolean);
-    
-    const eligibilityDegree = String(rawData.eligibilityDegree || "").split(',').map(s => s.trim()).filter(Boolean);
-    const departmentEligibility = String(rawData.departmentEligibility || "").split(',').map(s => s.trim()).filter(Boolean);
-    const yearEligibility = String(rawData.yearEligibility || "").split(',').map(s => parseInt(s.trim())).filter(y => !isNaN(y));
-    const minCgpaString = String(rawData.minCgpa || "");
-    const minCgpa = minCgpaString ? parseFloat(minCgpaString) : null;
+    // Optional text fields
+    const responsibilities = sanitizeOptional(formData.get("responsibilities"), "Responsibilities", 5000);
+    const learnings = sanitizeOptional(formData.get("learnings"), "Learnings", 3000);
+    const domain = sanitizeOptional(formData.get("domain"), "Domain", 100);
+    const workMode = sanitizeOptional(formData.get("workMode"), "Work Mode", 50) || "Hybrid";
+    const duration = sanitizeOptional(formData.get("duration"), "Duration", 100) || "3 Months";
+    const interviewMode = sanitizeOptional(formData.get("interviewMode"), "Interview Mode", 50);
+    const selectionProcess = sanitizeOptional(formData.get("selectionProcess"), "Selection Process", 3000);
+    const preferredQualifications = sanitizeOptional(formData.get("preferredQualifications"), "Preferred Qualifications", 3000);
 
-    const applicationDeadline = String(rawData.applicationDeadline || "");
-    const startDate = rawData.startDate ? String(rawData.startDate) : null;
+    // Date fields
+    const startDate = sanitizeOptional(formData.get("startDate"), "Start Date", 10);
+    const expectedJoiningDate = sanitizeOptional(formData.get("expectedJoiningDate"), "Joining Date", 10);
 
-    const isPaid = rawData.isPaid === "true";
-    const stipendSalary = String(rawData.stipendSalary || "Unpaid");
+    // Numeric
+    const minCgpaStr = formData.get("minCgpa") as string;
+    const minCgpa = minCgpaStr && minCgpaStr.trim() ? minCgpaStr.trim() : null;
 
-    const perksBenefits = formData.getAll("perksBenefits").map(String);
-    const selectionProcess = formData.getAll("selectionProcess").map(String);
-    
-    let faq = [];
-    try { faq = JSON.parse(String(rawData.faq || "[]")); } catch {}
-    
-    let contactPersons = [];
-    try { contactPersons = JSON.parse(String(rawData.contactPersons || "[]")); } catch {}
+    // Array fields (multiple values with same key)
+    const mandatorySkills = formData.getAll("mandatorySkills").map(s => String(s).trim()).filter(Boolean);
+    const preferredSkills = formData.getAll("preferredSkills").map(s => String(s).trim()).filter(Boolean);
+    const toolsList = formData.getAll("tools").map(s => String(s).trim()).filter(Boolean);
+    const perksList = formData.getAll("perks").map(s => String(s).trim()).filter(Boolean);
+    const selectionSteps = formData.getAll("selectionSteps").map(s => String(s).trim()).filter(Boolean);
 
-    const openingsCount = parseInt(String(rawData.openingsCount || "1"), 10);
+    // JSON fields
+    let faq = null;
+    try {
+      const faqStr = formData.get("faq") as string;
+      if (faqStr) {
+        const parsed = JSON.parse(faqStr);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].question) faq = parsed;
+      }
+    } catch { /* ignore */ }
 
-    const [user] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
-    const companyId = user?.companyId || null;
+    let contactPersons = null;
+    try {
+      const cpStr = formData.get("contactPersons") as string;
+      if (cpStr) {
+        const parsed = JSON.parse(cpStr);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].name) contactPersons = parsed;
+      }
+    } catch { /* ignore */ }
+
+    // Determine the company record
+    let companyIdToInsert = null;
+    if (role === "company") {
+      const [compReg] = await db
+        .select({ id: companyRegistrations.id })
+        .from(companyRegistrations)
+        .where(eq(companyRegistrations.userId, session.user.id))
+        .limit(1);
+      if (compReg) companyIdToInsert = compReg.id;
+    } else {
+      const [company] = await db
+        .select({ id: companyRegistrations.id })
+        .from(companyRegistrations)
+        .where(eq(companyRegistrations.userId, session.user.id))
+        .limit(1);
+      if (company) companyIdToInsert = company.id;
+    }
 
     await db.insert(jobPostings).values({
       postedBy: session.user.id,
-      postedByRole: role,
-      companyId,
+      postedByRole: role as typeof jobPostings.$inferInsert.postedByRole,
+      companyId: companyIdToInsert,
       title,
-      domain,
-      jobType,
-      internshipType,
-      mode,
+      jobType: formData.get("jobType") as string || "internship",
+      domain: domain || null,
+      isPpoAvailable: formData.get("isPpoAvailable") === "true",
+      isCampusHiring: formData.get("isCampusHiring") === "true",
+      description,
+      responsibilities: responsibilities || null,
+      learnings: learnings || null,
       location,
       duration,
-      description,
-      rolesAndResponsibilities: rolesAndResp,
-      learnings,
-      requiredSkills,
-      preferredQualifications,
-      tools,
-      departmentEligibility,
-      eligibilityDegree,
-      minCgpa: minCgpa ? String(minCgpa) : null,
-      yearEligibility,
-      applicationDeadline,
-      startDate,
-      isPaid,
-      stipendSalary,
-      openingsCount,
-      perksBenefits,
-      selectionProcess,
-      faq,
-      contactPersons,
-      workMode: internshipType || "Hybrid",
-      status: "pending_review",
+      stipendSalary: stipendInfo,
+      openingsCount: isNaN(parseInt(formData.get("openingsCount") as string, 10)) ? 1 : parseInt(formData.get("openingsCount") as string, 10),
+      applicationDeadline: deadline,
+      startDate: startDate || null,
+      expectedJoiningDate: expectedJoiningDate || null,
+      interviewMode: interviewMode || null,
+      minCgpa: minCgpa,
+      preferredQualifications: preferredQualifications || null,
+      selectionProcess: selectionProcess || null,
+      mandatorySkills: mandatorySkills.length > 0 ? mandatorySkills : null,
+      preferredSkills: preferredSkills.length > 0 ? preferredSkills : null,
+      tools: toolsList.length > 0 ? toolsList : null,
+      perks: perksList.length > 0 ? perksList : null,
+      selectionProcessSteps: selectionSteps.length > 0 ? selectionSteps : null,
+      faq: faq,
+      contactPersons: contactPersons,
+      requiredSkills: mandatorySkills.length > 0 ? mandatorySkills : [],
+      status: (role === "management_corporation" || role === "dean") ? "approved" 
+            : (role === "placement_officer") ? "pending_mcr_approval" 
+            : "pending_review",
     });
 
     revalidatePath("/jobs");
@@ -117,17 +151,38 @@ export async function updateJobStatus(jobId: string, action: "approve" | "reject
   if (!session?.user?.id) return { error: "Not authenticated" };
   
   const role = session.user.role;
-  if (!["placement_officer", "dean", "coe", "principal", "mcr"].includes(role)) {
+  if (!["placement_officer", "dean", "coe", "principal", "management_corporation", "placement_head"].includes(role)) {
     return { error: "Only admins and MCR can approve company jobs." };
   }
-
   try {
-    const newStatus = action === "approve" ? "approved" : "rejected";
+    const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
+    if (!job) return { error: "Job not found" };
+
+    let newStatus = job.status;
+    let shouldNotify = false;
+    
+    if (role === "management_corporation" && job.status === "pending_mcr_approval") {
+       // MCR approving Company job -> goes to approved directly and notifies others
+       if (action === "approve") {
+          newStatus = "approved";
+          shouldNotify = true;
+       } else {
+          newStatus = "rejected";
+       }
+    } else if (role === "placement_officer" && job.status === "pending_review") {
+       if (action === "approve") {
+          newStatus = "approved";
+       } else {
+          newStatus = "rejected";
+       }
+    } else {
+       return { error: "You do not have permission to approve this job at its current stage." };
+    }
     
     await db.transaction(async (tx) => {
       await tx.update(jobPostings)
         .set({ 
-          status: newStatus,
+          status: newStatus as any,
           verifiedBy: session.user.id,
           verifiedByRole: role,
           verifiedAt: new Date()
@@ -173,6 +228,44 @@ export async function updateJobStatus(jobId: string, action: "approve" | "reject
       });
     });
 
+    if (shouldNotify) {
+      // Find devices for authorities (po, dean, ph, coe, principal)
+      const authorityTokens = await db
+        .select({ token: deviceTokens.token })
+        .from(deviceTokens)
+        .innerJoin(users, eq(deviceTokens.userId, users.id))
+        .where(
+          inArray(users.role, ["placement_officer", "dean", "placement_head", "coe", "principal"])
+        );
+      
+      const authorityTokenList = authorityTokens.map(t => t.token);
+      if (authorityTokenList.length > 0) {
+        await sendPushToMultiple(
+          authorityTokenList,
+          "New Internship Approved",
+          `A new internship '${job.title}' has been approved by MCR.`,
+          { type: "job_approved", jobId }
+        );
+      }
+
+      // Notify all active students
+      const studentTokens = await db
+        .select({ token: deviceTokens.token })
+        .from(deviceTokens)
+        .innerJoin(users, eq(deviceTokens.userId, users.id))
+        .where(eq(users.role, "student"));
+      
+      const studentTokenList = studentTokens.map(t => t.token);
+      if (studentTokenList.length > 0) {
+        await sendPushToMultiple(
+          studentTokenList,
+          "New Internship Opportunity",
+          `Check out the newly added internship: ${job.title}`,
+          { type: "new_job", jobId }
+        );
+      }
+    }
+
     revalidatePath("/approvals/jobs");
     revalidatePath("/jobs");
     return { success: true };
@@ -201,6 +294,8 @@ export async function fetchActiveJobs() {
         verifiedBy: jobPostings.verifiedBy,
         verifiedByRole: jobPostings.verifiedByRole,
         verifiedAt: jobPostings.verifiedAt,
+        jobType: jobPostings.jobType,
+        isPpoAvailable: jobPostings.isPpoAvailable,
       })
       .from(jobPostings)
       .innerJoin(users, eq(jobPostings.postedBy, users.id))

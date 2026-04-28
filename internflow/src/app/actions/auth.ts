@@ -98,6 +98,8 @@ function getRedirectUrl(role: string): string {
     case "principal":
     case "coe":
     case "mcr":
+    case "placement_head":
+    case "management_corporation":
       return "/dashboard/admin";
     case "company":
     case "company_staff":

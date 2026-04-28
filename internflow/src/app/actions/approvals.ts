@@ -6,15 +6,16 @@ import { internshipRequests, notifications, approvalLogs, auditLogs, externalInt
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-type AppRole = "student" | "tutor" | "placement_coordinator" | "hod" | "dean" | "placement_officer" | "principal" | "company" | "alumni";
+type AppRole = "student" | "tutor" | "placement_coordinator" | "hod" | "dean" | "placement_officer" | "coe" | "principal" | "company" | "alumni";
 
-// Approval tier progression order
+// Approval tier progression order (includes COE at tier 6)
 const TIER_CHAIN: Record<string, { nextStatus: string; nextTier: number }> = {
   "tutor:pending_tutor":          { nextStatus: "pending_coordinator", nextTier: 2 },
   "placement_coordinator:pending_coordinator": { nextStatus: "pending_hod", nextTier: 3 },
   "hod:pending_hod":              { nextStatus: "pending_dean",  nextTier: 4 },
   "dean:pending_dean":           { nextStatus: "pending_po",  nextTier: 5 },
-  "placement_officer:pending_po": { nextStatus: "pending_principal", nextTier: 6 },
+  "placement_officer:pending_po": { nextStatus: "pending_coe", nextTier: 6 },
+  "coe:pending_coe":              { nextStatus: "pending_principal", nextTier: 7 },
 };
 
 export async function advanceApproval(requestId: string, action: "approve" | "reject", comment?: string) {
@@ -56,7 +57,6 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
         })
         .where(eq(internshipRequests.id, requestId));
 
-      // Log the rejection with reason
       await db.insert(approvalLogs).values({
         requestId,
         approverId,
@@ -89,8 +89,8 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
       return { success: true };
     }
 
-    // Principal final approval (tier 6 → approved)
-    if (role === "principal" && request.status === "pending_principal" && request.currentTier === 6) {
+    // Principal final approval (tier 7 → approved)
+    if (role === "principal" && request.status === "pending_principal" && request.currentTier === 7) {
       await db
         .update(internshipRequests)
         .set({
@@ -114,7 +114,7 @@ export async function advanceApproval(requestId: string, action: "approve" | "re
         action: "approve_internship_final",
         entityType: "internship_request",
         entityId: requestId,
-        details: { tier: 6, comment: trimmedComment },
+        details: { tier: 7, comment: trimmedComment },
       });
 
       await db.insert(notifications).values({
