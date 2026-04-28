@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download, Filter, Search, Loader2 } from "lucide-react";
+import { Download, Filter, Search, Loader2, FileText, ChevronRight } from "lucide-react";
 import { fetchPlacementReport, ReportFilterParams } from "@/app/actions/analyticsReports";
-import { COLLEGE_HIERARCHY } from "@/lib/constants/hierarchy";
+import { type SchoolNode } from "@/lib/constants/hierarchy";
 
 type ReportData = Awaited<ReturnType<typeof fetchPlacementReport>>;
 
 export default function ReportsClient({
   filterOptions,
+  collegeHierarchy,
 }: {
   filterOptions: {
     schools: string[];
@@ -17,6 +18,7 @@ export default function ReportsClient({
     courses: string[];
     batches: { start: number; end: number }[];
   };
+  collegeHierarchy: SchoolNode[];
 }) {
   const [data, setData] = useState<ReportData>([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +156,7 @@ export default function ReportsClient({
             <label>School</label>
             <select className="input-field" value={school} onChange={e => { setSchool(e.target.value); setSection(""); setCourse(""); setDepartment(""); }}>
               <option value="">All Schools</option>
-              {COLLEGE_HIERARCHY.map(s => <option key={s.school} value={s.school}>{s.school}</option>)}
+              {collegeHierarchy.map(s => <option key={s.school} value={s.school}>{s.school}</option>)}
             </select>
           </div>
 
@@ -162,7 +164,7 @@ export default function ReportsClient({
             <label>Section</label>
             <select className="input-field" value={section} onChange={e => { setSection(e.target.value); setCourse(""); setDepartment(""); }}>
               <option value="">All Sections</option>
-              {school ? COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.map(sec => <option key={sec.section} value={sec.section}>{sec.section}</option>) : filterOptions.sections.map(s => <option key={s} value={s}>{s}</option>)}
+              {school ? collegeHierarchy.find((s: any) => s.school === school)?.sections.map((sec: any) => <option key={sec.section} value={sec.section}>{sec.section}</option>) : filterOptions.sections.map((s: string) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
@@ -170,7 +172,7 @@ export default function ReportsClient({
             <label>Course</label>
             <select className="input-field" value={course} onChange={e => { setCourse(e.target.value); setDepartment(""); }}>
               <option value="">All Courses</option>
-              {section && school ? Array.from(new Set(COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.map(c => c.course) || [])).map(c => <option key={c} value={c}>{c}</option>) : filterOptions.courses.map(c => <option key={c} value={c}>{c}</option>)}
+              {section && school ? Array.from(new Set(collegeHierarchy.find((s: any) => s.school === school)?.sections.find((sec: any) => sec.section === section)?.courses.map((c: any) => c.course) || [])).map(c => <option key={c as string} value={c as string}>{c as string}</option>) : filterOptions.courses.map((c: string) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
 
@@ -178,7 +180,7 @@ export default function ReportsClient({
             <label>Department</label>
             <select className="input-field" value={department} onChange={e => setDepartment(e.target.value)}>
               <option value="">All Departments</option>
-              {course && section && school ? COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.find(c => c.course === course)?.departments.map(d => <option key={d.name} value={d.name}>{d.name}</option>) : filterOptions.departments.map(d => <option key={d} value={d}>{d}</option>)}
+              {course && section && school ? collegeHierarchy.find((s: any) => s.school === school)?.sections.find((sec: any) => sec.section === section)?.courses.find((c: any) => c.course === course)?.departments.map((d: any) => <option key={d.name} value={d.name}>{d.name}</option>) : filterOptions.departments.map((d: string) => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
 

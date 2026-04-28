@@ -180,7 +180,7 @@ function CompanyRegisterForm() {
           <div style={{ background: "var(--bg-secondary, #111)", borderRadius: "16px", border: "1px solid var(--border-color, #222)", padding: "2rem", marginBottom: "1.5rem" }}>
 
             {/* Step 1: Company Info */}
-            {step === 1 && (
+            <div style={{ display: step === 1 ? "block" : "none" }}>
               <>
                 <SectionTitle icon={<Building2 size={18} />} title="Company Information" />
                 <FormGrid>
@@ -195,10 +195,10 @@ function CompanyRegisterForm() {
                 </FormGrid>
                 <FormTextarea label="Company Description" name="companyDescription" placeholder="Briefly describe your company's mission and offerings..." />
               </>
-            )}
+            </div>
 
             {/* Step 2: Address & Contact */}
-            {step === 2 && (
+            <div style={{ display: step === 2 ? "block" : "none" }}>
               <>
                 <SectionTitle icon={<MapPin size={18} />} title="Address & Contact" />
                 <FormGrid>
@@ -213,10 +213,10 @@ function CompanyRegisterForm() {
                   <FormField label="PIN Code *" name="pinCode" required />
                 </FormGrid>
               </>
-            )}
+            </div>
 
             {/* Step 3: CEO & Compliance */}
-            {step === 3 && (
+            <div style={{ display: step === 3 ? "block" : "none" }}>
               <>
                 <SectionTitle icon={<User size={18} />} title="CEO / Founder Details" />
                 <FormGrid>
@@ -236,10 +236,10 @@ function CompanyRegisterForm() {
                   <FormField label="COI (URL)" name="coi" placeholder="Certificate of Incorporation URL" type="url" />
                 </FormGrid>
               </>
-            )}
+            </div>
 
             {/* Step 4: Internship Preferences & T&C */}
-            {step === 4 && (
+            <div style={{ display: step === 4 ? "block" : "none" }}>
               <>
                 <SectionTitle icon={<Briefcase size={18} />} title="Internship Preferences" />
                 <FormGrid>
@@ -259,7 +259,7 @@ function CompanyRegisterForm() {
                   </label>
                 </div>
               </>
-            )}
+            </div>
           </div>
 
           {/* Navigation Buttons */}

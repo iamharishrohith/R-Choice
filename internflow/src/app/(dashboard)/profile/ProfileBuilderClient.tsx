@@ -24,7 +24,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GitHubHeatmap } from "@/components/profile/GitHubHeatmap";
-import { COLLEGE_HIERARCHY } from "@/lib/constants/hierarchy";
+import { YEARS, type SchoolNode } from "@/lib/constants/hierarchy";
 
 type LinkRow = {
   _id: string;
@@ -211,7 +211,7 @@ function SortableLinkRow({
   );
 }
 
-export default function ProfileBuilderClient({ initialData, initialLinks = [] }: { initialData: ProfileData; initialLinks?: Array<Omit<LinkRow, "_id">> }) {
+export default function ProfileBuilderClient({ initialData, initialLinks = [], collegeHierarchy }: { initialData: ProfileData; initialLinks?: Array<Omit<LinkRow, "_id">>; collegeHierarchy: SchoolNode[] }) {
   const [data, setData] = useState<ProfileData>(initialData);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
@@ -513,7 +513,7 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
                       required
                     >
                       <option value="" disabled>Select School...</option>
-                      {COLLEGE_HIERARCHY.map(s => (
+                      {collegeHierarchy.map((s: any) => (
                         <option key={s.school} value={s.school}>{s.school}</option>
                       ))}
                     </select>
@@ -528,7 +528,7 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
                       disabled={!data.school}
                     >
                       <option value="" disabled>Select Section...</option>
-                      {COLLEGE_HIERARCHY.find(s => s.school === data.school)?.sections.map(sec => (
+                      {collegeHierarchy.find((s: any) => s.school === data.school)?.sections.map((sec: any) => (
                         <option key={sec.section} value={sec.section}>{sec.section}</option>
                       ))}
                     </select>
@@ -545,9 +545,9 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
                       <option value="" disabled>Select Course...</option>
                       {/* Extract unique courses for the section */
                         Array.from(new Set(
-                          COLLEGE_HIERARCHY.find(s => s.school === data.school)?.sections.find(sec => sec.section === data.section)?.courses.map(c => c.course) || []
+                          collegeHierarchy.find((s: any) => s.school === data.school)?.sections.find((sec: any) => sec.section === data.section)?.courses.map((c: any) => c.course) || []
                         )).map(c => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c as string} value={c as string}>{c as string}</option>
                       ))}
                     </select>
                   </div>
@@ -556,16 +556,16 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
                     <select 
                       className="input-field" 
                       value={data.program || ""} 
-                      onChange={(e) => setData({ ...data, program: e.target.value, department: "" })} 
+                      onChange={(e) => setData({ ...data, program: e.target.value, department: "", year: 1 })} 
                       required
                       disabled={!data.course}
                     >
                       <option value="" disabled>Select Program...</option>
                       {/* Filter courses by selected course name, then get unique program types */
                         Array.from(new Set(
-                          COLLEGE_HIERARCHY.find(s => s.school === data.school)?.sections.find(sec => sec.section === data.section)?.courses.filter(c => c.course === data.course).map(c => c.programType) || []
+                          collegeHierarchy.find((s: any) => s.school === data.school)?.sections.find((sec: any) => sec.section === data.section)?.courses.filter((c: any) => c.course === data.course).map((c: any) => c.programType) || []
                         )).map(p => (
-                        <option key={p} value={p}>{p === "UG" ? "Undergraduate (UG)" : "Postgraduate (PG)"}</option>
+                        <option key={p as string} value={p as string}>{p === "UG" ? "Undergraduate (UG)" : "Postgraduate (PG)"}</option>
                       ))}
                     </select>
                   </div>
@@ -580,7 +580,7 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
                     >
                       <option value="" disabled>Select Department...</option>
                       {
-                        COLLEGE_HIERARCHY.find(s => s.school === data.school)?.sections.find(sec => sec.section === data.section)?.courses.find(c => c.course === data.course && c.programType === data.program)?.departments.map(d => (
+                        collegeHierarchy.find((s: any) => s.school === data.school)?.sections.find((sec: any) => sec.section === data.section)?.courses.find((c: any) => c.course === data.course && c.programType === data.program)?.departments.map((d: any) => (
                           <option key={d.name} value={d.name}>{d.name}</option>
                         )) || []
                       }
@@ -589,11 +589,9 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
                   <div className="input-group">
                     <label>Year of Study</label>
                     <select className="input-field" value={data.year || ""} onChange={(e) => setData({ ...data, year: Number(e.target.value) })}>
-                      <option value="1">1st Year</option>
-                      <option value="2">2nd Year</option>
-                      <option value="3">3rd Year</option>
-                      <option value="4">4th Year</option>
-                      <option value="5">5th Year</option>
+                      {(data.program === "PG" ? [1, 2] : data.program === "UG" ? [1, 2, 3] : YEARS).map((y) => (
+                        <option key={y} value={y}>{y}{y === 1 ? 'st' : y === 2 ? 'nd' : y === 3 ? 'rd' : 'th'} Year</option>
+                      ))}
                     </select>
                   </div>
                   <div className="input-group">

@@ -19,9 +19,12 @@ export default async function HierarchyPage() {
   // Normalize nulls for safe client-side rendering
   const mappings = rawMappings.map((m) => ({
     id: m.id,
+    school: m.school || null,
+    section: m.section || null,
+    course: m.course || null,
+    programType: m.programType || "UG",
     department: m.department,
     year: m.year,
-    programType: m.section || "UG",
     tutorId: m.tutorId || null,
     placementCoordinatorId: m.placementCoordinatorId || null,
     hodId: m.hodId || null,
@@ -49,6 +52,9 @@ export default async function HierarchyPage() {
     .from(users)
     .where(eq(users.role, "dean"));
 
+  const { getCollegeHierarchy } = await import("@/app/actions/hierarchy");
+  const dynamicHierarchy = await getCollegeHierarchy();
+
   return (
     <HierarchyClient
       initialMappings={mappings}
@@ -56,6 +62,8 @@ export default async function HierarchyPage() {
       coordinators={coordinators}
       hods={hods}
       deans={deans}
+      currentUserRole={role}
+      collegeHierarchy={dynamicHierarchy}
     />
   );
 }

@@ -116,12 +116,15 @@ export function getNavSections(role: string): NavSection[] {
           { label: "All Students", href: "/students", icon: <GraduationCap size={20} /> },
           { label: "Shortlisted", href: "/students/shortlisted", icon: <Trophy size={20} /> },
           { label: "Companies", href: "/companies", icon: <Building2 size={20} /> },
+          { label: "User Accounts", href: "/users", icon: <Users size={20} /> },
         ]},
         { label: "Opportunities", items: [
           { label: "Job Postings", href: "/jobs", icon: <Briefcase size={20} /> },
           { label: "Post a Job", href: "/jobs/create", icon: <FileText size={20} /> },
         ]},
-        { label: "Tools", items: [
+        { label: "Administration", items: [
+          { label: "College Structure", href: "/settings/college-structure", icon: <Building2 size={20} /> },
+          { label: "Hierarchy Manager", href: "/settings/hierarchy", icon: <GitBranch size={20} /> },
           { label: "Export Data", href: "/export", icon: <Download size={20} /> },
           { label: "Settings", href: "/settings", icon: <Settings size={20} /> },
         ]},
@@ -147,6 +150,7 @@ export function getNavSections(role: string): NavSection[] {
           { label: "Post a Job", href: "/jobs/create", icon: <FileText size={20} /> },
         ]},
         { label: "Tools", items: [
+          { label: "Hierarchy Manager", href: "/settings/hierarchy", icon: <GitBranch size={20} /> },
           { label: "Export Data", href: "/export", icon: <Download size={20} /> },
           { label: "Settings", href: "/settings", icon: <Settings size={20} /> },
         ]},

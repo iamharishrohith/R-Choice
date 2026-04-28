@@ -740,5 +740,9 @@ export const surveyResponses = pgTable("survey_responses", {
   submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow(),
 });
 
-
-
+/* ── System Settings ── */
+export const systemSettings = pgTable("system_settings", {
+  key: varchar("key", { length: 255 }).primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
