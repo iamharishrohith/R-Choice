@@ -7,6 +7,7 @@ import {
   jobPostings,
   jobApplications,
   companyRegistrations,
+  companyInvitations,
   auditLogs,
 } from "@/lib/db/schema";
 import { eq, count } from "drizzle-orm";
@@ -15,7 +16,7 @@ import bcrypt from "bcryptjs";
 import { sanitize, validateEmail, validateEnum } from "@/lib/validation";
 
 
-const ADMIN_ROLES = ["dean", "placement_officer", "principal"];
+const ADMIN_ROLES = ["dean", "placement_officer", "principal", "coe", "mcr"];
 
 async function assertAdmin() {
   const session = await auth();
@@ -218,6 +219,36 @@ export async function bulkExportDatabase() {
   } catch (err: unknown) {
     console.error("Bulk export error:", err);
     return { error: "Failed to generate bulk export from secure database." };
+  }
+}
+
+import { randomBytes } from "crypto";
+
+export async function generateCompanyInvitation(formData: FormData) {
+  const session = await assertAdmin();
+  try {
+    const rawEmail = formData.get("email");
+    const email = validateEmail(rawEmail, "Company Email");
+    const token = randomBytes(32).toString("hex");
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days token expiry
+
+    await db.insert(companyInvitations).values({
+      token,
+      mcrId: session.user.id,
+      companyEmail: email,
+      expiresAt,
+    });
+
+    revalidatePath("/companies/invitations");
+    const baseUrl = process.env.AUTH_URL || "http://localhost:3000";
+    return { success: true, link: `${baseUrl}/register/company/${token}` };
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === "ValidationError") {
+      return { error: error.message };
+    }
+    console.error("Generate invitation error:", error);
+    return { error: "Failed to generate invitation link." };
   }
 }
 

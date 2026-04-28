@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Briefcase, Plus, X, HelpCircle, Users, Wrench, ListChecks, Phone } from "lucide-react";
 import Link from "next/link";
 import { createJobPosting } from "@/app/actions/jobs";
+import { toast } from "sonner";
 
 export default function CreateJobPage() {
   const router = useRouter();
@@ -59,8 +60,10 @@ export default function CreateJobPage() {
 
     if (result.error) {
       setError(result.error);
+      toast.error(result.error);
       setIsLoading(false);
     } else {
+      toast.success("Job posted! Pending MCR verification.");
       router.push("/jobs/manage");
       router.refresh();
     }
@@ -144,8 +147,8 @@ export default function CreateJobPage() {
           <Briefcase size={24} color="var(--primary-color)" />
         </div>
         <div>
-          <h1>Create New Job Posting</h1>
-          <p>Publish an internship opportunity to the Rathinam talent pool.</p>
+          <h1>Create New Opportunity</h1>
+          <p>Publish an advanced internship tracking profile to the R-Choice talent pool.</p>
         </div>
       </div>
 

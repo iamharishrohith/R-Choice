@@ -10,7 +10,7 @@ test.describe("Internship Applications Pipeline", () => {
     await page.click("text=My Applications");
     await expect(page).toHaveURL(/\/applications/);
     await expect(page.getByRole("heading", { name: /my applications/i }).first()).toBeVisible();
-    await expect(page.getByText(/manage active On-Duty/i)).toBeVisible();
+    await expect(page.getByText(/Track your internship approval status/i)).toBeVisible();
 
     const applicationCards = page.getByRole("heading", { level: 3 });
     const newRequestLink = page.getByRole("link", { name: /new external od request/i });

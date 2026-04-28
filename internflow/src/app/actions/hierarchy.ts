@@ -23,7 +23,7 @@ export async function fetchStaffByRole(role: string) {
     return await db
       .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email })
       .from(users)
-      .where(eq(users.role, role as "student" | "tutor" | "placement_coordinator" | "hod" | "dean" | "placement_officer" | "principal" | "company" | "alumni"));
+      .where(eq(users.role, role as "student" | "tutor" | "placement_coordinator" | "hod" | "dean" | "placement_officer" | "principal" | "company" | "alumni" | "coe" | "mcr"));
   } catch {
     return [];
   }
@@ -36,37 +36,34 @@ export async function upsertMapping(formData: FormData) {
     return { error: "Unauthorized" };
   }
 
+  const id = formData.get("id") as string | null;
+  const school = formData.get("school") as string;
+  const section = formData.get("section") as string;
+  const course = formData.get("course") as string;
+  const programType = formData.get("programType") as string;
   const department = formData.get("department") as string;
   const year = parseInt(formData.get("year") as string, 10);
-  const section = (formData.get("section") as string) || "A";
   const tutorId = (formData.get("tutorId") as string) || null;
   const hodId = (formData.get("hodId") as string) || null;
   const deanId = (formData.get("deanId") as string) || null;
   const coordinatorId = (formData.get("coordinatorId") as string) || null;
 
-  if (!department || !year) {
-    return { error: "Department and Year are required." };
+  if (!school || !section || !course || !programType || !department || !year) {
+    return { error: "All hierarchy fields (School, Section, Course, Program, Dept, Year) are required." };
   }
 
   try {
-    // Check if a mapping for this dept+year+section exists
-    const existing = await db
-      .select()
-      .from(authorityMappings)
-      .where(
-        and(
-          eq(authorityMappings.department, department),
-          eq(authorityMappings.year, year),
-          eq(authorityMappings.section, section)
-        )
-      )
-      .limit(1);
-
-    if (existing.length > 0) {
-      // Update
+    if (id) {
+      // Update by ID
       await db
         .update(authorityMappings)
         .set({
+          school,
+          section,
+          course,
+          programType,
+          department,
+          year,
           tutorId,
           hodId,
           deanId,
@@ -74,13 +71,16 @@ export async function upsertMapping(formData: FormData) {
           updatedBy: session.user.id,
           updatedAt: new Date(),
         })
-        .where(eq(authorityMappings.id, existing[0].id));
+        .where(eq(authorityMappings.id, id));
     } else {
       // Insert
       await db.insert(authorityMappings).values({
+        school,
+        section,
+        course,
+        programType,
         department,
         year,
-        section,
         tutorId,
         hodId,
         deanId,

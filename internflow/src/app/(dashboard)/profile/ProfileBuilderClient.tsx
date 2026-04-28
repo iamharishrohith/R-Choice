@@ -24,6 +24,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GitHubHeatmap } from "@/components/profile/GitHubHeatmap";
+import { COLLEGE_HIERARCHY } from "@/lib/constants/hierarchy";
 
 type LinkRow = {
   _id: string;
@@ -505,23 +506,85 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
                   </div>
                   <div className="input-group">
                     <label>School *</label>
-                    <input className="input-field" placeholder="e.g. School of Computer Science" value={data.school || ""} onChange={(e) => setData({ ...data, school: e.target.value })} required />
+                    <select 
+                      className="input-field" 
+                      value={data.school || ""} 
+                      onChange={(e) => setData({ ...data, school: e.target.value, section: "", course: "", program: "", department: "" })} 
+                      required
+                    >
+                      <option value="" disabled>Select School...</option>
+                      {COLLEGE_HIERARCHY.map(s => (
+                        <option key={s.school} value={s.school}>{s.school}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="input-group">
-                    <label>Department *</label>
-                    <input className="input-field" placeholder="e.g. CS, CSAI, CT FSD" value={data.department || ""} onChange={(e) => setData({ ...data, department: e.target.value })} required />
-                  </div>
-                  <div className="input-group">
-                    <label>Program (UG/PG) *</label>
-                    <select className="input-field" value={data.program || ""} onChange={(e) => setData({ ...data, program: e.target.value })} required>
-                      <option value="" disabled>Select Program...</option>
-                      <option value="UG">Undergraduate (UG)</option>
-                      <option value="PG">Postgraduate (PG)</option>
+                    <label>Section *</label>
+                    <select 
+                      className="input-field" 
+                      value={data.section || ""} 
+                      onChange={(e) => setData({ ...data, section: e.target.value, course: "", program: "", department: "" })} 
+                      required
+                      disabled={!data.school}
+                    >
+                      <option value="" disabled>Select Section...</option>
+                      {COLLEGE_HIERARCHY.find(s => s.school === data.school)?.sections.map(sec => (
+                        <option key={sec.section} value={sec.section}>{sec.section}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="input-group">
                     <label>Course *</label>
-                    <input className="input-field" placeholder="e.g. B.Sc., B.Com, B.Tech" value={data.course || ""} onChange={(e) => setData({ ...data, course: e.target.value })} required />
+                    <select 
+                      className="input-field" 
+                      value={data.course || ""} 
+                      onChange={(e) => setData({ ...data, course: e.target.value, program: "", department: "" })} 
+                      required
+                      disabled={!data.section}
+                    >
+                      <option value="" disabled>Select Course...</option>
+                      {/* Extract unique courses for the section */
+                        Array.from(new Set(
+                          COLLEGE_HIERARCHY.find(s => s.school === data.school)?.sections.find(sec => sec.section === data.section)?.courses.map(c => c.course) || []
+                        )).map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label>Program (UG/PG) *</label>
+                    <select 
+                      className="input-field" 
+                      value={data.program || ""} 
+                      onChange={(e) => setData({ ...data, program: e.target.value, department: "" })} 
+                      required
+                      disabled={!data.course}
+                    >
+                      <option value="" disabled>Select Program...</option>
+                      {/* Filter courses by selected course name, then get unique program types */
+                        Array.from(new Set(
+                          COLLEGE_HIERARCHY.find(s => s.school === data.school)?.sections.find(sec => sec.section === data.section)?.courses.filter(c => c.course === data.course).map(c => c.programType) || []
+                        )).map(p => (
+                        <option key={p} value={p}>{p === "UG" ? "Undergraduate (UG)" : "Postgraduate (PG)"}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label>Department / Specialization *</label>
+                    <select 
+                      className="input-field" 
+                      value={data.department || ""} 
+                      onChange={(e) => setData({ ...data, department: e.target.value })} 
+                      required
+                      disabled={!data.program}
+                    >
+                      <option value="" disabled>Select Department...</option>
+                      {
+                        COLLEGE_HIERARCHY.find(s => s.school === data.school)?.sections.find(sec => sec.section === data.section)?.courses.find(c => c.course === data.course && c.programType === data.program)?.departments.map(d => (
+                          <option key={d.name} value={d.name}>{d.name}</option>
+                        )) || []
+                      }
+                    </select>
                   </div>
                   <div className="input-group">
                     <label>Year of Study</label>
@@ -532,10 +595,6 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [] }:
                       <option value="4">4th Year</option>
                       <option value="5">5th Year</option>
                     </select>
-                  </div>
-                  <div className="input-group">
-                    <label>Section</label>
-                    <input className="input-field" placeholder="e.g. A, B, Raise Smart 1" value={data.section || ""} onChange={(e) => setData({ ...data, section: e.target.value })} />
                   </div>
                   <div className="input-group">
                     <label>Batch Start Year</label>

@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 
@@ -46,11 +46,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Too many login attempts. Please try again later.");
         }
 
-        // Find user by email and role
+        // Find user by email and role. If role is 'company', allow 'company_staff' as well.
         const [user] = await db
           .select()
           .from(users)
-          .where(and(eq(users.email, email), eq(users.role, role)))
+          .where(
+            and(
+              eq(users.email, email),
+              role === "company" 
+                ? inArray(users.role, ["company", "company_staff"])
+                : eq(users.role, role)
+            )
+          )
           .limit(1);
 
         if (!user) {

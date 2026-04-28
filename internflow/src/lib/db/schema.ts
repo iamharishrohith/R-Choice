@@ -25,6 +25,8 @@ export const userRoleEnum = pgEnum("user_role", [
   "company",
   "alumni",
   "coe",
+  "mcr",
+  "company_staff",
   "placement_head",
   "management_corporation",
 ]);
@@ -107,7 +109,10 @@ export const users = pgTable("users", {
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   failedLoginAttempts: integer("failed_login_attempts").default(0),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
-  employeeId: varchar("employee_id", { length: 30 }),
+  companyId: uuid("company_id"),
+  staffRole: varchar("staff_role", { length: 50 }),
+  employeeId: varchar("employee_id", { length: 50 }),
+  department: varchar("department", { length: 100 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -127,6 +132,7 @@ export const studentProfiles = pgTable("student_profiles", {
   batchStartYear: integer("batch_start_year"),
   batchEndYear: integer("batch_end_year"),
   course: varchar("course", { length: 100 }),
+  programType: varchar("program_type", { length: 10 }),
   section: varchar("section", { length: 5 }),
   cgpa: decimal("cgpa", { precision: 3, scale: 2 }),
   dob: date("dob"),
@@ -245,9 +251,13 @@ export const placementReadiness = pgTable("placement_readiness", {
 export const authorityMappings = pgTable("authority_mappings", {
   id: uuid("id").defaultRandom().primaryKey(),
   school: varchar("school", { length: 100 }),
-  department: varchar("department", { length: 50 }).notNull(),
   section: varchar("section", { length: 50 }).notNull(),
+  course: varchar("course", { length: 100 }),
+  programType: varchar("program_type", { length: 10 }),
+  department: varchar("department", { length: 50 }).notNull(),
   year: integer("year").notNull(),
+  batchStartYear: integer("batch_start_year"),
+  batchEndYear: integer("batch_end_year"),
   tutorId: uuid("tutor_id").references(() => users.id),
   placementCoordinatorId: uuid("placement_coordinator_id").references(() => users.id),
   hodId: uuid("hod_id").references(() => users.id),
@@ -372,6 +382,17 @@ export const workReports = pgTable("work_reports", {
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
 });
 
+/* ── Company Invitations ── */
+export const companyInvitations = pgTable("company_invitations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  token: varchar("token", { length: 255 }).notNull().unique(),
+  mcrId: uuid("mcr_id").references(() => users.id).notNull(),
+  companyEmail: varchar("company_email", { length: 255 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  isUsed: boolean("is_used").default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 /* ── Company Registrations ── */
 export const companyRegistrations = pgTable("company_registrations", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -397,6 +418,7 @@ export const companyRegistrations = pgTable("company_registrations", {
   cinLlpin: varchar("cin_llpin", { length: 25 }),
   coi: text("coi"),
   registrationCertUrl: text("registration_cert_url"),
+  coiUrl: text("coi_url"),
   mouUrl: text("mou_url"),
   ceoName: varchar("ceo_name", { length: 100 }),
   ceoDesignation: varchar("ceo_designation", { length: 100 }),
@@ -412,6 +434,9 @@ export const companyRegistrations = pgTable("company_registrations", {
   hiringIntention: varchar("hiring_intention", { length: 100 }),
   generalTcAccepted: boolean("general_tc_accepted").default(false),
   generalTcAcceptedAt: timestamp("general_tc_accepted_at", { withTimezone: true }),
+  authenticityConfirmed: boolean("authenticity_confirmed").default(false),
+  founderDetails: jsonb("founder_details"),
+  internshipPreferences: jsonb("internship_preferences"),
   status: companyStatusEnum("status").default("pending"),
   reviewedBy: uuid("reviewed_by").references(() => users.id),
   reviewedByRole: varchar("reviewed_by_role", { length: 30 }),
@@ -429,8 +454,8 @@ export const jobPostings = pgTable("job_postings", {
     .notNull(),
   postedByRole: userRoleEnum("posted_by_role").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
+  domain: varchar("domain", { length: 150 }),
   jobType: varchar("job_type", { length: 50 }).notNull(),
-  domain: varchar("domain", { length: 100 }),
   isPpoAvailable: boolean("is_ppo_available").default(false),
   isCampusHiring: boolean("is_campus_hiring").default(false),
   expectedJoiningDate: date("expected_joining_date"),
@@ -451,6 +476,7 @@ export const jobPostings = pgTable("job_postings", {
   location: varchar("location", { length: 200 }).notNull(),
   workMode: varchar("work_mode", { length: 20 }).notNull(),
   duration: varchar("duration", { length: 100 }).notNull(),
+  isPaid: boolean("is_paid").default(false),
   stipendSalary: varchar("stipend_salary", { length: 200 }).notNull(),
   openingsCount: integer("openings_count").notNull(),
   applicationDeadline: date("application_deadline").notNull(),

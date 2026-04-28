@@ -12,29 +12,19 @@ import { toast } from "sonner";
 type StaffMember = { id: string; firstName: string; lastName: string };
 type Mapping = {
   id: string;
+  school?: string | null;
+  section?: string | null;
+  course?: string | null;
   department: string;
   year: number;
-  programType: string;
+  programType?: string | null;
   tutorId: string | null;
   placementCoordinatorId: string | null;
   hodId: string | null;
   deanId: string | null;
 };
 
-const DEPARTMENTS = [
-  "Computer Science",
-  "Information Technology",
-  "Artificial Intelligence",
-  "Electronics",
-  "Mechanical",
-  "Civil",
-  "Business Administration",
-  "Commerce",
-  "Science",
-];
-
-const YEARS = [1, 2, 3, 4, 5];
-const PROGRAM_TYPES = ["UG", "PG"];
+import { COLLEGE_HIERARCHY, YEARS } from "@/lib/constants/hierarchy";
 
 export default function HierarchyClient({
   initialMappings,
@@ -56,18 +46,24 @@ export default function HierarchyClient({
   const router = useRouter();
 
   // Form state
-  const [dept, setDept] = useState(DEPARTMENTS[0]);
+  const [school, setSchool] = useState("");
+  const [section, setSection] = useState("");
+  const [course, setCourse] = useState("");
+  const [programType, setProgramType] = useState("");
+  const [dept, setDept] = useState("");
   const [year, setYear] = useState(1);
-  const [programType, setProgramType] = useState("UG");
   const [tutorId, setTutorId] = useState("");
   const [coordinatorId, setCoordinatorId] = useState("");
   const [hodId, setHodId] = useState("");
   const [deanId, setDeanId] = useState("");
 
   const resetForm = () => {
-    setDept(DEPARTMENTS[0]);
+    setSchool("");
+    setSection("");
+    setCourse("");
+    setProgramType("");
+    setDept("");
     setYear(1);
-    setProgramType("UG");
     setTutorId("");
     setCoordinatorId("");
     setHodId("");
@@ -75,10 +71,13 @@ export default function HierarchyClient({
     setEditId(null);
   };
 
-  const openEdit = (m: Mapping) => {
-    setDept(m.department);
-    setYear(m.year);
-    setProgramType(m.programType || "UG");
+  const openEdit = (m: any) => {
+    setSchool(m.school || "");
+    setSection(m.section || "");
+    setCourse(m.course || "");
+    setProgramType(m.programType || "");
+    setDept(m.department || "");
+    setYear(m.year || 1);
     setTutorId(m.tutorId || "");
     setCoordinatorId(m.placementCoordinatorId || "");
     setHodId(m.hodId || "");
@@ -90,9 +89,13 @@ export default function HierarchyClient({
   const handleSave = () => {
     startTransition(async () => {
       const fd = new FormData();
+      if (editId) fd.set("id", editId);
+      fd.set("school", school);
+      fd.set("section", section);
+      fd.set("course", course);
+      fd.set("programType", programType);
       fd.set("department", dept);
       fd.set("year", String(year));
-      fd.set("section", programType); // We reuse the section DB field for UG/PG
       fd.set("tutorId", tutorId);
       fd.set("coordinatorId", coordinatorId);
       fd.set("hodId", hodId);
@@ -161,7 +164,7 @@ export default function HierarchyClient({
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-4)" }}>
                 <div>
                   <h3 style={{ fontSize: "1.125rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "8px" }}>
-                    {m.department}
+                    {m.course} - {m.department}
                     <span style={{
                       padding: "2px 10px", borderRadius: "100px", fontSize: "0.6875rem", fontWeight: 600,
                       background: m.programType === "PG" ? "rgba(168,85,247,0.1)" : "rgba(99,102,241,0.1)",
@@ -171,7 +174,7 @@ export default function HierarchyClient({
                     </span>
                   </h3>
                   <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                    Year {m.year}
+                    {m.school} • {m.section} • Year {m.year}
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: "8px" }}>
@@ -265,23 +268,46 @@ export default function HierarchyClient({
             </h2>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "var(--space-3)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+                <div>
+                  <label style={labelStyle}>School</label>
+                  <select value={school} onChange={(e) => { setSchool(e.target.value); setSection(""); setCourse(""); setProgramType(""); setDept(""); }} className="input-field" style={{ width: "100%" }}>
+                    <option value="" disabled>Select School...</option>
+                    {COLLEGE_HIERARCHY.map(s => <option key={s.school} value={s.school}>{s.school}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Section</label>
+                  <select value={section} onChange={(e) => { setSection(e.target.value); setCourse(""); setProgramType(""); setDept(""); }} className="input-field" style={{ width: "100%" }} disabled={!school}>
+                    <option value="" disabled>Select Section...</option>
+                    {COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.map(sec => <option key={sec.section} value={sec.section}>{sec.section}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Course</label>
+                  <select value={course} onChange={(e) => { setCourse(e.target.value); setProgramType(""); setDept(""); }} className="input-field" style={{ width: "100%" }} disabled={!section}>
+                    <option value="" disabled>Select Course...</option>
+                    {Array.from(new Set(COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.map(c => c.course) || [])).map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Program Type</label>
+                  <select value={programType} onChange={(e) => { setProgramType(e.target.value); setDept(""); }} className="input-field" style={{ width: "100%" }} disabled={!course}>
+                    <option value="" disabled>Select Program...</option>
+                    {Array.from(new Set(COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.filter(c => c.course === course).map(c => c.programType) || [])).map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
                 <div>
                   <label style={labelStyle}>Department</label>
-                  <select value={dept} onChange={(e) => setDept(e.target.value)} className="input-field" style={{ width: "100%" }}>
-                    {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  <select value={dept} onChange={(e) => setDept(e.target.value)} className="input-field" style={{ width: "100%" }} disabled={!programType}>
+                    <option value="" disabled>Select Department...</option>
+                    {COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.find(c => c.course === course && c.programType === programType)?.departments.map(d => <option key={d.name} value={d.name}>{d.name}</option>) || []}
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Year</label>
                   <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="input-field" style={{ width: "100%" }}>
                     {YEARS.map((y) => <option key={y} value={y}>Year {y}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Program</label>
-                  <select value={programType} onChange={(e) => setProgramType(e.target.value)} className="input-field" style={{ width: "100%" }}>
-                    {PROGRAM_TYPES.map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
               </div>

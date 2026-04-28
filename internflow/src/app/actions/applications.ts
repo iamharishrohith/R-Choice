@@ -178,7 +178,10 @@ export async function createPortalApplication(jobId: string) {
 
 export async function shortlistApplicant(applicationId: string) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== "company") {
+  if (!session?.user?.id) return { error: "Unauthorized" };
+  const role = session.user.role;
+  
+  if (role !== "company" && role !== "company_staff") {
     return { error: "Unauthorized. Only companies can shortlist applicants." };
   }
 
@@ -196,9 +199,16 @@ export async function shortlistApplicant(applicationId: string) {
     if (!app) return { error: "Application not found." };
 
     // Verify the job belongs to this company
-    const [job] = await db.select({ postedBy: jobPostings.postedBy }).from(jobPostings).where(eq(jobPostings.id, app.jobId)).limit(1);
-    if (!job || job.postedBy !== session.user.id) {
+    const [job] = await db.select({ postedBy: jobPostings.postedBy, companyId: jobPostings.companyId }).from(jobPostings).where(eq(jobPostings.id, app.jobId)).limit(1);
+    if (!job) return { error: "Job not found." };
+
+    const [currentUser] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+
+    if (role === "company_staff" && job.postedBy !== session.user.id) {
       return { error: "You can only shortlist applicants for your own job postings." };
+    }
+    if (role === "company" && job.companyId !== currentUser?.companyId) {
+      return { error: "You can only shortlist applicants for your company's job postings." };
     }
 
     const newStatus = app.status === "shortlisted" ? "applied" : "shortlisted";
@@ -228,7 +238,10 @@ export async function shortlistApplicant(applicationId: string) {
 
 export async function postCompanyResults(jobId: string, selectedStudentIds: string[]) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== "company") {
+  if (!session?.user?.id) return { error: "Unauthorized" };
+  const role = session.user.role;
+
+  if (role !== "company" && role !== "company_staff") {
     return { error: "Unauthorized. Only companies can post results." };
   }
 
@@ -236,8 +249,20 @@ export async function postCompanyResults(jobId: string, selectedStudentIds: stri
     // Get Job Details
     const [job] = await db.select({
       role: jobPostings.title,
-      companyId: jobPostings.companyId
+      companyId: jobPostings.companyId,
+      postedBy: jobPostings.postedBy
     }).from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
+
+    if (!job) return { error: "Job not found." };
+
+    const [currentUser] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+
+    if (role === "company_staff" && job.postedBy !== session.user.id) {
+      return { error: "You can only post results for your own job postings." };
+    }
+    if (role === "company" && job.companyId !== currentUser?.companyId) {
+      return { error: "You can only post results for your company's job postings." };
+    }
 
     const [company] = job.companyId
       ? await db.select({

@@ -7,52 +7,18 @@ import { revalidatePath } from "next/cache";
 import { Building, CheckCircle, XCircle, Clock, Globe, Mail, Phone, RotateCcw, FileText, Users, Download } from "lucide-react";
 import { ExportCompanyDocs } from "./ExportButtons";
 
+import { reviewCompany } from "@/app/actions/companyReview";
+
 export default async function CompanyReviewPage() {
   const session = await auth();
   const role = session?.user?.role;
   
-  if (!role || !["dean", "placement_officer", "principal", "management_corporation", "placement_head"].includes(role)) {
+  if (!role || !["dean", "placement_officer", "principal", "coe", "management_corporation", "placement_head"].includes(role)) {
     redirect("/");
   }
 
   const registrations = await db.select().from(companyRegistrations).orderBy(companyRegistrations.createdAt);
 
-  async function reviewCompany(formData: FormData) {
-    "use server";
-    const session = await auth();
-    if (!session?.user?.id) return;
-    const role = session.user.role;
-    if (!["dean", "placement_officer", "principal", "management_corporation", "placement_head"].includes(role)) return;
-
-    const id = formData.get("id") as string;
-    const action = formData.get("action") as string;
-    const comment = formData.get("comment") as string;
-
-    let newStatus: "approved" | "rejected" | "pending" | "info_requested" = "approved";
-    if (action === "reject") newStatus = "rejected";
-    else if (action === "reconsider") newStatus = "pending";
-    else if (action === "info_requested") newStatus = "info_requested";
-
-    const { companyRegistrations, auditLogs } = await import("@/lib/db/schema");
-
-    await db.update(companyRegistrations).set({
-      status: newStatus,
-      reviewedBy: session.user.id,
-      reviewedByRole: role,
-      reviewComment: comment || null,
-      reviewedAt: new Date(),
-    }).where(eq(companyRegistrations.id, id));
-
-    await db.insert(auditLogs).values({
-      userId: session.user.id,
-      action: `review_company`,
-      entityType: "company_registration",
-      entityId: id,
-      details: { newStatus, comment },
-    });
-
-    revalidatePath("/companies/review");
-  }
 
   const pending = registrations.filter(r => r.status === "pending" || r.status === "info_requested");
   const reviewed = registrations.filter(r => r.status === "approved" || r.status === "rejected");
@@ -94,10 +60,10 @@ export default async function CompanyReviewPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: "var(--space-3)", marginBottom: "var(--space-4)" }}>
                   <DetailCell icon={<FileText size={14} />} label="Industry Sector" value={reg.industrySector} />
                   <DetailCell icon={<Globe size={14} />} label="Website" value={reg.website} isLink />
-                  <DetailCell icon={<Mail size={14} />} label="HR Email" value={reg.hrEmail} />
-                  <DetailCell icon={<Phone size={14} />} label="HR Phone" value={reg.hrPhone} />
-                  <DetailCell icon={<Users size={14} />} label="HR Contact" value={reg.hrName} />
-
+                  <DetailCell icon={<Mail size={14} />} label="Company Email" value={reg.hrEmail} />
+                  <DetailCell icon={<Phone size={14} />} label="Contact" value={reg.hrPhone} />
+                  <DetailCell icon={<Users size={14} />} label="CEO/Founder" value={(reg.founderDetails as any)?.name || reg.hrName} />
+                  <DetailCell icon={<FileText size={14} />} label="COI" value={reg.coiUrl || "Not Provided"} isLink={!!reg.coiUrl} />
                 </div>
 
                 {/* Previous review comment if info was requested */}
@@ -108,7 +74,7 @@ export default async function CompanyReviewPage() {
                 )}
 
                 {/* Action form with comment box */}
-                <form action={reviewCompany} style={{ marginTop: "var(--space-2)" }}>
+                <form action={reviewCompany as any} style={{ marginTop: "var(--space-2)" }}>
                   <input type="hidden" name="id" value={reg.id} />
                   <div style={{ marginBottom: "var(--space-3)" }}>
                     <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>
@@ -160,7 +126,7 @@ export default async function CompanyReviewPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
                     <span className={`status-pill ${reg.status === "approved" ? "status-approved" : "status-rejected"}`}>{reg.status}</span>
                     {/* Reconsider button for reviewed items */}
-                    <form action={reviewCompany} style={{ display: "inline" }}>
+                    <form action={reviewCompany as any} style={{ display: "inline" }}>
                       <input type="hidden" name="id" value={reg.id} />
                       <input type="hidden" name="action" value="reconsider" />
                       <input type="hidden" name="comment" value="Moved back for re-review" />

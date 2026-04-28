@@ -81,7 +81,7 @@ export default async function ApprovalsPage(props: { searchParams: Promise<{ sta
                     <td>
                       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                         <span className="badge">
-                          {req.status.replace("pending_", "").replace("_", " ")}
+                          {(req.status || "").replace("pending_", "").replace("_", " ")}
                         </span>
                         {filterStatus === "pending" || filterStatus === "downward" ? (
                           <span style={{ fontSize: "0.75rem", color: isDelayed ? "var(--color-danger)" : "var(--text-secondary)", fontWeight: isDelayed ? 600 : 400 }}>

@@ -24,14 +24,11 @@ export default async function ApplicantsPage(props: { searchParams: Promise<{ pa
 
   if (!userId) return <div>Unauthorized</div>;
 
-  // Find company record to filter only this company's applicants
-  const companyRecord = await db
-    .select()
-    .from(companyRegistrations)
-    .where(eq(companyRegistrations.userId, userId))
-    .limit(1);
+  const [currentUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const role = currentUser?.role;
+  const companyId = currentUser?.companyId;
 
-  const companyId = companyRecord[0]?.id;
+  if (role !== "company" && role !== "company_staff") return <div>Unauthorized</div>;
 
   const searchParams = await props.searchParams;
   const currentPage = parseInt(searchParams.page || "1", 10);
@@ -43,12 +40,16 @@ export default async function ApplicantsPage(props: { searchParams: Promise<{ pa
   const limitCount = pageSize;
   const offsetCount = (currentPage - 1) * pageSize;
 
+  const condition = role === "company_staff" 
+    ? eq(jobPostings.postedBy, userId) 
+    : eq(jobPostings.companyId, companyId as string);
+
   // Count
   const countResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(jobApplications)
     .innerJoin(jobPostings, eq(jobApplications.jobId, jobPostings.id))
-    .where(eq(jobPostings.postedBy, userId));
+    .where(condition);
     
   const totalRecords = countResult[0]?.count || 0;
   totalPages = Math.ceil(totalRecords / pageSize);
@@ -70,7 +71,7 @@ export default async function ApplicantsPage(props: { searchParams: Promise<{ pa
     .innerJoin(users, eq(jobApplications.studentId, users.id))
     .innerJoin(jobPostings, eq(jobApplications.jobId, jobPostings.id))
     .leftJoin(studentProfiles, eq(studentProfiles.userId, users.id))
-    .where(eq(jobPostings.postedBy, userId))
+    .where(condition)
     .orderBy(desc(jobApplications.appliedAt))
     .limit(limitCount)
     .offset(offsetCount);

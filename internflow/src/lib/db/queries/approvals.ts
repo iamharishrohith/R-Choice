@@ -35,6 +35,8 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
     const baseConditions = [sql`${internshipRequests.status} IN (${sql.join(activeStatuses.map(s => sql`${s}`), sql`, `)})`];
     
     if (role === "dean") baseConditions.push(sql`${internshipRequests.currentTier} < 4`);
+    else if (role === "hod") baseConditions.push(sql`${internshipRequests.currentTier} < 3`);
+    else if (role === "placement_coordinator") baseConditions.push(sql`${internshipRequests.currentTier} < 2`);
     else if (role === "placement_officer") baseConditions.push(sql`${internshipRequests.currentTier} < 5`);
     else if (role === "coe") baseConditions.push(sql`${internshipRequests.currentTier} < 6`);
     else if (role === "principal") baseConditions.push(sql`${internshipRequests.currentTier} < 7`);
@@ -50,11 +52,48 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
   const limitCount = pageSize;
   const offsetCount = (page - 1) * pageSize;
 
+  let hierarchyConditions = undefined;
+  if (["tutor", "placement_coordinator", "hod", "dean"].includes(role)) {
+    const { authorityMappings, studentProfiles } = require("@/lib/db/schema");
+    const { or, eq, sql, and } = require("drizzle-orm");
+    let mappingCondition;
+    if (role === "tutor") mappingCondition = eq(authorityMappings.tutorId, userId);
+    else if (role === "placement_coordinator") mappingCondition = eq(authorityMappings.placementCoordinatorId, userId);
+    else if (role === "hod") mappingCondition = eq(authorityMappings.hodId, userId);
+    else if (role === "dean") mappingCondition = eq(authorityMappings.deanId, userId);
+
+    if (mappingCondition) {
+      const mappings = await db.select().from(authorityMappings).where(mappingCondition);
+      if (mappings.length > 0) {
+        const matchConditions = mappings.map((m: any) => {
+          const conds = [
+            eq(studentProfiles.department, m.department),
+            eq(studentProfiles.year, m.year),
+            eq(studentProfiles.section, m.section)
+          ];
+          if (m.school) conds.push(eq(studentProfiles.school, m.school));
+          if (m.course) conds.push(eq(studentProfiles.course, m.course));
+          if (m.programType) conds.push(eq(studentProfiles.programType, m.programType));
+          if (m.batchStartYear) conds.push(eq(studentProfiles.batchStartYear, m.batchStartYear));
+          if (m.batchEndYear) conds.push(eq(studentProfiles.batchEndYear, m.batchEndYear));
+          return and(...conds);
+        });
+        hierarchyConditions = or(...matchConditions);
+      } else {
+        hierarchyConditions = sql`1=0`;
+      }
+    }
+  }
+
+  const { studentProfiles } = require("@/lib/db/schema");
+  const finalCondition = hierarchyConditions ? and(condition, hierarchyConditions) : condition;
+
   const [countResult] = await db
     .select({ count: sql<number>`count(*)` })
     .from(internshipRequests)
     .innerJoin(users, eq(internshipRequests.studentId, users.id))
-    .where(condition);
+    .leftJoin(studentProfiles, eq(studentProfiles.userId, users.id))
+    .where(finalCondition);
 
   const totalRecords = countResult?.count || 0;
   const totalPages = Math.ceil(totalRecords / pageSize);
@@ -73,7 +112,8 @@ export async function getFilteredRequestsForStaff(userId: string, role: string, 
     })
     .from(internshipRequests)
     .innerJoin(users, eq(internshipRequests.studentId, users.id))
-    .where(condition)
+    .leftJoin(studentProfiles, eq(studentProfiles.userId, users.id))
+    .where(finalCondition)
     .orderBy(desc(internshipRequests.submittedAt))
     .limit(limitCount)
     .offset(offsetCount);

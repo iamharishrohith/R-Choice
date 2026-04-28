@@ -124,14 +124,15 @@ export async function createJobPosting(formData: FormData) {
       faq: faq,
       contactPersons: contactPersons,
       requiredSkills: mandatorySkills.length > 0 ? mandatorySkills : [],
-      status: (role === "management_corporation" || role === "dean") ? "approved" 
+      status: (role === "management_corporation") ? "approved" 
             : (role === "placement_officer") ? "pending_mcr_approval" 
             : "pending_review",
     });
 
     revalidatePath("/jobs");
     revalidatePath("/jobs/manage");
-    
+    revalidatePath("/approvals/jobs");
+
     return { success: true };
   } catch (error: unknown) {
     if (error instanceof ValidationError) {
@@ -142,14 +143,18 @@ export async function createJobPosting(formData: FormData) {
   }
 }
 
+
+import { notifications } from "@/lib/db/schema";
+import { sendMobilePush } from "@/lib/notifications";
+
 export async function updateJobStatus(jobId: string, action: "approve" | "reject") {
   const session = await auth();
-  if (!session?.user?.id) {
-    return { error: "Not authenticated" };
-  }
+  if (!session?.user?.id) return { error: "Not authenticated" };
   
   const role = session.user.role;
-  
+  if (!["placement_officer", "coe", "principal", "management_corporation", "placement_head"].includes(role)) {
+    return { error: "Only admins and MCR can approve company jobs." };
+  }
   try {
     const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
     if (!job) return { error: "Job not found" };
@@ -175,31 +180,63 @@ export async function updateJobStatus(jobId: string, action: "approve" | "reject
        return { error: "You do not have permission to approve this job at its current stage." };
     }
     
-    await db.update(jobPostings)
-      .set({ 
-        status: newStatus as any,
-        verifiedBy: session.user.id,
-        verifiedByRole: role,
-        verifiedAt: new Date()
-      })
-      .where(eq(jobPostings.id, jobId));
+    await db.transaction(async (tx) => {
+      await tx.update(jobPostings)
+        .set({ 
+          status: newStatus as any,
+          verifiedBy: session.user.id,
+          verifiedByRole: role,
+          verifiedAt: new Date()
+        })
+        .where(eq(jobPostings.id, jobId));
 
-    await db.insert(auditLogs).values({
-      userId: session.user.id,
-      action: `review_job_${action}`,
-      entityType: "job_posting",
-      entityId: jobId,
-      details: { newStatus },
+      if (newStatus === "approved") {
+        const [job] = await tx.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
+        
+        // 1. Notify Admins
+        const notifyRoles = ["placement_officer", "hod", "coe", "principal"] as const;
+        const targetAdmins = await tx.select().from(users).where(inArray(users.role, notifyRoles));
+        
+        if (targetAdmins.length > 0) {
+          await tx.insert(notifications).values(
+            targetAdmins.map(admin => ({
+              userId: admin.id,
+              type: "system",
+              title: "New Job Approved",
+              message: `Job ${job?.title} is now active.`,
+              linkUrl: `/jobs`,
+            }))
+          );
+        }
+
+        // 2. Notify ALL Active Students via Push
+        const students = await tx.select({ id: users.id }).from(users).where(eq(users.role, "student"));
+        if (students.length > 0) {
+           await sendMobilePush(
+             "New Internship Available!",
+             `${job?.title} is now accepting applications. Check your dashboard!`,
+             students.map(s => s.id)
+           );
+        }
+      }
+
+      await tx.insert(auditLogs).values({
+        userId: session.user.id,
+        action: `review_job_${action}`,
+        entityType: "job_posting",
+        entityId: jobId,
+        details: { newStatus },
+      });
     });
 
     if (shouldNotify) {
-      // Find devices for authorities (po, dean, ph, coe, principal)
+      // Find devices for authorities (po, ph, coe, principal)
       const authorityTokens = await db
         .select({ token: deviceTokens.token })
         .from(deviceTokens)
         .innerJoin(users, eq(deviceTokens.userId, users.id))
         .where(
-          inArray(users.role, ["placement_officer", "dean", "placement_head", "coe", "principal"])
+          inArray(users.role, ["placement_officer", "placement_head", "coe", "principal"])
         );
       
       const authorityTokenList = authorityTokens.map(t => t.token);
@@ -286,18 +323,59 @@ export async function fetchActiveJobs() {
   }
 }
 
-export async function fetchCompanyJobs(companyId: string) {
+export async function fetchCompanyJobs(userId: string, role: string, companyId?: string | null) {
   try {
-    const jobs = await db
-      .select()
-      .from(jobPostings)
-      .where(eq(jobPostings.postedBy, companyId))
-      .orderBy(desc(jobPostings.createdAt));
-      
-    return jobs;
+    if (role === "company_staff") {
+      return await db
+        .select()
+        .from(jobPostings)
+        .where(eq(jobPostings.postedBy, userId))
+        .orderBy(desc(jobPostings.createdAt));
+    } else if (role === "company" && companyId) {
+      return await db
+        .select()
+        .from(jobPostings)
+        .where(eq(jobPostings.companyId, companyId))
+        .orderBy(desc(jobPostings.createdAt));
+    } else {
+      return [];
+    }
   } catch (err) {
     console.error("Failed to fetch company jobs:", err);
     return [];
+  }
+}
+
+export async function deleteJobPosting(jobId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  try {
+    const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
+    if (!job) return { error: "Job not found" };
+
+    const role = session.user.role;
+    const isOwner = job.postedBy === session.user.id;
+    const [ceo] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+
+    // CEO can delete any job of their company, staff can only delete their own
+    if (role === "company_staff" && !isOwner) {
+      return { error: "You can only delete your own jobs" };
+    }
+    if (role === "company" && job.companyId !== ceo?.companyId) {
+       return { error: "You can only delete jobs belonging to your company" };
+    }
+    
+    if (job.status !== "draft" && job.status !== "rejected") {
+      return { error: "Only draft or rejected jobs can be deleted" };
+    }
+
+    await db.delete(jobPostings).where(eq(jobPostings.id, jobId));
+    revalidatePath("/jobs/manage");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete job:", error);
+    return { error: "Failed to delete job" };
   }
 }
 
@@ -315,7 +393,7 @@ export async function updateJobPosting(jobId: string, formData: FormData) {
 
     // Only the posting company or admin roles can edit
     const isOwner = job.postedBy === session.user.id;
-    const isAdmin = ["dean", "placement_officer", "principal"].includes(role);
+    const isAdmin = ["placement_officer", "principal"].includes(role);
 
     if (!isOwner && !isAdmin) {
       return { error: "You do not have permission to edit this job." };
