@@ -24,7 +24,7 @@ type Mapping = {
   deanId: string | null;
 };
 
-import { COLLEGE_HIERARCHY, YEARS } from "@/lib/constants/hierarchy";
+import { YEARS, type SchoolNode } from "@/lib/constants/hierarchy";
 
 export default function HierarchyClient({
   initialMappings,
@@ -32,12 +32,16 @@ export default function HierarchyClient({
   coordinators,
   hods,
   deans,
+  currentUserRole,
+  collegeHierarchy,
 }: {
   initialMappings: Mapping[];
   tutors: StaffMember[];
   coordinators: StaffMember[];
   hods: StaffMember[];
   deans: StaffMember[];
+  currentUserRole: string;
+  collegeHierarchy: SchoolNode[];
 }) {
   const [mappings] = useState<Mapping[]>(initialMappings);
   const [showForm, setShowForm] = useState(false);
@@ -273,49 +277,49 @@ export default function HierarchyClient({
                   <label style={labelStyle}>School</label>
                   <select value={school} onChange={(e) => { setSchool(e.target.value); setSection(""); setCourse(""); setProgramType(""); setDept(""); }} className="input-field" style={{ width: "100%" }}>
                     <option value="" disabled>Select School...</option>
-                    {COLLEGE_HIERARCHY.map(s => <option key={s.school} value={s.school}>{s.school}</option>)}
+                    {collegeHierarchy.map(s => <option key={s.school} value={s.school}>{s.school}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Section</label>
                   <select value={section} onChange={(e) => { setSection(e.target.value); setCourse(""); setProgramType(""); setDept(""); }} className="input-field" style={{ width: "100%" }} disabled={!school}>
                     <option value="" disabled>Select Section...</option>
-                    {COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.map(sec => <option key={sec.section} value={sec.section}>{sec.section}</option>)}
+                    {collegeHierarchy.find(s => s.school === school)?.sections.map(sec => <option key={sec.section} value={sec.section}>{sec.section}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Course</label>
                   <select value={course} onChange={(e) => { setCourse(e.target.value); setProgramType(""); setDept(""); }} className="input-field" style={{ width: "100%" }} disabled={!section}>
                     <option value="" disabled>Select Course...</option>
-                    {Array.from(new Set(COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.map(c => c.course) || [])).map(c => <option key={c} value={c}>{c}</option>)}
+                    {Array.from(new Set(collegeHierarchy.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.map(c => c.course) || [])).map(c => <option key={c as string} value={c as string}>{c as string}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Program Type</label>
-                  <select value={programType} onChange={(e) => { setProgramType(e.target.value); setDept(""); }} className="input-field" style={{ width: "100%" }} disabled={!course}>
+                  <select value={programType} onChange={(e) => { setProgramType(e.target.value); setDept(""); setYear(1); }} className="input-field" style={{ width: "100%" }} disabled={!course}>
                     <option value="" disabled>Select Program...</option>
-                    {Array.from(new Set(COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.filter(c => c.course === course).map(c => c.programType) || [])).map(p => <option key={p} value={p}>{p}</option>)}
+                    {Array.from(new Set(collegeHierarchy.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.filter(c => c.course === course).map(c => c.programType) || [])).map(p => <option key={p as string} value={p as string}>{p as string}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Department</label>
                   <select value={dept} onChange={(e) => setDept(e.target.value)} className="input-field" style={{ width: "100%" }} disabled={!programType}>
                     <option value="" disabled>Select Department...</option>
-                    {COLLEGE_HIERARCHY.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.find(c => c.course === course && c.programType === programType)?.departments.map(d => <option key={d.name} value={d.name}>{d.name}</option>) || []}
+                    {collegeHierarchy.find(s => s.school === school)?.sections.find(sec => sec.section === section)?.courses.find(c => c.course === course && c.programType === programType)?.departments.map(d => <option key={d.name} value={d.name}>{d.name}</option>) || []}
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Year</label>
                   <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="input-field" style={{ width: "100%" }}>
-                    {YEARS.map((y) => <option key={y} value={y}>Year {y}</option>)}
+                    {(programType === "PG" ? [1, 2] : programType === "UG" ? [1, 2, 3] : YEARS).map((y) => <option key={y} value={y}>Year {y}</option>)}
                   </select>
                 </div>
               </div>
 
               <StaffSelect label="Tutor" value={tutorId} onChange={setTutorId} options={tutors} />
               <StaffSelect label="Placement Coordinator" value={coordinatorId} onChange={setCoordinatorId} options={coordinators} />
-              <StaffSelect label="Head of Department" value={hodId} onChange={setHodId} options={hods} />
-              <StaffSelect label="Dean" value={deanId} onChange={setDeanId} options={deans} />
+              <StaffSelect label="Head of Department" value={hodId} onChange={setHodId} options={hods} disabled={currentUserRole === "hod"} />
+              <StaffSelect label="Dean" value={deanId} onChange={setDeanId} options={deans} disabled={currentUserRole === "hod"} />
             </div>
 
             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "var(--space-5)" }}>
@@ -350,13 +354,13 @@ const labelStyle: React.CSSProperties = {
   color: "var(--text-secondary)", display: "block", marginBottom: "4px",
 };
 
-function StaffSelect({ label, value, onChange, options }: {
-  label: string; value: string; onChange: (v: string) => void; options: StaffMember[];
+function StaffSelect({ label, value, onChange, options, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; options: StaffMember[]; disabled?: boolean;
 }) {
   return (
     <div>
       <label style={labelStyle}>{label}</label>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="input-field" style={{ width: "100%" }}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="input-field" style={{ width: "100%" }} disabled={disabled}>
         <option value="">— Not Assigned —</option>
         {options.map((s) => (
           <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>

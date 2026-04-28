@@ -241,8 +241,8 @@ export async function generateCompanyInvitation(formData: FormData) {
     });
 
     revalidatePath("/companies/invitations");
-    const baseUrl = process.env.AUTH_URL || "http://localhost:3000";
-    return { success: true, link: `${baseUrl}/register/company/${token}` };
+    const baseUrl = process.env.AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+    return { success: true, link: `${baseUrl}/company/register?token=${token}` };
   } catch (error: unknown) {
     if (error instanceof Error && error.name === "ValidationError") {
       return { error: error.message };

@@ -161,13 +161,16 @@ export default async function ProfilePage() {
       roles,
     };
 
+    const { getCollegeHierarchy } = await import("@/app/actions/hierarchy");
+    const dynamicHierarchy = await getCollegeHierarchy();
+
     return (
       <div>
         <div className="page-header">
           <h1>Your Professional Profile</h1>
           <p>Complete your profile to unlock job applications.</p>
         </div>
-        <ProfileBuilderClient initialData={initialData} initialLinks={links} />
+        <ProfileBuilderClient initialData={initialData} initialLinks={links} collegeHierarchy={dynamicHierarchy} />
       </div>
     );
   }
