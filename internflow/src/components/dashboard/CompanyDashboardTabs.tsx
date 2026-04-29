@@ -117,6 +117,7 @@ export default function CompanyDashboardTabs({
                 <input name="designation" placeholder="Designation *" required className="input-field" style={{ padding: "8px 12px" }} />
                 <input name="department" placeholder="Department" className="input-field" style={{ padding: "8px 12px" }} />
                 <input name="phone" type="tel" placeholder="Phone" className="input-field" style={{ padding: "8px 12px" }} />
+                <input name="password" type="password" placeholder="Password *" required minLength={8} className="input-field" style={{ padding: "8px 12px" }} />
                 <div style={{ display: "flex", alignItems: "end" }}>
                   <button type="submit" className="button" disabled={isPending} style={{ padding: "8px 20px", fontSize: "0.875rem" }}>
                     {isPending ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : "Add"}

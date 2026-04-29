@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { companyStaff, companyRegistrations, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { randomBytes } from "crypto";
+
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
@@ -55,9 +55,14 @@ export async function addCompanyStaff(formData: FormData) {
   const email = formData.get("email") as string;
   const designation = formData.get("designation") as string;
   const phone = formData.get("phone") as string;
+  const password = formData.get("password") as string;
 
   if (!name || !email || !designation) {
     return { error: "Name, email, and designation are required." };
+  }
+
+  if (!password || password.length < 8) {
+    return { error: "Password must be at least 8 characters." };
   }
 
   const [firstName, ...lastNameParts] = name.split(" ");
@@ -70,9 +75,8 @@ export async function addCompanyStaff(formData: FormData) {
       return { error: "No company registration found for this account." };
     }
 
-    // Insert user record first with proper bcrypt hash
-    const tempPassword = randomBytes(8).toString("hex");
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    // Insert user record with the CEO-provided password
+    const passwordHash = await bcrypt.hash(password, 10);
     
     const [newUser] = await db
       .insert(users)
@@ -95,8 +99,7 @@ export async function addCompanyStaff(formData: FormData) {
       isActive: true,
     });
 
-    // TODO: Email staff the temp password: tempPassword
-    console.log(`[Staff] Credentials created for ${email}, temp password: ${tempPassword}`);
+    console.log(`[Staff] Account created for ${email}`);
 
     revalidatePath("/dashboard/company");
     return { success: true };
