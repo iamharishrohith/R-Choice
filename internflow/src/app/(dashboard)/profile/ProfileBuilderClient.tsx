@@ -337,6 +337,7 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [], c
           githubLink: data.githubLink || "",
           linkedinLink: data.linkedinLink || "",
           portfolioUrl: data.portfolioUrl || "",
+          resumeUrl: data.resumeUrl || undefined,
         });
         if (result.error) toast.error(result.error);
         else { toast.success("Profile updated successfully!"); setData({ ...data, profileCompletionScore: result.score }); }
@@ -511,7 +512,7 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [], c
                     <select 
                       className="input-field" 
                       value={data.school || ""} 
-                      onChange={(e) => setData({ ...data, school: e.target.value, section: "", course: "", program: "", department: "" })} 
+                      onChange={(e) => setData({ ...data, school: e.target.value, section: "", course: "", programType: "", department: "" })} 
                       required
                     >
                       <option value="" disabled>Select School...</option>
@@ -525,7 +526,7 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [], c
                     <select 
                       className="input-field" 
                       value={data.section || ""} 
-                      onChange={(e) => setData({ ...data, section: e.target.value, course: "", program: "", department: "" })} 
+                      onChange={(e) => setData({ ...data, section: e.target.value, course: "", programType: "", department: "" })} 
                       required
                       disabled={!data.school}
                     >
@@ -540,7 +541,7 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [], c
                     <select 
                       className="input-field" 
                       value={data.course || ""} 
-                      onChange={(e) => setData({ ...data, course: e.target.value, program: "", department: "" })} 
+                      onChange={(e) => setData({ ...data, course: e.target.value, programType: "", department: "" })} 
                       required
                       disabled={!data.section}
                     >
@@ -557,8 +558,8 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [], c
                     <label>Program (UG/PG) *</label>
                     <select 
                       className="input-field" 
-                      value={data.program || ""} 
-                      onChange={(e) => setData({ ...data, program: e.target.value, department: "", year: 1 })} 
+                      value={data.programType || ""} 
+                      onChange={(e) => setData({ ...data, programType: e.target.value, department: "", year: 1 })} 
                       required
                       disabled={!data.course}
                     >
@@ -578,11 +579,11 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [], c
                       value={data.department || ""} 
                       onChange={(e) => setData({ ...data, department: e.target.value })} 
                       required
-                      disabled={!data.program}
+                      disabled={!data.programType}
                     >
                       <option value="" disabled>Select Department...</option>
                       {
-                        collegeHierarchy.find((s: any) => s.school === data.school)?.sections.find((sec: any) => sec.section === data.section)?.courses.find((c: any) => c.course === data.course && c.programType === data.program)?.departments.map((d: any) => (
+                        collegeHierarchy.find((s: any) => s.school === data.school)?.sections.find((sec: any) => sec.section === data.section)?.courses.find((c: any) => c.course === data.course && c.programType === data.programType)?.departments.map((d: any) => (
                           <option key={d.name} value={d.name}>{d.name}</option>
                         )) || []
                       }
@@ -591,7 +592,7 @@ export default function ProfileBuilderClient({ initialData, initialLinks = [], c
                   <div className="input-group">
                     <label>Year of Study</label>
                     <select className="input-field" value={data.year || ""} onChange={(e) => setData({ ...data, year: Number(e.target.value) })}>
-                      {(data.program === "PG" ? [1, 2] : data.program === "UG" ? [1, 2, 3] : YEARS).map((y) => (
+                      {(data.programType === "PG" ? [1, 2] : data.programType === "UG" ? [1, 2, 3] : YEARS).map((y) => (
                         <option key={y} value={y}>{y}{y === 1 ? 'st' : y === 2 ? 'nd' : y === 3 ? 'rd' : 'th'} Year</option>
                       ))}
                     </select>

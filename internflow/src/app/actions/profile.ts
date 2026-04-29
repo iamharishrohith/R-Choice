@@ -85,6 +85,7 @@ export async function saveBasicProfile(formData: {
   githubLink?: string;
   linkedinLink?: string;
   portfolioUrl?: string;
+  resumeUrl?: string;
 }) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
@@ -123,6 +124,7 @@ export async function saveBasicProfile(formData: {
         githubLink: formData.githubLink || null,
         linkedinLink: formData.linkedinLink || null,
         portfolioUrl: formData.portfolioUrl || null,
+        resumeUrl: formData.resumeUrl || null,
         profileCompletionScore: score 
       }).where(eq(studentProfiles.id, existingProfile.id));
     } else {
@@ -144,6 +146,7 @@ export async function saveBasicProfile(formData: {
         githubLink: formData.githubLink || null,
         linkedinLink: formData.linkedinLink || null,
         portfolioUrl: formData.portfolioUrl || null,
+        resumeUrl: formData.resumeUrl || null,
         profileCompletionScore: score,
       }).returning({ id: studentProfiles.id });
       profileId = newProfile.id;

@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
-import { MapPin, Building2, Briefcase, X, Check, SearchX } from "lucide-react";
+import { MapPin, Building2, Briefcase, X, Check, SearchX, Eye } from "lucide-react";
 import ApplyButton from "@/app/(dashboard)/jobs/ApplyButton";
-import Link from "next/link";
 
 type SwipeJob = {
   id: string;
@@ -17,7 +16,7 @@ type SwipeJob = {
   requiredSkills?: string[] | null;
 };
 
-function SwipeCard({ job, index, onSwipe, isStudent, isApplied }: { job: SwipeJob; index: number; onSwipe: (id: string, dir: "left" | "right") => void; isStudent: boolean; isApplied: boolean }) {
+function SwipeCard({ job, index, onSwipe, isStudent, isApplied, onViewDetails }: { job: SwipeJob; index: number; onSwipe: (id: string, dir: "left" | "right") => void; isStudent: boolean; isApplied: boolean; onViewDetails: (id: string) => void }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
@@ -113,15 +112,15 @@ function SwipeCard({ job, index, onSwipe, isStudent, isApplied }: { job: SwipeJo
             >
               <X size={20} /> Pass
             </button>
-            <Link 
-              href={`/jobs/${job.id}`}
-              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "16px", borderRadius: "12px", background: isStudent ? "var(--bg-hover)" : "var(--color-primary)", color: isStudent ? "var(--text-primary)" : "white", textDecoration: "none", fontWeight: "bold", fontSize: "1rem" }}
+            <button 
+              onClick={() => onViewDetails(job.id)}
+              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "16px", borderRadius: "12px", background: isStudent ? "var(--bg-hover)" : "var(--color-primary)", color: isStudent ? "var(--text-primary)" : "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "1rem" }}
             >
-              View Details
-            </Link>
+              <Eye size={18} /> Details
+            </button>
             {isStudent && (
               <div style={{ flex: 1, display: "flex", alignItems: "stretch" }}>
-                <div style={{ width: "100%", '& > button': { height: '100%' } } as React.CSSProperties}>
+                <div style={{ width: "100%" }}>
                   <ApplyButton job={job} isApplied={isApplied} />
                 </div>
               </div>
@@ -139,7 +138,7 @@ function SwipeCard({ job, index, onSwipe, isStudent, isApplied }: { job: SwipeJo
   );
 }
 
-export function SwipeDeck({ jobs, isStudent, appliedJobIds = [] }: { jobs: SwipeJob[]; isStudent: boolean; appliedJobIds?: string[] }) {
+export function SwipeDeck({ jobs, isStudent, appliedJobIds = [], onViewDetails }: { jobs: SwipeJob[]; isStudent: boolean; appliedJobIds?: string[]; onViewDetails: (id: string) => void }) {
   const [deck, setDeck] = useState(jobs);
 
 
@@ -178,6 +177,7 @@ export function SwipeDeck({ jobs, isStudent, appliedJobIds = [] }: { jobs: Swipe
               onSwipe={handleSwipe} 
               isStudent={isStudent}
               isApplied={appliedJobIds.includes(job.id)}
+              onViewDetails={onViewDetails}
             />
           )).reverse()}
         </AnimatePresence>
