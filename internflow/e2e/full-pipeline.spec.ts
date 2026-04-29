@@ -44,21 +44,9 @@ test.describe("Full Pipeline - Mega Flow", () => {
     test.setTimeout(300000); // 5 minutes timeout due to many context switches
     let companyLoginEmail = companyEmail;
 
-    // --- 1. Company Registration ---
-    await page.goto("/register/company");
-    await page.fill('input[name="companyName"]', `Mega Corp ${randomId}`);
-    await page.fill('input[name="industry"]', "Technology");
-    await page.fill('input[name="website"]', "https://megacorp.test");
-    await page.fill('input[name="hrName"]', "HR Boss");
-    await page.fill('input[name="hrPhone"]', "1234567890");
-    await page.fill('input[name="email"]', companyEmail);
-    await page.fill('input[name="password"]', TEST_PASSWORD);
-    await page.click('button[type="submit"]');
-
-    const registered = await page.waitForURL(/\/\?message=registered/, { timeout: 15000 }).then(() => true).catch(() => false);
-    if (!registered) {
-      companyLoginEmail = TEST_ACCOUNTS.company;
-    }
+    // --- 1. Company Registration (Bypassed) ---
+    // Registration was moved to an MCR-invitation flow. We'll use the pre-seeded test company.
+    companyLoginEmail = TEST_ACCOUNTS.company;
 
     // --- 2. Company Posts Job ---
     await loginAs(page, companyLoginEmail, "Company", /.*dashboard.*/);
@@ -81,6 +69,12 @@ test.describe("Full Pipeline - Mega Flow", () => {
     const pendingJobCard = page.locator(".card").filter({ hasText: jobTitle }).first();
     await expect(pendingJobCard).toBeVisible();
     
+    // Capture any alerts that pop up during approval
+    page.on('dialog', async dialog => {
+      console.log('Dialog message:', dialog.message());
+      await dialog.accept();
+    });
+
     // Click approve
     const approveBtnJob = pendingJobCard.getByRole("button", { name: /approve/i });
     await approveBtnJob.click();
@@ -129,7 +123,7 @@ test.describe("Full Pipeline - Mega Flow", () => {
     await page.context().clearCookies();
 
     // --- 4a. Company Shortlists Student ---
-    await loginAs(page, companyEmail, "Company", /.*dashboard.*/);
+    await loginAs(page, companyLoginEmail, "Company", /.*dashboard.*/);
     await page.goto("/applicants");
     await page.locator('input[type="checkbox"]').first().click();
     await page.getByRole("button", { name: /Post Results/i }).click();
@@ -164,7 +158,7 @@ test.describe("Full Pipeline - Mega Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Locate the specific banner by finding the heading's sibling paragraph with the company name
-    const bannerParagraph = page.locator('strong').filter({ hasText: `Mega Corp ${randomId}` }).first().locator('xpath=ancestor::div[.//button[contains(., "Verify")]]');
+    const bannerParagraph = page.locator('strong').filter({ hasText: `Deepak Company` }).first().locator('xpath=ancestor::div[.//button[contains(., "Verify")]]');
     await expect(bannerParagraph).toBeVisible({ timeout: 10000 });
 
     // Fill Verification Banner
@@ -239,7 +233,7 @@ test.describe("Full Pipeline - Mega Flow", () => {
     await page.goto("/applications");
 
     const finalApplicationCard = page.locator("section").filter({ hasText: "Active OD Approvals" })
-      .locator(".card").filter({ hasText: `Mega Corp ${randomId}` }).first();
+      .locator(".card").filter({ hasText: `Deepak Company` }).first();
     await expect(finalApplicationCard).toBeVisible();
     await expect(finalApplicationCard.locator('span.badge-success')).toBeVisible();
     await expect(finalApplicationCard.getByRole("link", { name: /print bonafide/i })).toBeVisible();
