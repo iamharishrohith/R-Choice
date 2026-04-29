@@ -6,7 +6,7 @@ export default async function ExportPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/");
 
-  const allowedRoles = ["tutor", "placement_coordinator", "hod", "dean", "placement_officer", "coe", "placement_head", "management_corporation", "principal"];
+  const allowedRoles = ["tutor", "placement_coordinator", "hod", "dean", "placement_officer", "coe", "management_corporation", "principal", "company", "company_staff"];
   if (!allowedRoles.includes(session.user.role)) redirect("/");
 
   return (

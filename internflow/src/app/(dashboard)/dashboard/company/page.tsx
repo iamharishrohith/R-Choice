@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { users, jobPostings, internshipRequests, companyRegistrations, companyStaff } from "@/lib/db/schema";
-import { FileText } from "lucide-react";
+import { FileText, Pencil } from "lucide-react";
 import { eq, desc, sql, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
@@ -153,9 +153,14 @@ export default async function DashboardCompanyPage() {
           <h1>Company Workspace</h1>
           <p>Welcome back{companyRecord ? `, ${companyRecord.companyLegalName}` : ""}. Manage your postings, staff, and hiring pipeline.</p>
         </div>
-        <Link href="/jobs/create" className="btn btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-          <FileText size={18} /> Post New Opportunity
-        </Link>
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+          <Link href="/settings" className="btn btn-outline" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+            <Pencil size={16} /> Edit Profile
+          </Link>
+          <Link href="/jobs/create" className="btn btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+            <FileText size={18} /> Post New Opportunity
+          </Link>
+        </div>
       </div>
 
       <CompanyDashboardTabs
@@ -174,6 +179,7 @@ export default async function DashboardCompanyPage() {
           pendingApprovals,
           shortlisted,
         }}
+        isCeo={session?.user?.role === "company"}
       />
     </div>
   );

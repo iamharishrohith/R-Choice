@@ -16,7 +16,7 @@ import bcrypt from "bcryptjs";
 import { sanitize, validateEmail, validateEnum } from "@/lib/validation";
 
 
-const ADMIN_ROLES = ["dean", "placement_officer", "principal", "coe", "mcr"];
+const ADMIN_ROLES = ["dean", "placement_officer", "principal", "coe", "mcr", "placement_coordinator"];
 
 async function assertAdmin() {
   const session = await auth();

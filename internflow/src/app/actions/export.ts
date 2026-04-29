@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { users, studentProfiles, internshipRequests, jobApplications, jobPostings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-const EXPORT_ROLES = ["tutor", "placement_coordinator", "hod", "dean", "placement_officer", "coe", "placement_head", "management_corporation", "principal"];
+const EXPORT_ROLES = ["tutor", "placement_coordinator", "hod", "dean", "placement_officer", "coe", "management_corporation", "principal", "company", "company_staff"];
 
 export async function exportStudentData(columns: string[]) {
   const session = await auth();

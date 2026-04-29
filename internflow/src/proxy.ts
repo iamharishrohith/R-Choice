@@ -114,17 +114,6 @@ const roleRoutes: Record<string, string[]> = {
     "/drives",
     "/reports",
   ],
-  placement_head: [
-    "/dashboard/admin",
-    "/students",
-    "/approvals",
-    "/jobs",
-    "/analytics",
-    "/users",
-    "/companies",
-    "/drives",
-    "/reports",
-  ],
   management_corporation: [
     "/dashboard/admin",
     "/students",
@@ -140,11 +129,13 @@ const roleRoutes: Record<string, string[]> = {
     "/dashboard/company",
     "/jobs",
     "/applicants",
+    "/export",
   ],
   company_staff: [
     "/dashboard/company",
     "/jobs",
     "/applicants",
+    "/export",
   ],
   alumni: [
     "/dashboard/alumni",

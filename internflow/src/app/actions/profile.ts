@@ -13,6 +13,25 @@ type DbErrorWithCode = {
   code?: string;
 };
 
+// Auto-create a minimal student profile if one doesn't exist.
+// This prevents "Profile missing" errors when students save education/skills/etc before basic info.
+async function ensureStudentProfile(userId: string): Promise<string> {
+  const [existing] = await db.select({ id: studentProfiles.id }).from(studentProfiles).where(eq(studentProfiles.userId, userId)).limit(1);
+  if (existing) return existing.id;
+  
+  const [newProfile] = await db.insert(studentProfiles).values({
+    userId,
+    registerNo: "",
+    department: "",
+    year: 1,
+    section: "",
+    cgpa: null,
+    professionalSummary: "",
+    profileCompletionScore: 0,
+  }).returning({ id: studentProfiles.id });
+  return newProfile.id;
+}
+
 // Helper to recalculate and update score
 async function updateProfileScore(profileId: string) {
   const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.id, profileId)).limit(1);
@@ -200,15 +219,14 @@ export async function saveDeanProfile(formData: {
 export async function saveEducation(educationData: { institution?: string; degree?: string; fieldOfStudy?: string; startYear?: string | number; endYear?: string | number; score?: string | number }[]) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
-  if (!profile) return { error: "Profile missing" };
+  const profileId = await ensureStudentProfile(session.user.id);
 
   try {
-    await db.delete(studentEducation).where(eq(studentEducation.studentId, profile.id));
+    await db.delete(studentEducation).where(eq(studentEducation.studentId, profileId));
     for (const edu of educationData) {
       if (edu.institution && edu.degree) {
         await db.insert(studentEducation).values({
-          studentId: profile.id,
+          studentId: profileId,
           institution: edu.institution,
           degree: edu.degree,
           fieldOfStudy: edu.fieldOfStudy || null,
@@ -218,7 +236,7 @@ export async function saveEducation(educationData: { institution?: string; degre
         });
       }
     }
-    await updateProfileScore(profile.id);
+    await updateProfileScore(profileId);
     revalidatePath("/profile");
     return { success: true };
   } catch (err) { console.error("Education save error:", err); return { error: "Failed to save education." }; }
@@ -227,20 +245,19 @@ export async function saveEducation(educationData: { institution?: string; degre
 export async function saveSkills(skillsData: {name: string, type: string, isTop?: boolean}[]) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
-  if (!profile) return { error: "Profile missing" };
+  const profileId = await ensureStudentProfile(session.user.id);
 
   try {
-    await db.delete(studentSkills).where(eq(studentSkills.studentId, profile.id));
+    await db.delete(studentSkills).where(eq(studentSkills.studentId, profileId));
     for (const skill of skillsData) {
       await db.insert(studentSkills).values({
-        studentId: profile.id,
+        studentId: profileId,
         skillName: skill.name,
         skillType: (skill.type === "language" ? "language" : skill.type === "hard" ? "hard" : "soft") as "hard" | "soft" | "language",
         isTop: skill.isTop || false,
       });
     }
-    await updateProfileScore(profile.id);
+    await updateProfileScore(profileId);
     revalidatePath("/profile");
     return { success: true };
   } catch (err) { console.error("Skills save error:", err); return { error: "Failed to save skills." }; }
@@ -249,22 +266,21 @@ export async function saveSkills(skillsData: {name: string, type: string, isTop?
 export async function saveProjects(projectsData: { title?: string; description?: string; projectUrl?: string }[]) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
-  if (!profile) return { error: "Profile missing" };
+  const profileId = await ensureStudentProfile(session.user.id);
 
   try {
-    await db.delete(studentProjects).where(eq(studentProjects.studentId, profile.id));
+    await db.delete(studentProjects).where(eq(studentProjects.studentId, profileId));
     for (const p of projectsData) {
       if (p.title && p.description) {
         await db.insert(studentProjects).values({
-          studentId: profile.id,
+          studentId: profileId,
           title: p.title,
           description: p.description,
           projectUrl: p.projectUrl || null,
         });
       }
     }
-    await updateProfileScore(profile.id);
+    await updateProfileScore(profileId);
     revalidatePath("/profile");
     return { success: true };
   } catch (err) { console.error("Projects save error:", err); return { error: "Failed to save projects." }; }
@@ -273,22 +289,21 @@ export async function saveProjects(projectsData: { title?: string; description?:
 export async function saveCertifications(certsData: { name?: string; issuingOrg?: string; credentialUrl?: string }[]) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
-  if (!profile) return { error: "Profile missing" };
+  const profileId = await ensureStudentProfile(session.user.id);
 
   try {
-    await db.delete(studentCertifications).where(eq(studentCertifications.studentId, profile.id));
+    await db.delete(studentCertifications).where(eq(studentCertifications.studentId, profileId));
     for (const c of certsData) {
       if (c.name && c.issuingOrg) {
         await db.insert(studentCertifications).values({
-          studentId: profile.id,
+          studentId: profileId,
           name: c.name,
           issuingOrg: c.issuingOrg,
           credentialUrl: c.credentialUrl || null,
         });
       }
     }
-    await updateProfileScore(profile.id);
+    await updateProfileScore(profileId);
     revalidatePath("/profile");
     return { success: true };
   } catch (err) { console.error("Certs save error:", err); return { error: "Failed to save certs." }; }
@@ -297,22 +312,21 @@ export async function saveCertifications(certsData: { name?: string; issuingOrg?
 export async function saveLinks(linksData: { title?: string; url?: string; platform: string }[]) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, session.user.id)).limit(1);
-  if (!profile) return { error: "Profile missing" };
+  const profileId = await ensureStudentProfile(session.user.id);
 
   try {
-    await db.delete(studentLinks).where(eq(studentLinks.studentId, profile.id));
+    await db.delete(studentLinks).where(eq(studentLinks.studentId, profileId));
     for (const l of linksData) {
       if (l.title && l.url) {
         await db.insert(studentLinks).values({
-          studentId: profile.id,
+          studentId: profileId,
           platform: l.platform,
           title: l.title,
           url: l.url,
         });
       }
     }
-    await updateProfileScore(profile.id);
+    await updateProfileScore(profileId);
     revalidatePath("/profile/links");
     return { success: true };
   } catch (err) { console.error("Links save error:", err); return { error: "Failed to save links." }; }
