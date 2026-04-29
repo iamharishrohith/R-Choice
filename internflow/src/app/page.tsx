@@ -41,7 +41,6 @@ const ROLES: Role[] = [
   { id: "coe", label: "COE", icon: <ClipboardList size={20} />, desc: "Tier 6 approver", category: "admin" },
   { id: "principal", label: "Principal", icon: <Crown size={20} />, desc: "Full admin", category: "admin" },
   { id: "management_corporation", label: "MCR", icon: <Building2 size={20} />, desc: "Super admin", category: "admin" },
-  { id: "placement_head", label: "Placement Head", icon: <Crown size={20} />, desc: "Master Admin", category: "admin" },
   { id: "company", label: "Company", icon: <Briefcase size={20} />, desc: "Post jobs", category: "external" },
 ];
 

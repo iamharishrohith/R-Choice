@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Users, Briefcase, BarChart3, Plus, Trash2, Loader2, Mail, Phone, X, Building2 } from "lucide-react";
+import { Users, Briefcase, BarChart3, Plus, Trash2, Loader2, Mail, Phone, X, Building2, Eye, EyeOff } from "lucide-react";
 import { addCompanyStaff, removeCompanyStaff } from "@/app/actions/company-staff";
 
 type Staff = {
@@ -33,22 +33,26 @@ export default function CompanyDashboardTabs({
   staff,
   jobs,
   analytics,
+  isCeo = false,
 }: {
   staff: Staff[];
   jobs: Job[];
   analytics: Analytics;
+  isCeo?: boolean;
 }) {
   const [tab, setTab] = useState<"overview" | "staff" | "jobs" | "analytics">("overview");
   const [showAddForm, setShowAddForm] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [formError, setFormError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const tabs = [
-    { key: "overview" as const, label: "Overview", icon: <Building2 size={16} /> },
-    { key: "staff" as const, label: "Staff", icon: <Users size={16} /> },
-    { key: "jobs" as const, label: "Job Postings", icon: <Briefcase size={16} /> },
-    { key: "analytics" as const, label: "Analytics", icon: <BarChart3 size={16} /> },
+  const allTabs = [
+    { key: "overview" as const, label: "Overview", icon: <Building2 size={16} />, ceoOnly: false },
+    { key: "staff" as const, label: "Staff", icon: <Users size={16} />, ceoOnly: true },
+    { key: "jobs" as const, label: "Job Postings", icon: <Briefcase size={16} />, ceoOnly: false },
+    { key: "analytics" as const, label: "Analytics", icon: <BarChart3 size={16} />, ceoOnly: false },
   ];
+  const tabs = allTabs.filter(t => !t.ceoOnly || isCeo);
 
   function handleAddStaff(formData: FormData) {
     setFormError("");
@@ -117,7 +121,12 @@ export default function CompanyDashboardTabs({
                 <input name="designation" placeholder="Designation *" required className="input-field" style={{ padding: "8px 12px" }} />
                 <input name="department" placeholder="Department" className="input-field" style={{ padding: "8px 12px" }} />
                 <input name="phone" type="tel" placeholder="Phone" className="input-field" style={{ padding: "8px 12px" }} />
-                <input name="password" type="password" placeholder="Password *" required minLength={8} className="input-field" style={{ padding: "8px 12px" }} />
+                <div style={{ position: "relative" }}>
+                  <input name="password" type={showPassword ? "text" : "password"} placeholder="Password *" required minLength={8} className="input-field" style={{ padding: "8px 12px", paddingRight: "40px" }} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "4px", display: "flex", alignItems: "center" }} aria-label={showPassword ? "Hide password" : "Show password"}>
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
                 <div style={{ display: "flex", alignItems: "end" }}>
                   <button type="submit" className="button" disabled={isPending} style={{ padding: "8px 20px", fontSize: "0.875rem" }}>
                     {isPending ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : "Add"}
@@ -145,9 +154,11 @@ export default function CompanyDashboardTabs({
                       {s.phone && <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><Phone size={12} /> {s.phone}</span>}
                     </div>
                   </div>
-                  <button onClick={() => handleRemoveStaff(s.id)} title="Remove" style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "4px" }}>
-                    <Trash2 size={16} />
-                  </button>
+                  {isCeo && (
+                    <button onClick={() => handleRemoveStaff(s.id)} title="Remove" style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "4px" }}>
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

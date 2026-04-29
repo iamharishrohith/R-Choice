@@ -194,7 +194,6 @@ export function getNavSections(role: string): NavSection[] {
           { label: "Settings", href: "/settings", icon: <Settings size={20} /> },
         ]},
       ];
-    case "placement_head":
     case "management_corporation":
       return [
         { label: "Main", items: [
@@ -221,11 +220,15 @@ export function getNavSections(role: string): NavSection[] {
         ]},
       ];
     case "company":
+    case "company_staff":
       return [
         { label: "Main", items: [
           { label: "Dashboard", href: "/dashboard/company", icon: <LayoutDashboard size={20} /> },
           { label: "My Jobs", href: "/jobs/manage", icon: <Briefcase size={20} /> },
           { label: "Applicants", href: "/applicants", icon: <Users size={20} /> },
+        ]},
+        { label: "Tools", items: [
+          { label: "Export Data", href: "/export", icon: <Download size={20} /> },
         ]},
       ];
     default:
@@ -257,7 +260,6 @@ export function getMobileNavItems(role: string): NavItem[] {
     case "placement_officer":
     case "principal":
     case "coe":
-    case "placement_head":
     case "management_corporation":
       return [
         { label: "Home", href: "/dashboard/admin", icon: <LayoutDashboard size={22} /> },
