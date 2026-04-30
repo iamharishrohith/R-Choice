@@ -3,8 +3,8 @@ import { fetchActiveJobs } from "@/app/actions/jobs";
 import { redirect } from "next/navigation";
 import JobBoardClient from "./JobBoardClient";
 import { db } from "@/lib/db";
-import { studentJobInterests, studentProfiles, jobApplications, jobPostings, companyRegistrations, users } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { studentJobInterests, studentProfiles, jobApplications, jobPostings, companyRegistrations, users, internshipRequests } from "@/lib/db/schema";
+import { eq, desc, inArray } from "drizzle-orm";
 import SelectionResultsSection from "./SelectionResultsSection";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +47,7 @@ export default async function JobBoardPage() {
       companyName: companyRegistrations.companyLegalName,
       appliedAt: jobApplications.appliedAt,
       updatedAt: jobApplications.updatedAt,
+      isVerified: jobApplications.isVerified,
     })
     .from(jobApplications)
     .innerJoin(users, eq(jobApplications.studentId, users.id))
@@ -54,6 +55,21 @@ export default async function JobBoardPage() {
     .leftJoin(companyRegistrations, eq(jobPostings.postedBy, companyRegistrations.userId))
     .where(eq(jobApplications.status, "selected"))
     .orderBy(desc(jobApplications.updatedAt));
+
+  // Build OD status map for selected students
+  const selectedStudentIds = selectionResults.map(r => r.studentId);
+  let odStatusMap: Record<string, string> = {};
+  if (selectedStudentIds.length > 0) {
+    const odRequests = await db
+      .select({ studentId: internshipRequests.studentId, status: internshipRequests.status })
+      .from(internshipRequests)
+      .where(inArray(internshipRequests.studentId, selectedStudentIds))
+      .orderBy(desc(internshipRequests.createdAt));
+    // Keep only latest per student
+    odRequests.forEach(r => {
+      if (!odStatusMap[r.studentId]) odStatusMap[r.studentId] = r.status || "unknown";
+    });
+  }
 
   return (
     <div className="animate-fade-in">
@@ -65,7 +81,7 @@ export default async function JobBoardPage() {
       <JobBoardClient jobs={jobs.map(j => ({ ...j, isPpoAvailable: j.isPpoAvailable ?? undefined }))} interests={interests} isStudent={isStudent} appliedJobIds={appliedJobIds} />
 
       {/* Selection Results — permanent record visible to all */}
-      <SelectionResultsSection results={selectionResults} />
+      <SelectionResultsSection results={selectionResults} odStatusMap={odStatusMap} viewerRole={role} />
 
       <style>{`
         .job-tag {

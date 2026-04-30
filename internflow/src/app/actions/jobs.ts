@@ -424,3 +424,70 @@ export async function updateJobPosting(jobId: string, formData: FormData) {
     return { error: `Failed to update job: ${error instanceof Error ? error.message : String(error)}` };
   }
 }
+
+export async function getFullJobDetails(jobId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  try {
+    const [job] = await db.select().from(jobPostings).where(eq(jobPostings.id, jobId)).limit(1);
+    if (!job) return { error: "Job not found" };
+
+    const [poster] = await db.select({ firstName: users.firstName, lastName: users.lastName })
+      .from(users).where(eq(users.id, job.postedBy)).limit(1);
+
+    let company = null;
+    if (job.companyId) {
+      const [c] = await db.select().from(companyRegistrations).where(eq(companyRegistrations.id, job.companyId)).limit(1);
+      company = c ? {
+        id: c.id,
+        companyLegalName: c.companyLegalName,
+        brandName: c.brandName,
+        industrySector: c.industrySector,
+        website: c.website,
+        logoUrl: c.logoUrl,
+        city: c.city,
+        state: c.state,
+        companySize: c.companySize,
+        companyDescription: c.companyDescription,
+      } : null;
+    }
+
+    return {
+      job: {
+        id: job.id,
+        title: job.title,
+        description: job.description,
+        responsibilities: job.responsibilities,
+        learnings: job.learnings,
+        location: job.location,
+        workMode: job.workMode,
+        duration: job.duration,
+        stipendSalary: job.stipendSalary,
+        openingsCount: job.openingsCount,
+        applicationDeadline: job.applicationDeadline,
+        startDate: job.startDate,
+        interviewMode: job.interviewMode,
+        jobType: job.jobType,
+        isPpoAvailable: job.isPpoAvailable,
+        isCampusHiring: job.isCampusHiring,
+        requiredSkills: job.requiredSkills,
+        mandatorySkills: job.mandatorySkills,
+        preferredSkills: job.preferredSkills,
+        tools: job.tools,
+        perks: job.perks,
+        selectionRounds: job.selectionRounds,
+        selectionProcessSteps: job.selectionProcessSteps,
+        preferredQualifications: job.preferredQualifications,
+        minCgpa: job.minCgpa,
+        faq: job.faq,
+        domain: job.domain,
+      },
+      company,
+      poster: poster ? `${poster.firstName} ${poster.lastName}` : "Staff",
+    };
+  } catch (err) {
+    console.error("Failed to fetch job details:", err);
+    return { error: "Failed to load job details" };
+  }
+}

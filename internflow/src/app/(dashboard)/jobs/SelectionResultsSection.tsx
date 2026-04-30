@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Trophy, Filter, Calendar, Building2, User } from "lucide-react";
+import { Trophy, Filter, Calendar, Building2, User, CheckCircle2, Clock, AlertCircle, ShieldCheck } from "lucide-react";
 
 interface SelectionResult {
   id: string;
@@ -12,10 +12,30 @@ interface SelectionResult {
   companyName: string | null;
   appliedAt: Date | null;
   updatedAt: Date | null;
+  isVerified?: boolean | null;
 }
 
-export default function SelectionResultsSection({ results }: { results: SelectionResult[] }) {
+function getODStatusBadge(isVerified: boolean | null | undefined, odStatus: string | undefined) {
+  if (odStatus === "approved") {
+    return <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "3px 10px", borderRadius: "100px", fontSize: "0.65rem", fontWeight: 700, background: "rgba(34, 197, 94, 0.12)", color: "#22c55e" }}><CheckCircle2 size={11} /> OD Approved</span>;
+  }
+  if (odStatus && odStatus.startsWith("pending_")) {
+    const stage = odStatus.replace("pending_", "").replace(/_/g, " ");
+    return <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "3px 10px", borderRadius: "100px", fontSize: "0.65rem", fontWeight: 700, background: "rgba(14, 165, 233, 0.12)", color: "#0ea5e9" }}><Clock size={11} /> OD: {stage}</span>;
+  }
+  if (odStatus === "rejected") {
+    return <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "3px 10px", borderRadius: "100px", fontSize: "0.65rem", fontWeight: 700, background: "rgba(239, 68, 68, 0.12)", color: "#ef4444" }}><AlertCircle size={11} /> OD Rejected</span>;
+  }
+  if (isVerified) {
+    return <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "3px 10px", borderRadius: "100px", fontSize: "0.65rem", fontWeight: 700, background: "rgba(16, 185, 129, 0.12)", color: "#10b981" }}><ShieldCheck size={11} /> Verified</span>;
+  }
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "3px 10px", borderRadius: "100px", fontSize: "0.65rem", fontWeight: 700, background: "rgba(245, 158, 11, 0.12)", color: "#f59e0b" }}><Clock size={11} /> Awaiting Verification</span>;
+}
+
+export default function SelectionResultsSection({ results, odStatusMap = {}, viewerRole }: { results: SelectionResult[]; odStatusMap?: Record<string, string>; viewerRole?: string }) {
   const [filter, setFilter] = useState<"recent" | "all">("recent");
+
+  const isAuthority = ["tutor", "placement_coordinator", "hod", "dean", "placement_officer", "principal", "placement_head", "coe"].includes(viewerRole || "");
 
   const filteredResults = useMemo(() => {
     if (filter === "recent") {
@@ -57,19 +77,27 @@ export default function SelectionResultsSection({ results }: { results: Selectio
           No results found in this period. Try switching to &quot;All Time&quot;.
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "var(--space-4)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "var(--space-4)" }}>
           {filteredResults.map(r => (
             <div key={r.id} className="card" style={{ borderLeft: "3px solid #f59e0b", padding: "var(--space-4)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                 <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "rgba(245, 158, 11, 0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <User size={18} color="#f59e0b" />
                 </div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 600, margin: 0, fontSize: "0.95rem" }}>{r.studentFirstName} {r.studentLastName}</p>
                   <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: 0 }}>{r.jobTitle}</p>
                 </div>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid var(--border-color)" }}>
+
+              {/* OD Status Badge — visible to authorities and the student themselves */}
+              {(isAuthority || viewerRole === "student") && (
+                <div style={{ marginBottom: "8px" }}>
+                  {getODStatusBadge(r.isVerified, odStatusMap[r.studentId])}
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem", color: "var(--text-secondary)", paddingTop: "8px", borderTop: "1px solid var(--border-color)" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <Building2 size={12} /> {r.companyName || "Company"}
                 </span>
