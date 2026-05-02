@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { jobPostings, companyRegistrations } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Building2 } from "lucide-react";
 import JobApprovalActions from "./JobApprovalActions";
 
@@ -14,7 +15,7 @@ export default async function JobApprovalsPage() {
   }
 
   const role = session.user.role;
-  if (role !== "management_corporation") {
+  if (!["management_corporation", "mcr"].includes(role)) {
     redirect("/");
   }
 
@@ -24,6 +25,7 @@ export default async function JobApprovalsPage() {
     .select({
       id: jobPostings.id,
       title: jobPostings.title,
+      companyId: companyRegistrations.id,
       companyName: companyRegistrations.companyLegalName,
       stipend: jobPostings.stipendSalary,
       location: jobPostings.location,
@@ -74,6 +76,17 @@ export default async function JobApprovalsPage() {
                 <div style={{ flexShrink: 0 }}>
                   <JobApprovalActions jobId={job.id} />
                 </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <Link href={`/jobs/${job.id}`} className="btn btn-outline" style={{ textDecoration: "none" }}>
+                  View Details
+                </Link>
+                {job.companyId && (
+                  <Link href={`/companies/${job.companyId}`} className="btn btn-outline" style={{ textDecoration: "none" }}>
+                    View Details
+                  </Link>
+                )}
               </div>
 
               <div style={{ background: "var(--bg-hover)", padding: "var(--space-4)", borderRadius: "var(--border-radius-md)" }}>

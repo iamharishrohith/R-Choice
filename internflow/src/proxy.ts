@@ -18,8 +18,10 @@ const roleRoutes: Record<string, string[]> = {
   principal: ["/dashboard/admin", "/students", "/approvals", "/jobs", "/analytics", "/users", "/companies", "/reports"],
   coe: ["/dashboard/admin", "/students", "/approvals", "/jobs", "/analytics", "/users", "/companies", "/reports"],
   placement_head: ["/dashboard/admin", "/students", "/approvals", "/jobs", "/analytics", "/users", "/companies", "/reports"],
+  mcr: ["/dashboard/admin", "/students", "/approvals", "/jobs", "/analytics", "/users", "/companies", "/reports"],
   management_corporation: ["/dashboard/admin", "/students", "/approvals", "/jobs", "/analytics", "/users", "/companies", "/reports"],
   company: ["/dashboard/company", "/jobs", "/applicants"],
+  company_staff: ["/dashboard/company", "/jobs", "/applicants"],
   alumni: ["/dashboard/alumni"],
 };
 

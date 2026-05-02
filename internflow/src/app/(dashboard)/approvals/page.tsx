@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { getFilteredRequestsForStaff } from "@/lib/db/queries/approvals";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 import ApprovalActions from "./ApprovalActions";
 
@@ -99,7 +100,14 @@ export default async function ApprovalsPage(props: { searchParams: Promise<{ sta
                 
                 return (
                   <tr key={req.id}>
-                    <td style={{ fontWeight: 600 }}>{req.studentName}</td>
+                    <td>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <span style={{ fontWeight: 600 }}>{req.studentName}</span>
+                        <Link href={`/students/${req.studentId}`} style={{ fontSize: "0.8rem", color: "var(--primary-color)", textDecoration: "none", fontWeight: 600 }}>
+                          View Details
+                        </Link>
+                      </div>
+                    </td>
                     <td>{req.companyName}</td>
                     <td>{req.role}</td>
                     <td>

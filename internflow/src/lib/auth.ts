@@ -39,14 +39,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Too many login attempts. Please try again later.");
         }
 
-        // Find user by email and role. If role is 'company', allow 'company_staff' as well.
+        // Company logins can come from either the owner account or linked staff accounts.
         const [user] = await db
           .select()
           .from(users)
           .where(
             and(
               eq(users.email, email),
-              role === "company" 
+              role === "company" || role === "company_staff"
                 ? inArray(users.role, ["company", "company_staff"])
                 : eq(users.role, role)
             )

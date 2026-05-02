@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { companyRegistrations } from "@/lib/db/schema";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { Building, CheckCircle, XCircle, Clock, Globe, Mail, Phone, RotateCcw, FileText, Users } from "lucide-react";
 import { ExportCompanyDocs } from "./ExportButtons";
@@ -12,7 +13,7 @@ export default async function CompanyReviewPage() {
   const session = await auth();
   const role = session?.user?.role;
   
-  if (role !== "management_corporation") {
+  if (!role || !["management_corporation", "mcr"].includes(role)) {
     redirect("/");
   }
 
@@ -93,6 +94,11 @@ export default async function CompanyReviewPage() {
                   <DetailCell icon={<Phone size={14} />} label="HR Phone" value={reg.hrPhone} />
                   <DetailCell icon={<Users size={14} />} label="HR Contact" value={reg.hrName} />
 
+                </div>
+                <div style={{ marginBottom: "var(--space-4)" }}>
+                  <Link href={`/companies/${reg.id}`} className="btn btn-outline" style={{ textDecoration: "none" }}>
+                    View Details
+                  </Link>
                 </div>
 
                 {/* Previous review comment if info was requested */}

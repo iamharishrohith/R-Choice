@@ -25,7 +25,7 @@ function normalizeCompanyContactRole(company: typeof companyRegistrations.$infer
 
 async function requireMcrSession() {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== "management_corporation") {
+  if (!session?.user?.id || !["management_corporation", "mcr"].includes(session.user.role)) {
     return null;
   }
   return session;
