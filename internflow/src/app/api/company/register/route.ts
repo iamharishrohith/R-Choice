@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq, gt, or } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 import { db } from "@/lib/db";
 import {
@@ -89,6 +90,8 @@ export async function POST(req: NextRequest) {
       duration: asOptionalString(companyData.duration),
       stipendRange: asOptionalString(companyData.stipendRange),
       hiringIntention: asOptionalString(companyData.hiringIntention),
+      accountPassword: asTrimmedString(companyData.accountPassword),
+      confirmPassword: asTrimmedString(companyData.confirmPassword),
       generalTcAccepted:
         companyData.generalTcAccepted === true || companyData.generalTcAccepted === "true",
     };
@@ -114,6 +117,14 @@ export async function POST(req: NextRequest) {
       if (!normalizedCompanyData[field]) {
         return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
       }
+    }
+
+    if (normalizedCompanyData.accountPassword.length < 8) {
+      return NextResponse.json({ error: "Password must be at least 8 characters long." }, { status: 400 });
+    }
+
+    if (normalizedCompanyData.accountPassword !== normalizedCompanyData.confirmPassword) {
+      return NextResponse.json({ error: "Password and confirm password do not match." }, { status: 400 });
     }
 
     let registrationId = "";
@@ -208,6 +219,76 @@ export async function POST(req: NextRequest) {
           usedByCompanyId: registrationId,
         })
         .where(eq(companyRegistrationLinks.id, link.id));
+
+      const passwordHash = await bcrypt.hash(normalizedCompanyData.accountPassword, 10);
+      const loginEmail = normalizedCompanyData.ceoEmail || normalizedCompanyData.hrEmail;
+
+      if (existingRegistration?.userId) {
+        await tx
+          .update(users)
+          .set({
+            email: loginEmail,
+            passwordHash,
+            role: "company",
+            firstName: normalizedCompanyData.ceoName || normalizedCompanyData.hrName || "Company",
+            lastName: normalizedCompanyData.companyLegalName,
+            phone: normalizedCompanyData.ceoPhone || normalizedCompanyData.hrPhone || null,
+            companyId: registrationId,
+            isActive: false,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, existingRegistration.userId));
+      } else {
+        const [existingLoginUser] = await tx
+          .select({ id: users.id, role: users.role })
+          .from(users)
+          .where(eq(users.email, loginEmail))
+          .limit(1);
+
+        if (existingLoginUser && !["company", "company_staff"].includes(existingLoginUser.role)) {
+          throw new Error("The selected company contact email is already used by another account.");
+        }
+
+        if (existingLoginUser) {
+          await tx
+            .update(users)
+            .set({
+              passwordHash,
+              role: "company",
+              firstName: normalizedCompanyData.ceoName || normalizedCompanyData.hrName || "Company",
+              lastName: normalizedCompanyData.companyLegalName,
+              phone: normalizedCompanyData.ceoPhone || normalizedCompanyData.hrPhone || null,
+              companyId: registrationId,
+              isActive: false,
+              updatedAt: new Date(),
+            })
+            .where(eq(users.id, existingLoginUser.id));
+
+          await tx
+            .update(companyRegistrations)
+            .set({ userId: existingLoginUser.id })
+            .where(eq(companyRegistrations.id, registrationId));
+        } else {
+          const [createdUser] = await tx
+            .insert(users)
+            .values({
+              email: loginEmail,
+              passwordHash,
+              role: "company",
+              firstName: normalizedCompanyData.ceoName || normalizedCompanyData.hrName || "Company",
+              lastName: normalizedCompanyData.companyLegalName,
+              phone: normalizedCompanyData.ceoPhone || normalizedCompanyData.hrPhone || null,
+              isActive: false,
+              companyId: registrationId,
+            })
+            .returning({ id: users.id });
+
+          await tx
+            .update(companyRegistrations)
+            .set({ userId: createdUser.id })
+            .where(eq(companyRegistrations.id, registrationId));
+        }
+      }
 
       await tx.insert(auditLogs).values({
         userId: link.generatedBy,

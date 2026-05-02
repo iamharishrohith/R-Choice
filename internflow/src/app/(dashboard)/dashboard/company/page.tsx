@@ -10,6 +10,7 @@ import { getCompanyContextForUser } from "@/lib/company-context";
 export default async function DashboardCompanyPage() {
   const session = await auth();
   const userId = session?.user?.id;
+  const isCeo = session?.user?.role === "company";
 
   if (!userId) return <div>Unauthorized</div>;
 
@@ -135,6 +136,7 @@ export default async function DashboardCompanyPage() {
           pendingApprovals,
           shortlisted,
         }}
+        isCeo={isCeo}
       />
     </div>
   );

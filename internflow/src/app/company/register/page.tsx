@@ -113,6 +113,8 @@ type CompanyFormState = {
   stipendRange: string;
   hiringIntention: string;
   generalTcAccepted: boolean;
+  accountPassword: string;
+  confirmPassword: string;
 };
 
 function buildInitialFormState(prefill: CompanyPrefill | null): CompanyFormState {
@@ -149,6 +151,8 @@ function buildInitialFormState(prefill: CompanyPrefill | null): CompanyFormState
     stipendRange: prefill?.stipendRange || "",
     hiringIntention: prefill?.hiringIntention || "",
     generalTcAccepted: !!prefill?.generalTcAccepted,
+    accountPassword: "",
+    confirmPassword: "",
   };
 }
 
@@ -221,6 +225,14 @@ function CompanyRegisterForm() {
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (formData.accountPassword.length < 8) {
+      setErrorMsg("Password must be at least 8 characters long.");
+      return;
+    }
+    if (formData.accountPassword !== formData.confirmPassword) {
+      setErrorMsg("Password and confirm password do not match.");
+      return;
+    }
     setSubmitting(true);
     setErrorMsg("");
 
@@ -287,7 +299,7 @@ function CompanyRegisterForm() {
           <p style={{ color: "var(--text-secondary, #888)", marginBottom: "1.5rem" }}>
             {wasResubmission
               ? "Your updated company registration has been resubmitted for MCR review."
-              : "Your company registration has been submitted for review. You will receive credentials at the CEO email once approved."}
+              : "Your company registration has been submitted for review. The password you created will work once MCR approves the account."}
           </p>
           <button onClick={() => router.push("/")} className="button" style={{ padding: "10px 24px" }}>
             Return to Homepage
@@ -430,6 +442,28 @@ function CompanyRegisterForm() {
                   <FormField label="Typical Duration" name="duration" placeholder="e.g. 3 months, 6 months" value={formData.duration} onChange={handleFieldChange} />
                   <FormField label="Stipend Range" name="stipendRange" placeholder="e.g. Rs 10,000 - Rs 25,000 / month" value={formData.stipendRange} onChange={handleFieldChange} />
                   <FormField label="Hiring Intention" name="hiringIntention" placeholder="e.g. PPO available for top performers" value={formData.hiringIntention} onChange={handleFieldChange} />
+                </FormGrid>
+
+                <SectionTitle icon={<User size={18} />} title="Account Setup" />
+                <FormGrid>
+                  <FormField
+                    label="Create Password *"
+                    name="accountPassword"
+                    type="password"
+                    placeholder="Minimum 8 characters"
+                    required
+                    value={formData.accountPassword}
+                    onChange={handleFieldChange}
+                  />
+                  <FormField
+                    label="Confirm Password *"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="Re-enter password"
+                    required
+                    value={formData.confirmPassword}
+                    onChange={handleFieldChange}
+                  />
                 </FormGrid>
 
                 <div style={{ marginTop: "1.5rem", padding: "1rem", background: "rgba(99,102,241,0.08)", borderRadius: "8px", border: "1px solid rgba(99,102,241,0.2)" }}>

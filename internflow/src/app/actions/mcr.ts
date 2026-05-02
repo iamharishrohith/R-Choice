@@ -117,6 +117,8 @@ export async function approveCompanyRegistration(companyId: string) {
             firstName: company.ceoName || company.hrName || "Company",
             lastName: company.companyLegalName,
             phone: company.ceoPhone || company.hrPhone || null,
+            companyId: companyId,
+            isActive: true,
           })
           .returning({ id: users.id });
 
@@ -129,6 +131,8 @@ export async function approveCompanyRegistration(companyId: string) {
             firstName: company.ceoName || company.hrName || "Company",
             lastName: company.companyLegalName,
             phone: company.ceoPhone || company.hrPhone || existingUser?.phone || null,
+            companyId: companyId,
+            isActive: true,
             updatedAt: new Date(),
           })
           .where(eq(users.id, companyUserId));
