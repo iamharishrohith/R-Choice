@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, type FormEvent } from "react";
+import { Suspense, useState, useEffect, type ChangeEvent, type FormEvent } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Building2,
@@ -80,6 +80,78 @@ type CompanyPrefill = {
   reviewedAt: string | null;
 };
 
+type CompanyFormState = {
+  companyLegalName: string;
+  brandName: string;
+  companyDescription: string;
+  companyType: string;
+  industrySector: string;
+  yearEstablished: string;
+  companySize: string;
+  website: string;
+  hrEmail: string;
+  hrName: string;
+  hrPhone: string;
+  altPhone: string;
+  address: string;
+  city: string;
+  state: string;
+  pinCode: string;
+  ceoName: string;
+  ceoDesignation: string;
+  ceoEmail: string;
+  ceoPhone: string;
+  ceoLinkedin: string;
+  ceoPortfolio: string;
+  gstNumber: string;
+  panNumber: string;
+  cinLlpin: string;
+  coi: string;
+  internshipType: string;
+  domains: string;
+  duration: string;
+  stipendRange: string;
+  hiringIntention: string;
+  generalTcAccepted: boolean;
+};
+
+function buildInitialFormState(prefill: CompanyPrefill | null): CompanyFormState {
+  return {
+    companyLegalName: prefill?.companyLegalName || "",
+    brandName: prefill?.brandName || "",
+    companyDescription: prefill?.companyDescription || "",
+    companyType: prefill?.companyType || "",
+    industrySector: prefill?.industrySector || "",
+    yearEstablished: prefill?.yearEstablished?.toString() || "",
+    companySize: prefill?.companySize || "",
+    website: prefill?.website || "",
+    hrEmail: prefill?.hrEmail || "",
+    hrName: prefill?.hrName || "",
+    hrPhone: prefill?.hrPhone || "",
+    altPhone: prefill?.altPhone || "",
+    address: prefill?.address || "",
+    city: prefill?.city || "",
+    state: prefill?.state || "",
+    pinCode: prefill?.pinCode || "",
+    ceoName: prefill?.ceoName || "",
+    ceoDesignation: prefill?.ceoDesignation || "",
+    ceoEmail: prefill?.ceoEmail || "",
+    ceoPhone: prefill?.ceoPhone || "",
+    ceoLinkedin: prefill?.ceoLinkedin || "",
+    ceoPortfolio: prefill?.ceoPortfolio || "",
+    gstNumber: prefill?.gstNumber || "",
+    panNumber: prefill?.panNumber || "",
+    cinLlpin: prefill?.cinLlpin || "",
+    coi: prefill?.coi || "",
+    internshipType: prefill?.internshipType || "",
+    domains: prefill?.domains?.join(", ") || "",
+    duration: prefill?.duration || "",
+    stipendRange: prefill?.stipendRange || "",
+    hiringIntention: prefill?.hiringIntention || "",
+    generalTcAccepted: !!prefill?.generalTcAccepted,
+  };
+}
+
 export default function CompanyRegisterPage() {
   return (
     <Suspense
@@ -109,6 +181,7 @@ function CompanyRegisterForm() {
   const [step, setStep] = useState(1);
   const [prefill, setPrefill] = useState<CompanyPrefill | null>(null);
   const [wasResubmission, setWasResubmission] = useState(false);
+  const [formData, setFormData] = useState<CompanyFormState>(() => buildInitialFormState(null));
 
   useEffect(() => {
     if (!token) {
@@ -125,29 +198,40 @@ function CompanyRegisterForm() {
         }
 
         setPrefill(data.company || null);
+        setFormData(buildInitialFormState(data.company || null));
         setStatus("valid");
       })
       .catch(() => setStatus("error"));
   }, [token]);
+
+  function handleFieldChange(
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) {
+    const target = event.target;
+    const { name } = target;
+
+    setFormData((current) => ({
+      ...current,
+      [name]:
+        target instanceof HTMLInputElement && target.type === "checkbox"
+          ? target.checked
+          : target.value,
+    }));
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
     setErrorMsg("");
 
-    const fd = new FormData(e.currentTarget);
-    const body: Record<string, unknown> = {};
-    fd.forEach((value, key) => {
-      body[key] = value;
-    });
-    body.token = token;
-    body.generalTcAccepted = fd.get("generalTcAccepted") === "on";
-
     try {
       const res = await fetch("/api/company/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          ...formData,
+          token,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -285,16 +369,16 @@ function CompanyRegisterForm() {
               <>
                 <SectionTitle icon={<Building2 size={18} />} title="Company Information" />
                 <FormGrid>
-                  <FormField label="Company Legal Name *" name="companyLegalName" required defaultValue={prefill?.companyLegalName} />
-                  <FormField label="Brand / Trade Name" name="brandName" defaultValue={prefill?.brandName} />
-                  <FormSelect label="Company Type *" name="companyType" options={COMPANY_TYPES} required defaultValue={prefill?.companyType} />
-                  <FormSelect label="Industry Sector *" name="industrySector" options={INDUSTRY_OPTIONS} required defaultValue={prefill?.industrySector} />
-                  <FormField label="Year Established" name="yearEstablished" type="number" defaultValue={prefill?.yearEstablished?.toString()} />
-                  <FormSelect label="Company Size" name="companySize" options={COMPANY_SIZES} defaultValue={prefill?.companySize} />
-                  <FormField label="Website *" name="website" type="url" icon={<Globe size={14} />} required defaultValue={prefill?.website} />
-                  <FormField label="Official Email *" name="hrEmail" type="email" icon={<Mail size={14} />} required defaultValue={prefill?.hrEmail} />
+                  <FormField label="Company Legal Name *" name="companyLegalName" required value={formData.companyLegalName} onChange={handleFieldChange} />
+                  <FormField label="Brand / Trade Name" name="brandName" value={formData.brandName} onChange={handleFieldChange} />
+                  <FormSelect label="Company Type *" name="companyType" options={COMPANY_TYPES} required value={formData.companyType} onChange={handleFieldChange} />
+                  <FormSelect label="Industry Sector *" name="industrySector" options={INDUSTRY_OPTIONS} required value={formData.industrySector} onChange={handleFieldChange} />
+                  <FormField label="Year Established" name="yearEstablished" type="number" value={formData.yearEstablished} onChange={handleFieldChange} />
+                  <FormSelect label="Company Size" name="companySize" options={COMPANY_SIZES} value={formData.companySize} onChange={handleFieldChange} />
+                  <FormField label="Website *" name="website" type="url" icon={<Globe size={14} />} required value={formData.website} onChange={handleFieldChange} />
+                  <FormField label="Official Email *" name="hrEmail" type="email" icon={<Mail size={14} />} required value={formData.hrEmail} onChange={handleFieldChange} />
                 </FormGrid>
-                <FormTextarea label="Company Description" name="companyDescription" placeholder="Briefly describe your company's mission and offerings..." defaultValue={prefill?.companyDescription} />
+                <FormTextarea label="Company Description" name="companyDescription" placeholder="Briefly describe your company's mission and offerings..." value={formData.companyDescription} onChange={handleFieldChange} />
               </>
             )}
 
@@ -302,15 +386,15 @@ function CompanyRegisterForm() {
               <>
                 <SectionTitle icon={<MapPin size={18} />} title="Address & Contact" />
                 <FormGrid>
-                  <FormField label="HR Contact Name *" name="hrName" icon={<User size={14} />} required defaultValue={prefill?.hrName} />
-                  <FormField label="HR Phone *" name="hrPhone" type="tel" icon={<Phone size={14} />} required defaultValue={prefill?.hrPhone} />
-                  <FormField label="Alternate Phone" name="altPhone" type="tel" icon={<Phone size={14} />} defaultValue={prefill?.altPhone} />
+                  <FormField label="HR Contact Name *" name="hrName" icon={<User size={14} />} required value={formData.hrName} onChange={handleFieldChange} />
+                  <FormField label="HR Phone *" name="hrPhone" type="tel" icon={<Phone size={14} />} required value={formData.hrPhone} onChange={handleFieldChange} />
+                  <FormField label="Alternate Phone" name="altPhone" type="tel" icon={<Phone size={14} />} value={formData.altPhone} onChange={handleFieldChange} />
                 </FormGrid>
-                <FormTextarea label="Registered Address *" name="address" required defaultValue={prefill?.address} />
+                <FormTextarea label="Registered Address *" name="address" required value={formData.address} onChange={handleFieldChange} />
                 <FormGrid>
-                  <FormField label="City *" name="city" required defaultValue={prefill?.city} />
-                  <FormField label="State *" name="state" required defaultValue={prefill?.state} />
-                  <FormField label="PIN Code *" name="pinCode" required defaultValue={prefill?.pinCode} />
+                  <FormField label="City *" name="city" required value={formData.city} onChange={handleFieldChange} />
+                  <FormField label="State *" name="state" required value={formData.state} onChange={handleFieldChange} />
+                  <FormField label="PIN Code *" name="pinCode" required value={formData.pinCode} onChange={handleFieldChange} />
                 </FormGrid>
               </>
             )}
@@ -319,20 +403,20 @@ function CompanyRegisterForm() {
               <>
                 <SectionTitle icon={<User size={18} />} title="CEO / Founder Details" />
                 <FormGrid>
-                  <FormField label="CEO / Founder Name *" name="ceoName" required defaultValue={prefill?.ceoName} />
-                  <FormField label="Designation *" name="ceoDesignation" required defaultValue={prefill?.ceoDesignation} />
-                  <FormField label="CEO Email *" name="ceoEmail" type="email" icon={<Mail size={14} />} required defaultValue={prefill?.ceoEmail} />
-                  <FormField label="CEO Phone" name="ceoPhone" type="tel" icon={<Phone size={14} />} defaultValue={prefill?.ceoPhone} />
-                  <FormField label="LinkedIn Profile" name="ceoLinkedin" type="url" defaultValue={prefill?.ceoLinkedin} />
-                  <FormField label="Portfolio URL" name="ceoPortfolio" type="url" defaultValue={prefill?.ceoPortfolio} />
+                  <FormField label="CEO / Founder Name *" name="ceoName" required value={formData.ceoName} onChange={handleFieldChange} />
+                  <FormField label="Designation *" name="ceoDesignation" required value={formData.ceoDesignation} onChange={handleFieldChange} />
+                  <FormField label="CEO Email *" name="ceoEmail" type="email" icon={<Mail size={14} />} required value={formData.ceoEmail} onChange={handleFieldChange} />
+                  <FormField label="CEO Phone" name="ceoPhone" type="tel" icon={<Phone size={14} />} value={formData.ceoPhone} onChange={handleFieldChange} />
+                  <FormField label="LinkedIn Profile" name="ceoLinkedin" type="url" value={formData.ceoLinkedin} onChange={handleFieldChange} />
+                  <FormField label="Portfolio URL" name="ceoPortfolio" type="url" value={formData.ceoPortfolio} onChange={handleFieldChange} />
                 </FormGrid>
 
                 <SectionTitle icon={<FileText size={18} />} title="Compliance Documents" />
                 <FormGrid>
-                  <FormField label="GST Number" name="gstNumber" placeholder="e.g. 22AAAAA0000A1Z5" defaultValue={prefill?.gstNumber} />
-                  <FormField label="PAN Number" name="panNumber" placeholder="e.g. AAAAA0000A" defaultValue={prefill?.panNumber} />
-                  <FormField label="CIN / LLPIN" name="cinLlpin" placeholder="Company Identification Number" defaultValue={prefill?.cinLlpin} />
-                  <FormField label="COI (URL)" name="coi" placeholder="Certificate of Incorporation URL" type="url" defaultValue={prefill?.coi} />
+                  <FormField label="GST Number" name="gstNumber" placeholder="e.g. 22AAAAA0000A1Z5" value={formData.gstNumber} onChange={handleFieldChange} />
+                  <FormField label="PAN Number" name="panNumber" placeholder="e.g. AAAAA0000A" value={formData.panNumber} onChange={handleFieldChange} />
+                  <FormField label="CIN / LLPIN" name="cinLlpin" placeholder="Company Identification Number" value={formData.cinLlpin} onChange={handleFieldChange} />
+                  <FormField label="COI (URL)" name="coi" placeholder="Certificate of Incorporation URL" type="url" value={formData.coi} onChange={handleFieldChange} />
                 </FormGrid>
               </>
             )}
@@ -341,16 +425,16 @@ function CompanyRegisterForm() {
               <>
                 <SectionTitle icon={<Briefcase size={18} />} title="Internship Preferences" />
                 <FormGrid>
-                  <FormSelect label="Preferred Internship Type" name="internshipType" options={INTERNSHIP_TYPES} defaultValue={prefill?.internshipType} />
-                  <FormField label="Domains of Interest" name="domains" placeholder="e.g. Web Dev, Data Science, Marketing" defaultValue={prefill?.domains?.join(", ")} />
-                  <FormField label="Typical Duration" name="duration" placeholder="e.g. 3 months, 6 months" defaultValue={prefill?.duration} />
-                  <FormField label="Stipend Range" name="stipendRange" placeholder="e.g. Rs 10,000 - Rs 25,000 / month" defaultValue={prefill?.stipendRange} />
-                  <FormField label="Hiring Intention" name="hiringIntention" placeholder="e.g. PPO available for top performers" defaultValue={prefill?.hiringIntention} />
+                  <FormSelect label="Preferred Internship Type" name="internshipType" options={INTERNSHIP_TYPES} value={formData.internshipType} onChange={handleFieldChange} />
+                  <FormField label="Domains of Interest" name="domains" placeholder="e.g. Web Dev, Data Science, Marketing" value={formData.domains} onChange={handleFieldChange} />
+                  <FormField label="Typical Duration" name="duration" placeholder="e.g. 3 months, 6 months" value={formData.duration} onChange={handleFieldChange} />
+                  <FormField label="Stipend Range" name="stipendRange" placeholder="e.g. Rs 10,000 - Rs 25,000 / month" value={formData.stipendRange} onChange={handleFieldChange} />
+                  <FormField label="Hiring Intention" name="hiringIntention" placeholder="e.g. PPO available for top performers" value={formData.hiringIntention} onChange={handleFieldChange} />
                 </FormGrid>
 
                 <div style={{ marginTop: "1.5rem", padding: "1rem", background: "rgba(99,102,241,0.08)", borderRadius: "8px", border: "1px solid rgba(99,102,241,0.2)" }}>
                   <label style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer" }}>
-                    <input type="checkbox" name="generalTcAccepted" required defaultChecked={!!prefill?.generalTcAccepted} style={{ marginTop: "3px" }} />
+                    <input type="checkbox" name="generalTcAccepted" required checked={formData.generalTcAccepted} onChange={handleFieldChange} style={{ marginTop: "3px" }} />
                     <span style={{ fontSize: "0.875rem", color: "var(--text-secondary, #888)" }}>
                       I confirm that all information provided is accurate. I agree to R-Choice&apos;s terms of partnership, including compliance with applicable labor and internship regulations. <span style={{ color: "#ef4444" }}>*</span>
                     </span>
@@ -454,7 +538,8 @@ function FormField({
   placeholder,
   icon,
   required,
-  defaultValue,
+  value,
+  onChange,
 }: {
   label: string;
   name: string;
@@ -462,7 +547,8 @@ function FormField({
   placeholder?: string;
   icon?: React.ReactNode;
   required?: boolean;
-  defaultValue?: string | null;
+  value?: string;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <div>
@@ -476,7 +562,8 @@ function FormField({
           name={name}
           placeholder={placeholder || label.replace(" *", "")}
           required={required}
-          defaultValue={defaultValue || ""}
+          value={value || ""}
+          onChange={onChange}
           style={{
             width: "100%",
             padding: icon ? "10px 12px 10px 32px" : "10px 12px",
@@ -500,13 +587,15 @@ function FormSelect({
   name,
   options,
   required,
-  defaultValue,
+  value,
+  onChange,
 }: {
   label: string;
   name: string;
   options: string[];
   required?: boolean;
-  defaultValue?: string | null;
+  value?: string;
+  onChange: (event: ChangeEvent<HTMLSelectElement>) => void;
 }) {
   return (
     <div>
@@ -516,7 +605,8 @@ function FormSelect({
       <select
         name={name}
         required={required}
-        defaultValue={defaultValue || ""}
+        value={value || ""}
+        onChange={onChange}
         style={{
           width: "100%",
           padding: "10px 12px",
@@ -545,13 +635,15 @@ function FormTextarea({
   name,
   placeholder,
   required,
-  defaultValue,
+  value,
+  onChange,
 }: {
   label: string;
   name: string;
   placeholder?: string;
   required?: boolean;
-  defaultValue?: string | null;
+  value?: string;
+  onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
 }) {
   return (
     <div style={{ marginBottom: "1rem" }}>
@@ -563,7 +655,8 @@ function FormTextarea({
         placeholder={placeholder || label}
         required={required}
         rows={3}
-        defaultValue={defaultValue || ""}
+        value={value || ""}
+        onChange={onChange}
         style={{
           width: "100%",
           padding: "10px 12px",

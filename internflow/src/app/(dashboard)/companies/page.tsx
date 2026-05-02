@@ -216,7 +216,7 @@ export default async function CompaniesPage(props: { searchParams: Promise<{ [ke
                   cursor: "pointer",
                   transition: "opacity 0.2s ease",
                 }}>
-                  <Building size={14} /> View Full Profile
+                  <Building size={14} /> View Details
                 </Link>
               </div>
                 );

@@ -139,7 +139,7 @@ export default function RaiseODQueueClient({
                 <div style={{ fontWeight: 600 }}>{row.studentName}</div>
                 <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{row.studentEmail}</div>
                 <Link href={`/students/${row.studentId}`} style={{ display: "inline-flex", gap: "6px", alignItems: "center", marginTop: "8px", color: "var(--primary-color)", textDecoration: "none", fontSize: "0.875rem" }}>
-                  <ExternalLink size={14} /> View student
+                  <ExternalLink size={14} /> View Details
                 </Link>
               </div>
 
@@ -147,7 +147,7 @@ export default function RaiseODQueueClient({
                 <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "4px" }}>Company</div>
                 <div style={{ fontWeight: 600 }}>{row.companyName}</div>
                 <Link href={`/companies/${row.companyId}`} style={{ display: "inline-flex", gap: "6px", alignItems: "center", marginTop: "8px", color: "var(--primary-color)", textDecoration: "none", fontSize: "0.875rem" }}>
-                  <ExternalLink size={14} /> View company
+                  <ExternalLink size={14} /> View Details
                 </Link>
               </div>
 
@@ -155,7 +155,7 @@ export default function RaiseODQueueClient({
                 <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "4px" }}>Job</div>
                 <div style={{ fontWeight: 600 }}>{row.jobTitle}</div>
                 <Link href={`/jobs/${row.jobId}`} style={{ display: "inline-flex", gap: "6px", alignItems: "center", marginTop: "8px", color: "var(--primary-color)", textDecoration: "none", fontSize: "0.875rem" }}>
-                  <ExternalLink size={14} /> View job
+                  <ExternalLink size={14} /> View Details
                 </Link>
               </div>
             </div>

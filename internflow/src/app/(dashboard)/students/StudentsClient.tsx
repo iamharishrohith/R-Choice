@@ -230,7 +230,7 @@ export default function StudentsClient({ initialStudents, queryParam }: { initia
                             title="View student details"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <Eye size={16} /> View
+                            <Eye size={16} /> View Details
                           </Link>
                         </td>
                       </motion.tr>

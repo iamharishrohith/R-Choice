@@ -32,6 +32,17 @@ async function ensureStudentProfile(userId: string): Promise<string> {
   return newProfile.id;
 }
 
+function revalidateStudentProfileViews(userId: string) {
+  revalidatePath("/profile");
+  revalidatePath("/profile/links");
+  revalidatePath("/dashboard/student");
+  revalidatePath("/applications");
+  revalidatePath("/jobs");
+  revalidatePath("/students");
+  revalidatePath(`/students/${userId}`);
+  revalidatePath(`/portfolio/${userId}`);
+}
+
 // Helper to recalculate and update score
 async function updateProfileScore(profileId: string) {
   const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.id, profileId)).limit(1);
@@ -163,7 +174,8 @@ export async function saveBasicProfile(formData: {
       }
     }
 
-    revalidatePath("/profile");
+    revalidateStudentProfileViews(userId);
+    revalidatePath("/settings");
     return { success: true, score };
   } catch (error: unknown) {
     if ((error as DbErrorWithCode).code === "23505") return { error: "Register Number is already in use by another student." };
@@ -208,7 +220,7 @@ export async function saveDeanProfile(formData: {
       })
       .where(eq(users.id, userId));
 
-    revalidatePath("/profile");
+    revalidateStudentProfileViews(session.user.id);
     return { success: true };
   } catch (error: unknown) {
     console.error("Dean profile save error:", error);
@@ -240,7 +252,7 @@ export async function saveEducation(educationData: { institution?: string; degre
       }
     }
     await updateProfileScore(profileId);
-    revalidatePath("/profile");
+    revalidateStudentProfileViews(session.user.id);
     return { success: true };
   } catch (err) { console.error("Education save error:", err); return { error: "Failed to save education." }; }
 }
@@ -261,7 +273,7 @@ export async function saveSkills(skillsData: {name: string, type: string, isTop?
       });
     }
     await updateProfileScore(profileId);
-    revalidatePath("/profile");
+    revalidateStudentProfileViews(session.user.id);
     return { success: true };
   } catch (err) { console.error("Skills save error:", err); return { error: "Failed to save skills." }; }
 }
@@ -284,7 +296,7 @@ export async function saveProjects(projectsData: { title?: string; description?:
       }
     }
     await updateProfileScore(profileId);
-    revalidatePath("/profile");
+    revalidateStudentProfileViews(session.user.id);
     return { success: true };
   } catch (err) { console.error("Projects save error:", err); return { error: "Failed to save projects." }; }
 }
@@ -307,7 +319,7 @@ export async function saveCertifications(certsData: { name?: string; issuingOrg?
       }
     }
     await updateProfileScore(profileId);
-    revalidatePath("/profile");
+    revalidateStudentProfileViews(session.user.id);
     return { success: true };
   } catch (err) { console.error("Certs save error:", err); return { error: "Failed to save certs." }; }
 }
@@ -330,7 +342,7 @@ export async function saveLinks(linksData: { title?: string; url?: string; platf
       }
     }
     await updateProfileScore(profileId);
-    revalidatePath("/profile/links");
+    revalidateStudentProfileViews(session.user.id);
     return { success: true };
   } catch (err) { console.error("Links save error:", err); return { error: "Failed to save links." }; }
 }

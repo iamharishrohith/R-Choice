@@ -16,6 +16,7 @@ type JobCard = {
   description: string;
   location: string;
   companyName: string | null;
+  companyId?: string | null;
   stipendInfo: string | null;
   stipendSalary?: string | null;
   deadline: string;
@@ -341,16 +342,30 @@ export default function JobBoardClient({ jobs, interests, isStudent, appliedJobI
 
                 <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "var(--space-4)", display: "flex", justifyContent: "center" }}>
                   {isStudent ? (
+                    <div style={{ display: "flex", width: "100%", gap: "8px", flexDirection: "column" }}>
+                      <div style={{ display: "flex", width: "100%", gap: "8px" }}>
+                        <Link href={`/jobs/${job.id}`} className="btn btn-outline" style={{ display: "flex", flex: 1, justifyContent: "center", gap: "8px" }}>
+                          View Details
+                        </Link>
+                        <ApplyButton job={job} isApplied={appliedJobIds.includes(job.id)} />
+                      </div>
+                      {job.companyId && (
+                        <Link href={`/companies/${job.companyId}`} className="btn btn-outline" style={{ display: "flex", width: "100%", justifyContent: "center", gap: "8px" }}>
+                          View Company
+                        </Link>
+                      )}
+                    </div>
+                  ) : (
                     <div style={{ display: "flex", width: "100%", gap: "8px" }}>
                       <Link href={`/jobs/${job.id}`} className="btn btn-outline" style={{ display: "flex", flex: 1, justifyContent: "center", gap: "8px" }}>
                         View Details
                       </Link>
-                      <ApplyButton job={job} isApplied={appliedJobIds.includes(job.id)} />
+                      {job.companyId && (
+                        <Link href={`/companies/${job.companyId}`} className="btn btn-outline" style={{ display: "flex", flex: 1, justifyContent: "center", gap: "8px" }}>
+                          View Company
+                        </Link>
+                      )}
                     </div>
-                  ) : (
-                    <Link href={`/jobs/${job.id}`} className="btn btn-outline" style={{ display: "flex", width: "100%", justifyContent: "center", gap: "8px" }}>
-                      View Details
-                    </Link>
                   )}
                 </div>
               </div>

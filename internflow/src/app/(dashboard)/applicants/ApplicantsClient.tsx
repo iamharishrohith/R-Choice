@@ -690,7 +690,7 @@ export default function ApplicantsClient({
                                 Profile <ChevronRight size={14} />
                               </button>
                               <Link href={`/students/${applicant.id}`} className="btn btn-outline" style={{ padding: "4px 8px", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "4px", textDecoration: "none" }}>
-                                View Student <ChevronRight size={14} />
+                                View Details <ChevronRight size={14} />
                               </Link>
                             </div>
                           </td>
