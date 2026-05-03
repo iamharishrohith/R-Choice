@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
     let registrationId = "";
     let wasUpdated = false;
 
-    await db.transaction(async (tx) => {
+    await (async (tx) => {
       const matchingConditions = [
         and(
           eq(companyRegistrations.companyLegalName, normalizedCompanyData.companyLegalName),
@@ -341,7 +341,7 @@ export async function POST(req: NextRequest) {
           }))
         );
       }
-    });
+    })(db);
 
     return NextResponse.json({ success: true, registrationId, updated: wasUpdated });
   } catch (error) {

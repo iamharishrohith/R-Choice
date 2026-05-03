@@ -103,7 +103,7 @@ export async function approveCompanyRegistration(companyId: string) {
     let tempPassword: string | null = null;
     let companyUserId = existingUser?.id || company.userId || null;
 
-    await db.transaction(async (tx) => {
+    await (async (tx) => {
       if (!companyUserId) {
         tempPassword = randomBytes(8).toString("hex");
         const passwordHash = await bcrypt.hash(tempPassword, 10);
@@ -194,7 +194,7 @@ export async function approveCompanyRegistration(companyId: string) {
           }))
         );
       }
-    });
+    })(db);
 
     if (tempPassword && getMailDeliveryMode() === "smtp") {
       await sendCompanyApprovalEmail(loginEmail, company.companyLegalName, tempPassword);
@@ -273,7 +273,7 @@ export async function reviewCompanyRegistration(
           ? "under_review"
           : "info_requested";
 
-    await db.transaction(async (tx) => {
+    await (async (tx) => {
       await tx
         .update(companyRegistrations)
         .set({
@@ -316,7 +316,7 @@ export async function reviewCompanyRegistration(
           linkUrl: `/companies/${companyId}`,
         });
       }
-    });
+    })(db);
 
     captureServerEvent("company_registration_reviewed", {
       companyId,
